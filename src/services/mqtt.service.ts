@@ -29,7 +29,7 @@ export const handleMqttMessage = async (topic: string, message: Buffer) => {
       const status = payload.status;
       //   console.log("payload", payload);
 
-      console.log("devices", devices);
+      console.log("payload", payload);
 
       if (!device_id)
         return errorLogger.warn(

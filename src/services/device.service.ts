@@ -70,7 +70,7 @@ export const sendNoticeToDeviceService = async (
   });
 
   if (duration > 0) {
-    scheduleExpireJob(updatedDevice.id, duration * 60000);
+    scheduleExpireJob(updatedDevice.id, duration * 1000); // Convert minutes to milliseconds
   }
 };
 
@@ -149,10 +149,17 @@ export const updateDeviceService = async (
 
 export const expireNoticeById = async (id: string) => {
   console.log(`Notice expired for device ${id}`);
-  await updateDeviceService(id, {
-    mode: "clock",
-    duration: undefined,
-    pending_notice: false,
-    current_notice: "Hello, from scheduler",
-  });
+
+  mqttClient.publish(
+    `device/${id}/mode`,
+    "0",
+    {
+      qos: 1, // Ensure the message is delivered at least once
+      retain: false, // Do not retain the message
+    },
+    (err) => {
+      if (err) throw createError(500, "MQTT publish failed.");
+      else logger.info(`Mode updated for device ${id}`);
+    }
+  );
 };
