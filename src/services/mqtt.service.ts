@@ -30,6 +30,8 @@ export const handleMqttMessage = async (topic: string, message: Buffer) => {
           notice,
         });
       } else {
+        console.log("changing device status to", status, "for ID:", id);
+
         // Create or update device with the new status
         await createOrUpdateDeviceService({
           id,
@@ -101,6 +103,7 @@ export const handleMqttMessage = async (topic: string, message: Buffer) => {
       console.log("under mode topic", topic);
 
       const device_id = topic.split("/")[1];
+
       if (!device_id) {
         errorLogger.warn(
           "Received mode message with invalid topic format:",

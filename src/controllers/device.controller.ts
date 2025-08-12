@@ -7,9 +7,12 @@ import {
   changeDeviceFontAndTimeFormatService,
   changeDeviceModeService,
   getAllDevicesService,
+  getAllowedUsersForDeviceService,
   getAllScheduledNoticesService,
   getDeviceByIdService,
   getScheduledNoticesForDeviceService,
+  giveDeviceAccessToUsersInGroupService,
+  revokeDeviceAccessFromUserService,
   scheduleNoticeService,
   scheduleNoticeToAllDevicesService,
   sendNoticeToAllDevicesService,
@@ -69,6 +72,34 @@ export const getDeviceById = asyncHandler(
   }
 );
 
+// Get all allowed access usrs for a device
+
+/**
+ * @description Get all allowed access users for a device.
+ * @method GET
+ * @route /api/v1/devices/:deviceId/access-users
+ */
+export const getAllowedUsersForDevice = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { deviceId } = req.params;
+
+    if (!Types.ObjectId.isValid(deviceId)) {
+      throw createError(400, "Invalid device ID format.");
+    }
+
+    // Assuming a service to get available fonts exists
+    const fonts = await getAllowedUsersForDeviceService(deviceId);
+
+    successResponse(res, {
+      message: `Available fonts for device ${deviceId} fetched successfully`,
+      statusCode: 200,
+      payload: {
+        data: fonts,
+      },
+    });
+  }
+);
+
 /**
  * @description Change the mode of a specific device.
  * @method POST
@@ -106,14 +137,14 @@ export const changeSingleDeviceMode = asyncHandler(
  */
 export const changeAllDevicesMode = asyncHandler(
   async (req: Request, res: Response) => {
-    const { mode } = req.body;
+    const { mode, deviceIds } = req.body;
 
     if (!["clock", "notice"].includes(mode)) {
-      return res.status(400).json({ error: "Invalid mode." });
+      throw createError(400, "Invalid mode.");
     }
 
     // Assuming a service to change all devices mode exists
-    await changeAllDevicesModeService(mode);
+    await changeAllDevicesModeService(mode, deviceIds);
 
     successResponse(res, {
       message: `All devices changed to ${mode} mode`,
@@ -148,10 +179,10 @@ export const sendNoticeInDevice = asyncHandler(
  */
 export const sendNoticeToAllDevices = asyncHandler(
   async (req: Request, res: Response) => {
-    const { notice, duration } = req.body;
+    const { notice, duration, deviceIds } = req.body;
 
     // Assuming a service to send notice to all devices exists
-    await sendNoticeToAllDevicesService(notice, duration);
+    await sendNoticeToAllDevicesService(notice, duration, deviceIds);
 
     successResponse(res, {
       message: "Notice sent to all devices successfully",
@@ -187,10 +218,15 @@ export const scheduleNoticeForDevice = asyncHandler(
  */
 export const scheduleNoticeForAllDevices = asyncHandler(
   async (req: Request, res: Response) => {
-    const { notice, startTime, endTime } = req.body;
+    const { notice, startTime, endTime, deviceIds } = req.body;
 
     // Assuming a service to schedule notice for all devices exists
-    await scheduleNoticeToAllDevicesService(notice, startTime, endTime);
+    await scheduleNoticeToAllDevicesService(
+      notice,
+      startTime,
+      endTime,
+      deviceIds
+    );
 
     successResponse(res, {
       message: "Notice scheduled for all devices successfully",
@@ -244,8 +280,7 @@ export const getScheduledNoticeInDevice = asyncHandler(
  */
 export const cancelScheduledNoticeForDevice = asyncHandler(
   async (req: Request, res: Response) => {
-    const { deviceId } = req.params;
-    const { scheduledId } = req.body;
+    const { deviceId, scheduledId } = req.params;
     await cancelScheduledNoticeService(deviceId, scheduledId);
     successResponse(res, {
       message: `Scheduled notice with ID ${scheduledId} for device ${deviceId} cancelled successfully`,
@@ -269,6 +304,53 @@ export const changeFontAndTimeFormat = asyncHandler(
 
     successResponse(res, {
       message: `Device ${deviceId} font and time format updated successfully`,
+      statusCode: 200,
+    });
+  }
+);
+
+// giveDeviceAccessToUsersInGroup
+/**
+ * @description Give device access to users in a group.
+ * @method POST
+ * @route /api/v1/devices/:deviceId/give-device-access
+ */
+
+export const giveDeviceAccessToUsersInGroup = asyncHandler(
+  async (req: IRequestWithUser, res: Response) => {
+    const { deviceId } = req.params;
+    const { userIds } = req.body;
+
+    if (!req.user) {
+      throw createError(401, "Unauthorized");
+    }
+
+    // Assuming a service to give device access to users exists
+    await giveDeviceAccessToUsersInGroupService(deviceId, userIds);
+
+    successResponse(res, {
+      message: `Device access granted to users for device ${deviceId}`,
+      statusCode: 200,
+    });
+  }
+);
+
+// revokeDeviceAccessFromUser
+/**
+ * @description Revoke device access from a user in a group.
+ * @method POST
+ * @route /api/v1/devices/:deviceId/revoke-device-access/:userId
+ */
+export const revokeDeviceAccessFromUser = asyncHandler(
+  async (req: IRequestWithUser, res: Response) => {
+    const { deviceId, userId } = req.params;
+    if (!req.user) {
+      throw createError(401, "Unauthorized");
+    }
+    // Assuming a service to revoke device access from a user exists
+    await revokeDeviceAccessFromUserService(deviceId, userId);
+    successResponse(res, {
+      message: `Device access revoked from user ${userId} for device ${deviceId}`,
       statusCode: 200,
     });
   }

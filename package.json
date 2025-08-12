@@ -30,6 +30,7 @@
     "mqtt": "^5.14.0",
     "node-cron": "^4.2.1",
     "nodemailer": "^7.0.5",
+    "socket.io": "^4.8.1",
     "ts-node": "^10.9.2",
     "winston": "^3.17.0",
     "winston-daily-rotate-file": "^5.0.0",

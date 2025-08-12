@@ -8,14 +8,15 @@ import {
 } from "../cron/scheduler";
 import { DeviceModel } from "../models/device.model";
 import { UserModel } from "../models/user.model";
+import { emitDeviceStatusUpdate } from "../socket";
 import { dateFormat, formatBytes, formatUptime } from "../utils/date-format";
 import { errorLogger, logger } from "../utils/logger";
 import {
   IDevice,
+  IGroup,
   IUserWithPopulateDevices,
   IUserWithPopulateGroup,
 } from "../utils/types";
-
 // Utility to publish messages to a device
 const publishToDevice = async (
   id: string,
@@ -54,6 +55,11 @@ export const updateDeviceStatusAndHandlePendingNotice = async (
   const device = await DeviceModel.findOne({ id });
 
   if (device) {
+    if (device.status !== status || device.mode !== payload.mode) {
+      console.log("Updating device status for", id, "to", status);
+      emitDeviceStatusUpdate({ id });
+    }
+
     // If device comes online, send pending notice if it exists
     if (
       status === "online" &&
@@ -71,11 +77,6 @@ export const updateDeviceStatusAndHandlePendingNotice = async (
       // Start a cron job to expire the notice
       if (device.duration) {
         scheduleExpireJob(id, device.duration);
-        // s1cheduleNoticeJob(
-        //   id,
-        //   device.duration,
-        //   new Date(Date.now() + device.duration * 60000)
-        // );
       }
     } else {
       // Just update the status and other info
@@ -115,20 +116,36 @@ export const changeDeviceModeService = async (
 };
 
 // Change mode for all devices
-export const changeAllDevicesModeService = async (mode: "clock" | "notice") => {
-  const devices = await DeviceModel.find({});
+export const changeAllDevicesModeService = async (
+  mode: "clock" | "notice",
+  deviceIds: string[]
+) => {
+  const devices = await DeviceModel.find({
+    _id: { $in: deviceIds },
+  })
+    .select("status")
+    .lean();
+
+  if (devices.length === 0) {
+    throw createError(404, "No devices found to change mode.");
+  }
+
+  if (devices.length !== deviceIds.length) {
+    throw createError(404, "Some devices not found.");
+  }
+
   for (const device of devices) {
     if (device.status === "online") {
-      changeDeviceModeService(device.id, mode);
+      changeDeviceModeService(device._id.toString(), mode);
     }
   }
-  await DeviceModel.updateMany(
-    {
-      status: "online",
-    },
-    { mode }
-  );
-  return { message: `All online devices switched to ${mode} mode.` };
+  // await DeviceModel.updateMany(
+  //   {
+  //     _id: { $in: devices },
+  //     status: "online",
+  //   },
+  //   { mode }
+  // );
 };
 
 // Send a notice to a single device (with duration)
@@ -143,8 +160,6 @@ export const sendNoticeToDeviceService = async (
   // Save the notice and duration to history
   const historyEntry = { message: notice, timestamp: Date.now() };
   device.history.push(historyEntry);
-
-  console.log("notice", notice, duration);
 
   // If the device is offline, set pending_notice flag
   if (device.status === "offline") {
@@ -181,12 +196,17 @@ export const sendNoticeToDeviceService = async (
 // Show notice on all devices
 export const sendNoticeToAllDevicesService = async (
   notice: string,
-  duration: number | null
+  duration: number | null,
+  deviceIds: string[]
 ) => {
-  const devices = await DeviceModel.find({});
+  const devices = await DeviceModel.find({
+    _id: { $in: deviceIds },
+  })
+    .select("id")
+    .lean();
   for (const device of devices) {
     // if (device.status === "online") {
-    sendNoticeToDeviceService(device.id, notice, duration);
+    sendNoticeToDeviceService(device._id.toString(), notice, duration);
     // }
   }
   return { message: `Notice sent to all online devices.` };
@@ -241,12 +261,23 @@ export const scheduleNoticeService = async (
 export const scheduleNoticeToAllDevicesService = async (
   notice: string,
   startTime: number,
-  endTime: number
+  endTime: number,
+  deviceIds: string[]
 ) => {
-  const devices = await DeviceModel.find({});
+  const devices = await DeviceModel.find({
+    _id: { $in: deviceIds },
+  })
+    .select("id")
+    .lean();
+
   for (const device of devices) {
     // Schedule the notice for each device
-    await scheduleNoticeService(device.id, notice, startTime, endTime);
+    await scheduleNoticeService(
+      device._id.toString(),
+      notice,
+      startTime,
+      endTime
+    );
   }
   return { message: `Scheduled notice sent to all devices.` };
 };
@@ -274,7 +305,7 @@ export const cancelScheduledNoticeService = async (
   id: string,
   scheduledId: string
 ) => {
-  const device = await DeviceModel.findOne({ id });
+  const device = await DeviceModel.findById(id);
   if (!device) throw createError(404, `Device ${id} not found.`);
   // Find the scheduled notice by ID
   const scheduledNoticeIndex = device.scheduled_notices.findIndex(
@@ -299,8 +330,7 @@ export const createOrUpdateDeviceService = async (
   payload: Partial<IDevice>
 ) => {
   const { id, ...updateData } = payload;
-
-  console.log("error from");
+  console.log("Creating or updating device with ID:", id);
 
   const device = await DeviceModel.findOneAndUpdate(
     { id },
@@ -313,6 +343,7 @@ export const createOrUpdateDeviceService = async (
     },
     { upsert: true, new: true, setDefaultsOnInsert: true }
   );
+  emitDeviceStatusUpdate({ id: device.id });
 
   return device;
 };
@@ -328,9 +359,12 @@ export const expireNoticeById = async (id: string) => {
         end_time: null,
       },
       { new: true }
-    );
+    )
+      .select("id")
+      .lean();
 
     if (device) {
+      emitDeviceStatusUpdate({ id: device.id });
       // Publish an MQTT message to the device to change its mode
       await publishToDevice(device.id, "mode", "0");
       logger.info(`Notice expired for device ${id}. Switched to clock mode.`);
@@ -345,7 +379,7 @@ export const expireNoticeById = async (id: string) => {
 // Function to be called by the cron job to send a scheduled notice
 export const sendScheduledNotice = async (id: string, scheduleId: string) => {
   try {
-    const device = await DeviceModel.findById(id);
+    const device = await DeviceModel.findById(id).lean();
 
     if (
       !device ||
@@ -366,14 +400,32 @@ export const sendScheduledNotice = async (id: string, scheduleId: string) => {
 
     const { notice, duration } = scheduledNotice;
 
+    if (device.status === "offline") {
+      await DeviceModel.findByIdAndUpdate(device._id, {
+        pending_notice: true,
+        notice,
+        duration,
+        $pull: { scheduled_notices: { id: scheduleId } },
+      })
+        .lean()
+        .exec();
+
+      return logger.info(
+        `Device ${id} is offline. Scheduled notice set as pending.`
+      );
+    }
+
     // Publish the notice to the device
     await publishToDevice(device.id, "notice", notice);
     await publishToDevice(device.id, "mode", "1"); // Switch to notice mode
 
     // clear the scheduled notice from the device
+
     await DeviceModel.findByIdAndUpdate(device._id, {
       $pull: { scheduled_notices: { id: scheduleId } },
-    });
+    })
+      .lean()
+      .exec();
 
     logger.info(`Scheduled notice sent to device ${id}: "${notice}"`);
 
@@ -425,13 +477,95 @@ export const getAllDevicesService = async (
 // Get a single device by ID
 export const getDeviceByIdService = async (id: string) => {
   const device = await DeviceModel.findById(id).lean();
+
   if (!device) throw createError(404, `Device ${id} not found.`);
+
   return {
     ...device,
     last_seen: dateFormat(device.last_seen),
     uptime: formatUptime(device.uptime),
     free_heap: formatBytes(device.free_heap),
   };
+};
+
+// Get all allowed access usrs for a device
+export const getAllowedUsersForDeviceService = async (id: string) => {
+  const device = await DeviceModel.findById(id)
+    .select("group")
+    .populate<{ group: IGroup }>({
+      path: "group",
+      select: "members",
+      populate: {
+        path: "members",
+        select: "_id first_name last_name email role",
+      },
+    })
+    .lean();
+
+  if (!device) throw createError(404, `Device ${id} not found.`);
+
+  const deviceAllowedUsers = await UserModel.find({
+    allowed_devices: {
+      $in: [id],
+    },
+  })
+    .select("_id first_name last_name email role")
+    .lean();
+
+  const groupAdmins =
+    device.group?.members?.filter((u) => u.role === "admin") || [];
+
+  return [...deviceAllowedUsers, ...groupAdmins];
+};
+
+// give device access to users in a group
+export const giveDeviceAccessToUsersInGroupService = async (
+  deviceId: string,
+  userIds: string[]
+) => {
+  const device = await DeviceModel.findById(deviceId).lean();
+  if (!device) throw createError(404, `Device ${deviceId} not found.`);
+
+  // Check if the users exist and are not already allowed access
+  const users = await UserModel.find({
+    _id: { $in: userIds.map((id) => new mongoose.Types.ObjectId(id)) },
+    allowed_devices: { $ne: deviceId },
+  }).lean();
+  if (users.length === 0) {
+    throw createError(404, "No valid users found to give device access.");
+  }
+  // Update the users to give them access to the device
+  UserModel.updateMany(
+    { _id: { $in: users.map((user) => user._id) } },
+    { $addToSet: { allowed_devices: deviceId } }
+  ).exec();
+};
+
+// revokeDeviceAccessFromUser
+export const revokeDeviceAccessFromUserService = async (
+  deviceId: string,
+  userId: string
+) => {
+  const device = await DeviceModel.findById(deviceId).lean();
+  if (!device) throw createError(404, `Device ${deviceId} not found.`);
+  // Check if the user exists and has access to the device
+  const user = await UserModel.findOne({
+    _id: new mongoose.Types.ObjectId(userId),
+    allowed_devices: {
+      $in: [deviceId],
+    },
+  }).lean();
+  if (!user) {
+    throw createError(
+      404,
+      `User ${userId} does not have access to device ${deviceId}.`
+    );
+  }
+  // Update the user to revoke access to the device
+  await UserModel.updateOne(
+    { _id: user._id },
+    { $pull: { allowed_devices: deviceId } }
+  ).exec();
 };
 
 // Change font and time format for a device

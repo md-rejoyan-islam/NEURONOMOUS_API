@@ -1,3 +1,4 @@
+import { Types } from "mongoose";
 import z from "zod";
 
 export const changeDeviceModeSchema = z.object({
@@ -30,6 +31,35 @@ export const sendNoticeToDeviceSchema = z.object({
     .strict(),
 });
 
+export const sendNoticeToSelectedDeviceSchema = sendNoticeToDeviceSchema.extend(
+  {
+    body: z.object({
+      deviceIds: z
+        .array(z.string(), {
+          error: (iss) => {
+            if (!iss.input) {
+              return "Device IDs are required.";
+            } else if (!Array.isArray(iss.input)) {
+              return "Device IDs must be an array.";
+            }
+            return "Invalid Device IDs.";
+          },
+        })
+        .refine(
+          (ids) => {
+            if (ids.length === 0) {
+              return false;
+            }
+            return ids.every((id) => Types.ObjectId.isValid(id));
+          },
+          {
+            message: "Each Device ID must be a valid ObjectId string.",
+          }
+        ),
+    }),
+  }
+);
+
 export const scheduleNoticeForDeviceSchema = z.object({
   body: z
     .object({
@@ -57,3 +87,99 @@ export const scheduleNoticeForDeviceSchema = z.object({
     )
     .strict(),
 });
+
+export const giveDeviceAccessToUsersSchema = z.object({
+  body: z
+    .object({
+      userIds: z
+        .array(z.string(), {
+          error: (iss) => {
+            if (!iss.input) {
+              return "User IDs are required.";
+            } else if (!Array.isArray(iss.input)) {
+              return "User IDs must be an array.";
+            }
+            return "Invalid User IDs.";
+          },
+        })
+        .refine(
+          (ids) => {
+            if (ids.length === 0) {
+              return false;
+            }
+            return ids.every((id) => Types.ObjectId.isValid(id));
+          },
+          {
+            message: "Each User ID must be a valid ObjectId string.",
+          }
+        ),
+    })
+    .strict(),
+});
+
+export const changeSelectedDeviceModeSchema = z.object({
+  body: z
+    .object({
+      mode: z.enum(["clock", "notice"], {
+        error: (iss) => {
+          if (!iss.input) {
+            return "Mode is required.";
+          } else if (typeof iss.input !== iss.expected) {
+            return "Mode must be a string.";
+          }
+          return `Invalid mode. Allowed values are: clock, notice.`;
+        },
+      }),
+      deviceIds: z
+        .array(z.string(), {
+          error: (iss) => {
+            if (!iss.input) {
+              return "Device IDs are required.";
+            } else if (!Array.isArray(iss.input)) {
+              return "Device IDs must be an array.";
+            }
+            return "Invalid Device IDs.";
+          },
+        })
+        .refine(
+          (ids) => {
+            if (ids.length === 0) {
+              return false;
+            }
+            return ids.every((id) => Types.ObjectId.isValid(id));
+          },
+          {
+            message: "Each Device ID must be a valid ObjectId string.",
+          }
+        ),
+    })
+    .strict(),
+});
+
+export const sendScheduleNoticeToSelectedDeviceSchema =
+  scheduleNoticeForDeviceSchema.extend({
+    body: z.object({
+      deviceIds: z
+        .array(z.string(), {
+          error: (iss) => {
+            if (!iss.input) {
+              return "Device IDs are required.";
+            } else if (!Array.isArray(iss.input)) {
+              return "Device IDs must be an array.";
+            }
+            return "Invalid Device IDs.";
+          },
+        })
+        .refine(
+          (ids) => {
+            if (ids.length === 0) {
+              return false;
+            }
+            return ids.every((id) => Types.ObjectId.isValid(id));
+          },
+          {
+            message: "Each Device ID must be a valid ObjectId string.",
+          }
+        ),
+    }),
+  });

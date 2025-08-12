@@ -5,6 +5,7 @@ import secret from "../app/secret";
 import forgotPasswordMail from "../mails/forgot-password-mail";
 import resetPasswordMail from "../mails/reset-password-mail";
 import { UserModel } from "../models/user.model";
+import { emitInvalidateOtherSessions } from "../socket";
 import { generateRandomPin } from "../utils/generate-random-pin";
 import generateToken, { verifyToken } from "../utils/generate-token";
 import { errorLogger } from "../utils/logger";
@@ -61,6 +62,8 @@ export const authLoginService = async (email: string, password: string) => {
   user.reset_code = null; // Clear reset code if user logs in
   user.reset_code_expires = null; // Clear reset code expiration if user logs in
   await user.save();
+
+  emitInvalidateOtherSessions(user._id.toString());
 
   return {
     accessToken,
@@ -240,7 +243,11 @@ export const updateAuthProfileService = async (
 // refresh token service
 export const refreshTokenService = async (refreshToken: string) => {
   // Verify the refresh token
-  const payload = verifyToken(refreshToken, secret.jwt.refreshTokenSecret);
+  const payload = verifyToken(refreshToken, secret.jwt.refreshTokenSecret) as {
+    _id: Types.ObjectId;
+    loginCode: string;
+    role: string;
+  };
 
   if (!payload) throw createError(401, "Invalid refresh token.");
 
@@ -256,6 +263,7 @@ export const refreshTokenService = async (refreshToken: string) => {
   // Generate new access token
   const accessToken = generateToken(
     {
+      loginCode: payload.loginCode,
       // email: user.email,
       role: user.role,
       _id: user._id.toString(),
