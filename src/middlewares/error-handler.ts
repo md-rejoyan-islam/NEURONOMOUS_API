@@ -11,7 +11,7 @@ import secret from "../app/secret";
 import { IErrorResponse } from "../utils/types";
 
 const errorHandler = (
-  error: any,
+  error: Error,
   _req: Request,
   res: Response,
   _next: NextFunction
@@ -38,7 +38,7 @@ const errorHandler = (
   // 1. Handle Zod validation errors
   if (error instanceof ZodError) {
     statusCode = UnprocessableEntity().statusCode;
-    message = "Validation Error";
+    message = error.issues[0].message;
 
     errors = error.issues.map((issue) => ({
       path: issue.path.join("."),

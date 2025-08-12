@@ -1,23 +1,11 @@
-import { DeviceDataModel } from "../models/device_data.model";
-
 import { errorLogger } from "../utils/logger";
-import { beforeAllDevices } from "../utils/query";
 import {
-  createDeviceService,
-  sendNoticeToDeviceService,
-  updateDeviceService,
+  createOrUpdateDeviceService,
+  updateDeviceStatusAndHandlePendingNotice,
 } from "./device.service";
 
 const STATUS_TOPIC = "esp32/status";
 const DATA_TOPIC_PREFIX = "esp32/data/ntp/";
-
-// Initialize devices as an empty object
-let devices: { [key: string]: string } = {};
-
-// Asynchronously load devices before handling messages
-(async () => {
-  devices = await beforeAllDevices();
-})();
 
 export const handleMqttMessage = async (topic: string, message: Buffer) => {
   const msg = message.toString();
@@ -25,62 +13,31 @@ export const handleMqttMessage = async (topic: string, message: Buffer) => {
   try {
     if (topic === STATUS_TOPIC) {
       const payload = JSON.parse(msg);
-      const device_id = payload.id;
-      const status = payload.status;
-      //   console.log("payload", payload);
+      const { id, status, uptime, mode, free_heap, notice } = payload;
 
-      console.log("payload", payload);
+      // console.log("payload", payload);
 
-      if (!device_id)
+      if (!id)
         return errorLogger.warn(
           "Received status message without device ID:",
           msg
         );
-
-      // Check if the device ID is already in the devices object
-      if (device_id in devices) {
-        // if go to offline, status change
-        if (status === "offline" && devices[device_id] !== "offline") {
-          // status change to offline
-          devices[device_id] = status;
-
-          // Update the device status in the database
-          await updateDeviceService(device_id, {
-            status,
-          });
-        } else if (status === "online" && devices[device_id] !== "online") {
-          devices[device_id] = status;
-
-          // Update the device status in the database
-          const device = await updateDeviceService(device_id, {
-            status,
-          });
-
-          // If the device has a pending notice, send it
-          if (device?.pending_notice) {
-            await sendNoticeToDeviceService(
-              device_id,
-              device.current_notice,
-              device.duration,
-              true
-            );
-            // Reset pending_notice after sending
-            device.pending_notice = false;
-          }
-        }
+      if (status === "online" || status === "offline") {
+        await updateDeviceStatusAndHandlePendingNotice(id, status, {
+          uptime,
+          mode,
+          free_heap,
+          notice,
+        });
       } else {
-        // If the device is not in the list, add it
-        devices[device_id] = status;
-
-        // create a new device record in the database
-        return await createDeviceService({
-          id: device_id,
+        // Create or update device with the new status
+        await createOrUpdateDeviceService({
+          id,
           status,
-          mode: payload.mode || "clock",
-          current_notice: payload.notice,
-          uptime: payload.uptime,
-          free_heap: payload.free_heap,
-          timestamp: payload.timestamp,
+          uptime,
+          mode,
+          free_heap,
+          notice,
         });
       }
     } else if (topic.startsWith(DATA_TOPIC_PREFIX)) {
@@ -98,19 +55,19 @@ export const handleMqttMessage = async (topic: string, message: Buffer) => {
 
       const lines = msg.trim().split("\n");
 
-      const data = lines
+      lines
         .filter((line) => line && !line.startsWith("NTP_TIME"))
         .map((line) => {
           const [ntp_time, rtc_before, rtc_after] = line.split(",");
           return { device_id, ntp_time, rtc_before, rtc_after, time: ntp_time };
         });
 
-      if (data.length > 0) {
-        // Only perform operations if there's data to insert
-        await DeviceDataModel.insertMany(data);
-      } else {
-        errorLogger.warn(`Received empty data payload for device ${device_id}`);
-      }
+      // if (data.length > 0) {
+      //   // Only perform operations if there's data to insert
+      //   await DeviceDataModel.insertMany(data);
+      // } else {
+      //   errorLogger.warn(`Received empty data payload for device ${device_id}`);
+      // }
     } else if (topic.endsWith("/notice")) {
       console.log("under notice topic", topic);
 
@@ -151,12 +108,12 @@ export const handleMqttMessage = async (topic: string, message: Buffer) => {
         );
         return;
       }
-      const mode_text = msg === "0" ? "clock" : "notice";
+      // const mode_text = msg === "0" ? "clock" : "notice";
       // Use upsert: true here too for consistency and robustness.
 
-      await updateDeviceService(device_id, {
-        mode: mode_text,
-      });
+      // await updateDeviceService(device_id, {
+      //   mode: mode_text,
+      // });
 
       //   await DeviceModel.findOneAndUpdate(
       //     { id: device_id },

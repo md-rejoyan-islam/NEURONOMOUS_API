@@ -2,14 +2,17 @@ import { Request, Response, Router } from "express";
 import createError from "http-errors";
 import errorHandler from "../middlewares/error-handler";
 import { successResponse } from "../utils/response-handler";
-import devicesRouter from "./device.routes";
+import authRouter from "./auth.routes";
+import deviceRouter from "./device.routes";
+import groupRouter from "./group.routes";
+import userRouter from "./user.routes";
 
 const router = Router();
 
 // home route
 router.get("/", (_, res) => {
   successResponse(res, {
-    message: "Welcome to the IoT Backend Service!",
+    message: "Welcome to the IoT Backend Service.",
     statusCode: 200,
   });
 });
@@ -23,7 +26,13 @@ router.get("/health", (_, res) => {
 });
 
 // device routes
-router.use("/api/v1/devices", devicesRouter);
+router.use("/api/v1/devices", deviceRouter);
+// auth routes
+router.use("/api/v1/auth", authRouter);
+// user routes
+router.use("/api/v1/users", userRouter);
+// group routes
+router.use("/api/v1/groups", groupRouter);
 
 // 404 route
 router.use("", (req: Request, _res: Response) => {

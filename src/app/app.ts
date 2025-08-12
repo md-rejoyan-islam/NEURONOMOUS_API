@@ -1,11 +1,9 @@
 import cors from "cors";
-import dotenv from "dotenv";
 import express from "express";
+import morgan from "morgan";
 import corsOptions from "../config/cors";
 import { setupMqttClient } from "../config/mqtt";
 import router from "../routes/routes";
-
-dotenv.config();
 
 const app = express();
 
@@ -15,6 +13,14 @@ app.use(express.json());
 
 // CORS configuration
 app.use(cors(corsOptions));
+
+// morgan
+if (process.env.NODE_ENV === "development") {
+  app.use(morgan("dev"));
+}
+// else {
+//   app.use(morgan("combined"));
+// }
 
 app.use(router);
 

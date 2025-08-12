@@ -2,7 +2,7 @@ import { createLogger, format, transports } from "winston";
 import DailyRotateFile from "winston-daily-rotate-file";
 const { combine, timestamp, label, printf, colorize } = format;
 
-const myFormat = printf(({ level, message, label, timestamp }) => {
+const myFormat = printf(({ message, label, timestamp }) => {
   const date = new Date(timestamp as string);
   const hour = date.getHours();
   const minutes = date.getMinutes();

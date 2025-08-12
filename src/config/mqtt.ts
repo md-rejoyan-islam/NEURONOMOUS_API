@@ -35,5 +35,6 @@ export const setupMqttClient = () => {
 
   mqttClient.on("error", (err) => {
     errorLogger.error("MQTT connection error:", err);
+    // process.exit(1);
   });
 };
