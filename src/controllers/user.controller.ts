@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import createError from "http-errors";
 import { Types } from "mongoose";
+import { IRequestWithUser } from "../app/types";
 import {
   banUserByIdService,
   changeUserPasswordService,
@@ -14,7 +15,6 @@ import {
 } from "../services/user.service";
 import { asyncHandler } from "../utils/async-handler";
 import { successResponse } from "../utils/response-handler";
-import { IRequestWithUser } from "../utils/types";
 
 /**
  * @description Get all users controller for super admin

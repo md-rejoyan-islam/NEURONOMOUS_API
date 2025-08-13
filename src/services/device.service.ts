@@ -1,5 +1,6 @@
 import createError from "http-errors";
 import mongoose, { Types } from "mongoose";
+import { IDevice, IUser } from "../app/types";
 import { mqttClient } from "../config/mqtt";
 import {
   cancelScheduledNoticeJob,
@@ -11,12 +12,6 @@ import { UserModel } from "../models/user.model";
 import { emitDeviceStatusUpdate } from "../socket";
 import { dateFormat, formatBytes, formatUptime } from "../utils/date-format";
 import { errorLogger, logger } from "../utils/logger";
-import {
-  IDevice,
-  IGroup,
-  IUserWithPopulateDevices,
-  IUserWithPopulateGroup,
-} from "../utils/types";
 // Utility to publish messages to a device
 const publishToDevice = async (
   id: string,
@@ -445,25 +440,41 @@ export const getAllDevicesService = async (
   // If the user is a superadmin, return all devices
   if (role === "superadmin") {
     devices = await DeviceModel.find({}).lean();
-  } else if (role === "admin") {
-    // If the user is an admin, return devices associated with their group
-    const user = (await UserModel.findById(_id)
-      .populate({
-        path: "group",
-        populate: {
-          path: "devices",
-        },
-      })
-      .lean()) as IUserWithPopulateGroup | null;
-    // Extract devices from the user's group
-    devices = user?.group?.devices || [];
   }
+
+  // else if (role === "admin") {
+  //   // If the user is an admin, return devices associated with their group
+  //   devices = await DeviceModel.find({
+  //     allowed_users: {
+  //       $in: [new mongoose.Types.ObjectId(_id)],
+  //     },
+  //   })
+  //     .populate("allowed_users")
+  //     .lean();
+  //   // const user = (await UserModel.findById(_id)
+  //   //   .populate({
+  //   //     path: "group",
+  //   //     populate: {
+  //   //       path: "devices",
+  //   //     },
+  //   //   })
+  //   //   .lean()) as IUserWithPopulateGroup | null;
+  //   // // Extract devices from the user's group
+  //   // devices = user?.group?.devices || [];
+  // }
   // If the user is a regular user, return only devices associated with them
   else {
-    const users = (await UserModel.findById(_id)
-      .populate("allowed_devices")
-      .lean()) as IUserWithPopulateDevices | null;
-    devices = users?.allowed_devices || [];
+    devices = await DeviceModel.find({
+      allowed_users: {
+        $in: [new mongoose.Types.ObjectId(_id)],
+      },
+    })
+      .populate("allowed_users")
+      .lean();
+    // const users = (await UserModel.findById(_id)
+    //   .populate("allowed_devices")
+    //   .lean()) as IUserWithPopulateDevices | null;
+    // devices = users?.allowed_devices || [];
   }
   // const devices = await DeviceModel.find({}).lean();
   return devices.map((device) => ({
@@ -492,30 +503,40 @@ export const getDeviceByIdService = async (id: string) => {
 export const getAllowedUsersForDeviceService = async (id: string) => {
   const device = await DeviceModel.findById(id)
     .select("group")
-    .populate<{ group: IGroup }>({
-      path: "group",
-      select: "members",
-      populate: {
-        path: "members",
-        select: "_id first_name last_name email role",
-      },
+    .populate<{ allowed_users: IUser[] }>({
+      // .populate<{ group: IGroup; allowed_users: IUser[] }>({
+      path: "allowed_users",
+      select: "_id first_name last_name email role",
+      // path: "group",
+      // select: "members",
+      // populate: {
+      //   path: "members",
+      //   select: "_id first_name last_name email role",
+      // },
     })
     .lean();
 
   if (!device) throw createError(404, `Device ${id} not found.`);
 
-  const deviceAllowedUsers = await UserModel.find({
-    allowed_devices: {
-      $in: [id],
-    },
-  })
-    .select("_id first_name last_name email role")
-    .lean();
+  // const deviceAllowedUsers = await UserModel.find({
+  //   allowed_devices: {
+  //     $in: [id],
+  //   },
+  // })
+  //   .select("_id first_name last_name email role")
+  //   .lean();
 
-  const groupAdmins =
-    device.group?.members?.filter((u) => u.role === "admin") || [];
+  // const groupAdmins =
+  //   device.group?.members?.filter((u) => u.role === "admin") || [];
 
-  return [...deviceAllowedUsers, ...groupAdmins];
+  // return [...deviceAllowedUsers, ...groupAdmins];
+  return device.allowed_users.map((user) => ({
+    _id: user._id.toString(),
+    first_name: user.first_name,
+    last_name: user.last_name,
+    email: user.email,
+    role: user.role,
+  }));
 };
 
 // give device access to users in a group
@@ -523,22 +544,28 @@ export const giveDeviceAccessToUsersInGroupService = async (
   deviceId: string,
   userIds: string[]
 ) => {
-  const device = await DeviceModel.findById(deviceId).lean();
-  if (!device) throw createError(404, `Device ${deviceId} not found.`);
-
   // Check if the users exist and are not already allowed access
   const users = await UserModel.find({
     _id: { $in: userIds.map((id) => new mongoose.Types.ObjectId(id)) },
-    allowed_devices: { $ne: deviceId },
+    // allowed_devices: { $ne: deviceId },
   }).lean();
   if (users.length === 0) {
     throw createError(404, "No valid users found to give device access.");
   }
+
+  const device = await DeviceModel.findByIdAndUpdate(
+    deviceId,
+    { $addToSet: { allowed_users: { $each: users.map((user) => user._id) } } },
+    { new: true }
+  ).lean();
+  if (!device) throw createError(404, `Device ${deviceId} not found.`);
+
   // Update the users to give them access to the device
-  UserModel.updateMany(
-    { _id: { $in: users.map((user) => user._id) } },
-    { $addToSet: { allowed_devices: deviceId } }
-  ).exec();
+
+  // UserModel.updateMany(
+  //   { _id: { $in: users.map((user) => user._id) } },
+  //   { $addToSet: { allowed_devices: deviceId } }
+  // ).exec();
 };
 
 // revokeDeviceAccessFromUser
@@ -546,26 +573,47 @@ export const revokeDeviceAccessFromUserService = async (
   deviceId: string,
   userId: string
 ) => {
-  const device = await DeviceModel.findById(deviceId).lean();
+  const user = await UserModel.exists({
+    _id: new mongoose.Types.ObjectId(userId),
+  });
+  if (!user) throw createError(404, `User ${userId} not found.`);
+
+  const device = await DeviceModel.findById(deviceId)
+    .select("allowed_users")
+    .lean();
   if (!device) throw createError(404, `Device ${deviceId} not found.`);
   // Check if the user exists and has access to the device
-  const user = await UserModel.findOne({
-    _id: new mongoose.Types.ObjectId(userId),
-    allowed_devices: {
-      $in: [deviceId],
-    },
-  }).lean();
-  if (!user) {
+
+  if (!device.allowed_users?.includes(user._id)) {
     throw createError(
       404,
       `User ${userId} does not have access to device ${deviceId}.`
     );
   }
-  // Update the user to revoke access to the device
-  await UserModel.updateOne(
-    { _id: user._id },
-    { $pull: { allowed_devices: deviceId } }
+
+  // Remove the device from the user's allowed devices
+  DeviceModel.updateOne(
+    { _id: device._id },
+    { $pull: { allowed_users: new mongoose.Types.ObjectId(userId) } }
   ).exec();
+
+  // const user = await UserModel.findOne({
+  //   _id: new mongoose.Types.ObjectId(userId),
+  //   allowed_devices: {
+  //     $in: [deviceId],
+  //   },
+  // }).lean();
+  // if (!user) {
+  //   throw createError(
+  //     404,
+  //     `User ${userId} does not have access to device ${deviceId}.`
+  //   );
+  // }
+  // Update the user to revoke access to the device
+  // await UserModel.updateOne(
+  //   { _id: user._id },
+  //   { $pull: { allowed_devices: deviceId } }
+  // ).exec();
 };
 
 // Change font and time format for a device

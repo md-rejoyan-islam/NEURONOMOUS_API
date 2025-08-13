@@ -1,5 +1,5 @@
 import { Response } from "express";
-import { ISuccessResponse } from "./types";
+import { ISuccessResponse } from "../app/types";
 
 const errorResponse = (
   res: Response,

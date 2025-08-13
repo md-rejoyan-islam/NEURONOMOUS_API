@@ -8,7 +8,7 @@ import {
   UnprocessableEntity,
 } from "http-errors";
 import secret from "../app/secret";
-import { IErrorResponse } from "../utils/types";
+import { IErrorResponse } from "../app/types";
 
 const errorHandler = (
   error: Error,

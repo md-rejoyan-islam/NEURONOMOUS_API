@@ -1,8 +1,9 @@
 import createError from "http-errors";
 import { Types } from "mongoose";
+import { IGroup, IUser } from "../app/types";
 import accountCreatedMail from "../mails/account-create-mail";
-import { GroupModel, IGroup } from "../models/group.model";
-import { IUser, UserModel } from "../models/user.model";
+import { GroupModel } from "../models/group.model";
+import { UserModel } from "../models/user.model";
 import { errorLogger } from "../utils/logger";
 
 // get all users service

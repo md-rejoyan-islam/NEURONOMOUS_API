@@ -1,6 +1,7 @@
 import { Response } from "express";
 import createError from "http-errors";
 import { Types } from "mongoose";
+import { IRequestWithUser } from "../app/types";
 import { DeviceModel } from "../models/device.model";
 import { GroupModel } from "../models/group.model";
 import {
@@ -22,7 +23,6 @@ import {
 import { asyncHandler } from "../utils/async-handler";
 import { isValidMongoId } from "../utils/is-valid-mongo-id";
 import { successResponse } from "../utils/response-handler";
-import { IRequestWithUser } from "../utils/types";
 
 /**
  * @description Get all groups controller for super admin

@@ -1,9 +1,9 @@
 import { NextFunction, Request, Response } from "express";
 import z from "zod";
-const validate =
-  (schema: z.ZodType) =>
-  async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
-    try {
+import { asyncHandler } from "../utils/async-handler";
+const validate = (schema: z.ZodType) =>
+  asyncHandler(
+    async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
       await schema.parseAsync({
         body: req.body,
         query: req.query,
@@ -12,9 +12,7 @@ const validate =
       });
 
       return next();
-    } catch (error) {
-      next(error);
     }
-  };
+  );
 
 export default validate;

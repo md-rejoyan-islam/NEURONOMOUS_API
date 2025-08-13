@@ -1,9 +1,9 @@
 import createError from "http-errors";
 import { Types } from "mongoose";
+import { IDevice, IGroup } from "../app/types";
 import { DeviceModel } from "../models/device.model";
-import { GroupModel, IGroup } from "../models/group.model";
+import { GroupModel } from "../models/group.model";
 import { UserModel } from "../models/user.model";
-import { IGroupWithPopulateDevices } from "../utils/types";
 import {
   changeDeviceModeService,
   sendNoticeToDeviceService,
@@ -12,8 +12,9 @@ import {
 // get all groups service
 export const getAllGroupsService = async (): Promise<IGroup[]> => {
   const groups = await GroupModel.find()
-    .populate("devices", "-__v")
-    .populate("members", "-password -__v");
+    .populate<{ devices: IDevice[] }>("devices", "-__v")
+    .populate("members", "-password -__v")
+    .lean();
 
   return groups;
 };
@@ -34,9 +35,9 @@ export const addUserToGroupService = async (
   }
 ): Promise<IGroup> => {
   // check user existence
-  const user = await UserModel.findOne({
+  const user = await UserModel.exists({
     email: payload.email.toLowerCase(),
-  }).lean();
+  });
 
   if (user) {
     throw createError(400, "Email already exists.");
@@ -66,14 +67,22 @@ export const addUserToGroupService = async (
   });
 
   // create new user
-  const newUser = new UserModel({
+  const newUser = await UserModel.create({
     ...payload,
     email: payload.email.toLowerCase(),
-    allowed_devices: payload.deviceIds,
     role: "user",
   });
 
-  console.log("New user payload:", newUser);
+  // give access to devices
+  payload.deviceIds.forEach(async (deviceId) => {
+    DeviceModel.findByIdAndUpdate(
+      deviceId,
+      {
+        $addToSet: { allowed_users: newUser._id },
+      },
+      { new: true }
+    ).exec();
+  });
 
   // Find the group and update its members
   await group
@@ -88,7 +97,6 @@ export const addUserToGroupService = async (
     )
     .populate("members", "-password -__v");
 
-  await newUser.save();
   await group.save();
 
   //TODO: send email to user
@@ -220,10 +228,10 @@ export const bulkChangeGroupDevicesModeService = async (
     mode: "clock" | "notice";
     deviceIds: Types.ObjectId[];
   }
-): Promise<IGroupWithPopulateDevices> => {
-  const group = (await GroupModel.findById(groupId)
-    .populate("devices", "-__v")
-    .lean()) as unknown as IGroupWithPopulateDevices;
+): Promise<IGroup> => {
+  const group = await GroupModel.findById(groupId)
+    .populate<{ devices: IDevice[] }>("devices", "-__v")
+    .lean();
 
   if (!group) throw createError(404, "Group not found.");
 

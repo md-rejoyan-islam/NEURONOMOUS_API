@@ -1,7 +1,7 @@
 import { NextFunction, Response } from "express";
 import createError from "http-errors";
+import { IRequestWithUser, ROLE } from "../app/types";
 import { logger } from "../utils/logger";
-import { IRequestWithUser, ROLE } from "../utils/types";
 
 export const authorize = (roles: ROLE[]) => {
   return (req: IRequestWithUser, _res: Response, next: NextFunction) => {

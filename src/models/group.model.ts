@@ -1,13 +1,7 @@
 import mongoose, { Schema } from "mongoose";
+import { IGroupSchema } from "../app/types";
 
-export interface IGroup {
-  name: string;
-  description: string;
-  devices: mongoose.Types.ObjectId[]; // Array of device IDs
-  members: mongoose.Types.ObjectId[]; // Array of user IDs
-}
-
-const GroupSchema: Schema<IGroup> = new mongoose.Schema<IGroup>(
+const GroupSchema: Schema<IGroupSchema> = new mongoose.Schema<IGroupSchema>(
   {
     name: {
       type: String,
@@ -38,4 +32,4 @@ const GroupSchema: Schema<IGroup> = new mongoose.Schema<IGroup>(
   }
 );
 
-export const GroupModel = mongoose.model<IGroup>("Group", GroupSchema);
+export const GroupModel = mongoose.model<IGroupSchema>("Group", GroupSchema);

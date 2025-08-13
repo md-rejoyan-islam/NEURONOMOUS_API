@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { Types } from "mongoose";
+import { IRequestWithUser } from "../app/types";
 import {
   authLoginService,
   authLogoutService,
@@ -13,7 +14,6 @@ import {
 import { asyncHandler } from "../utils/async-handler";
 import { isValidMongoId } from "../utils/is-valid-mongo-id";
 import { successResponse } from "../utils/response-handler";
-import { IRequestWithUser } from "../utils/types";
 
 /**
  * @description User login controller

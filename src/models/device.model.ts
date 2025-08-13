@@ -1,33 +1,7 @@
 import mongoose, { Schema, Types } from "mongoose";
+import { IDeviceSchema } from "../app/types";
 
-export interface IDevice {
-  id: string;
-  name: string | null;
-  status: "online" | "offline";
-  location: string | null;
-  uptime: number;
-  mode: "clock" | "notice";
-  last_seen: number; // Unix timestamp in milliseconds
-  notice: string | null;
-  duration: number | null; // duration in minutes, can be null
-  start_time: number | null; // Unix timestamp in milliseconds, can be null
-  end_time: number | null; // Unix timestamp in milliseconds, can be null
-  free_heap: number;
-  group: Types.ObjectId | null; // Reference to a Group model
-  history: {
-    message: string;
-    timestamp: number;
-  }[];
-  pending_notice: boolean; // Indicates if there is a pending notice to be sent
-  scheduled_notices: {
-    id: string; // Unique ID for the scheduled notice
-    notice: string;
-    start_time: number; // Unix timestamp in milliseconds
-    duration: number; // duration in minutes
-  }[];
-}
-
-const DeviceSchema: Schema<IDevice> = new mongoose.Schema<IDevice>(
+const DeviceSchema: Schema<IDeviceSchema> = new mongoose.Schema<IDeviceSchema>(
   {
     id: {
       type: String,
@@ -63,7 +37,13 @@ const DeviceSchema: Schema<IDevice> = new mongoose.Schema<IDevice>(
       type: Types.ObjectId,
       ref: "Group",
       default: null,
-    }, // Reference to a Group model
+    },
+    allowed_users: [
+      {
+        type: Types.ObjectId,
+        ref: "User",
+      },
+    ],
     mode: {
       type: String,
       enum: {
@@ -146,4 +126,7 @@ const DeviceSchema: Schema<IDevice> = new mongoose.Schema<IDevice>(
   }
 );
 
-export const DeviceModel = mongoose.model<IDevice>("Device", DeviceSchema);
+export const DeviceModel = mongoose.model<IDeviceSchema>(
+  "Device",
+  DeviceSchema
+);

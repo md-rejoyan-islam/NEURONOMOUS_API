@@ -1,16 +1,10 @@
 import { NextFunction, Response } from "express";
 import createError from "http-errors";
-import jwt, { JwtPayload } from "jsonwebtoken";
+import jwt from "jsonwebtoken";
 import secret from "../app/secret";
+import { IJwtPayload, IRequestWithUser } from "../app/types";
 import { UserModel } from "../models/user.model";
 import { asyncHandler } from "../utils/async-handler";
-import { IRequestWithUser, IUser } from "../utils/types";
-
-interface IJwtPayload extends JwtPayload {
-  _id: string;
-  role: "superadmin" | "admin" | "user";
-  loginCode: number;
-}
 
 export const isLoggedIn = asyncHandler(
   async (req: IRequestWithUser, _res: Response, next: NextFunction) => {
@@ -23,11 +17,11 @@ export const isLoggedIn = asyncHandler(
 
     const decoded = jwt.verify(
       token,
-      secret.jwt.accessTokenSecret as string
+      secret.jwt.accessTokenSecret
     ) as IJwtPayload;
-    const user = (await UserModel.findById(decoded._id)
+    const user = await UserModel.findById(decoded._id)
       .select("-password -__v -createdAt -updatedAt")
-      .lean()) as IUser | null;
+      .lean();
 
     if (!user) {
       throw createError.Unauthorized(

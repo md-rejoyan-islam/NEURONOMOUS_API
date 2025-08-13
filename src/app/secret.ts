@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 dotenv.config({
   quiet: true,
-  override: false,
+  override: true,
   path: ".env",
   debug: process.env.NODE_ENV === "development",
 });

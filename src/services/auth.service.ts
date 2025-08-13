@@ -2,6 +2,7 @@ import bcrypt from "bcryptjs";
 import createError from "http-errors";
 import { Types } from "mongoose";
 import secret from "../app/secret";
+import { IUser } from "../app/types";
 import forgotPasswordMail from "../mails/forgot-password-mail";
 import resetPasswordMail from "../mails/reset-password-mail";
 import { UserModel } from "../models/user.model";
@@ -10,7 +11,6 @@ import { generateRandomPin } from "../utils/generate-random-pin";
 import generateToken, { verifyToken } from "../utils/generate-token";
 import { errorLogger } from "../utils/logger";
 import { comparePassword } from "../utils/password";
-import { IUser } from "../utils/types";
 
 // auth login service
 export const authLoginService = async (email: string, password: string) => {

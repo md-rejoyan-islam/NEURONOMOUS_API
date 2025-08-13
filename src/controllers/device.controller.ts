@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import createError from "http-errors";
 import { Types } from "mongoose";
+import { IRequestWithUser } from "../app/types";
 import {
   cancelScheduledNoticeService,
   changeAllDevicesModeService,
@@ -20,7 +21,6 @@ import {
 } from "../services/device.service";
 import { asyncHandler } from "../utils/async-handler";
 import { successResponse } from "../utils/response-handler";
-import { IRequestWithUser } from "../utils/types";
 
 /**
  * @description Get all devices from the database.
@@ -32,7 +32,7 @@ export const getAllDevices = asyncHandler(
     if (!req.user) {
       throw createError(401, "Unauthorized");
     }
-    const { role, _id } = req.user || {};
+    const { role, _id } = req.user;
 
     const result = await getAllDevicesService(_id as Types.ObjectId, role);
 

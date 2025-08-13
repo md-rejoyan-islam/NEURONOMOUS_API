@@ -2,7 +2,6 @@ import cors from "cors";
 import express from "express";
 import morgan from "morgan";
 import corsOptions from "../config/cors";
-import { setupMqttClient } from "../config/mqtt";
 import router from "../routes/routes";
 
 const app = express();
@@ -18,13 +17,7 @@ app.use(cors(corsOptions));
 if (process.env.NODE_ENV === "development") {
   app.use(morgan("dev"));
 }
-// else {
-//   app.use(morgan("combined"));
-// }
 
 app.use(router);
-
-// Initialize MQTT client
-setupMqttClient();
 
 export default app;
