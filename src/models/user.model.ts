@@ -30,14 +30,7 @@ const UserSchema: Schema<IUserSchema> = new mongoose.Schema<IUserSchema>(
       type: String,
       required: [true, "Password is required"],
       minlength: [6, "Password must be at least 6 characters long"],
-      maxlength: [50, "Password must be at most 50 characters long"],
-      validate: {
-        validator: function (val: string) {
-          return /^(?=.*[a-zA-Z])(?=.*\d)[a-zA-Z\d]{6,}$/.test(val);
-        },
-        message:
-          "Password must contain at least one letter, one number, and be at least 6 characters long",
-      },
+      select: false,
     },
     role: {
       type: String,
@@ -76,14 +69,17 @@ const UserSchema: Schema<IUserSchema> = new mongoose.Schema<IUserSchema>(
     refresh_token: {
       type: String,
       default: null,
+      select: false,
     },
     reset_code: {
       type: String,
       default: null,
+      select: false,
     },
     reset_code_expires: {
       type: Number, // Unix timestamp in milliseconds
       default: null,
+      select: false,
       validate: {
         validator: function (val: number | null) {
           // Allow null, otherwise must be a future timestamp

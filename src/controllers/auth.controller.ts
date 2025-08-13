@@ -4,15 +4,16 @@ import { IRequestWithUser } from "../app/types";
 import {
   authLoginService,
   authLogoutService,
+  authProfileService,
   changePasswordService,
   createUserService,
   forgotPasswordService,
+  getUserPermissionDevicesService,
   refreshTokenService,
   resetPasswordService,
   updateAuthProfileService,
 } from "../services/auth.service";
 import { asyncHandler } from "../utils/async-handler";
-import { isValidMongoId } from "../utils/is-valid-mongo-id";
 import { successResponse } from "../utils/response-handler";
 
 /**
@@ -97,12 +98,35 @@ export const resetPassword = asyncHandler(
 
 export const authProfile = asyncHandler(
   async (req: IRequestWithUser, res: Response) => {
-    const user = req.user;
+    const { fields } = req.query as { fields?: string };
+
+    const user = await authProfileService(
+      req.user?._id as Types.ObjectId,
+      fields
+    );
 
     successResponse(res, {
       message: "User profile retrieved successfully",
       payload: {
         data: user,
+      },
+    });
+  }
+);
+
+// getUserDevices
+
+export const getUserPermissionDevices = asyncHandler(
+  async (req: IRequestWithUser, res: Response) => {
+    const devices = await getUserPermissionDevicesService(
+      req.user?._id as Types.ObjectId,
+      req.user?.role as "admin" | "superadmin" | "user"
+    );
+
+    successResponse(res, {
+      message: "User devices retrieved successfully",
+      payload: {
+        data: devices,
       },
     });
   }
@@ -117,18 +141,6 @@ export const authProfile = asyncHandler(
 
 export const authLogout = asyncHandler(
   async (req: IRequestWithUser, res: Response) => {
-    // Invalidate the user's session or token here
-
-    if (!req.user) {
-      throw new Error("User not found in request.");
-    }
-
-    const { _id } = req.user;
-
-    if (!isValidMongoId(_id.toString())) {
-      throw new Error("Invalid user ID.");
-    }
-
     await authLogoutService(req.user?._id as Types.ObjectId);
 
     successResponse(res, {
@@ -150,21 +162,15 @@ export const changePassword = asyncHandler(
   async (req: IRequestWithUser, res: Response) => {
     const { currentPassword, newPassword } = req.body;
 
-    if (!req.user) {
-      throw new Error("User not found in request.");
-    }
-
-    const user = await changePasswordService(
-      req.user._id! as Types.ObjectId,
+    await changePasswordService(
+      req.user?._id as Types.ObjectId,
       currentPassword,
       newPassword
     );
 
     successResponse(res, {
       message: "Password changed successfully",
-      payload: {
-        data: user,
-      },
+      payload: {},
     });
   }
 );
@@ -179,10 +185,6 @@ export const changePassword = asyncHandler(
 
 export const updateAuthProfile = asyncHandler(
   async (req: IRequestWithUser, res: Response) => {
-    if (!req.user) {
-      throw new Error("User not found in request.");
-    }
-
     const user = await updateAuthProfileService(
       req.user?._id as Types.ObjectId,
       req.body

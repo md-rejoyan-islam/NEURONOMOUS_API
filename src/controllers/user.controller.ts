@@ -307,13 +307,11 @@ export const deleteUserById = asyncHandler(
     const { userId } = req.params;
 
     // Find user by ID and delete
-    const user = await deleteUserByIdService(userId);
+    await deleteUserByIdService(userId);
     successResponse(res, {
       message: `User ${userId} deleted successfully`,
       statusCode: 200,
-      payload: {
-        data: user,
-      },
+      payload: {},
     });
   }
 );

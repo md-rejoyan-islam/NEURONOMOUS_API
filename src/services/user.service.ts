@@ -2,6 +2,7 @@ import createError from "http-errors";
 import { Types } from "mongoose";
 import { IGroup, IUser } from "../app/types";
 import accountCreatedMail from "../mails/account-create-mail";
+import { DeviceModel } from "../models/device.model";
 import { GroupModel } from "../models/group.model";
 import { UserModel } from "../models/user.model";
 import { errorLogger } from "../utils/logger";
@@ -216,18 +217,12 @@ export const createAdminUserWithGroupService = async (payload: {
   group_description: string;
 }): Promise<IGroup> => {
   // user  check
-  const existingUser = await UserModel.findOne({ email: payload.email }).lean();
+  const existingUser = await UserModel.exists({
+    email: payload.email.toLowerCase(),
+  });
   if (existingUser) {
     throw createError(400, "User with this email already exists");
   }
-
-  // group check [no need because email is unique for user]
-  // const existingGroup = await GroupModel.findOne({
-  //   name: payload.group_name,
-  // }).lean();
-  // if (existingGroup) {
-  //   throw createError(400, "Group with this name already exists");
-  // }
 
   // Create new admin user
   const newUser = new UserModel({
@@ -246,6 +241,7 @@ export const createAdminUserWithGroupService = async (payload: {
   });
 
   // Save the new user
+  newUser.group = newGroup._id;
   await newUser.save();
 
   // Save the new group
@@ -267,13 +263,28 @@ export const createAdminUserWithGroupService = async (payload: {
 };
 
 // delete user by id service
-export const deleteUserByIdService = async (userId: string): Promise<IUser> => {
+export const deleteUserByIdService = async (userId: string) => {
   // Find user by ID and delete
-  const user = await UserModel.findByIdAndDelete(userId)
-    .select("-password -__v")
-    .lean();
+  const user = await UserModel.findById(userId).select("role _id status");
   if (!user) {
     throw createError(404, "User not found");
   }
-  return user;
+
+  if (user.role === "superadmin" || user.role === "admin") {
+    throw createError(403, `You cannot delete a ${user.role} user.`);
+  }
+
+  // Delete user
+  await user.deleteOne();
+
+  // remove user from group if exists
+  await GroupModel.updateMany(
+    { members: user._id },
+    { $pull: { members: user._id } }
+  );
+  // remove user from devices if exists
+  await DeviceModel.updateMany(
+    { allowed_users: user._id },
+    { $pull: { allowed_users: user._id } }
+  );
 };

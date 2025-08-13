@@ -6,6 +6,7 @@ import {
   changePassword,
   createUser,
   forgotPassword,
+  getUserPermissionDevices,
   refreshToken,
   resetPassword,
   updateAuthProfile,
@@ -28,46 +29,51 @@ const authRouter = Router();
 authRouter.post("/create-user", validate(createUserSchema), createUser);
 
 // User login route
-authRouter.post("/login", isLoggedOut, validate(loginSchema), authLogin);
+authRouter.post("/login", isLoggedOut, validate(loginSchema), authLogin); // recheck COMPLETE
 // forgot password route
 authRouter.post(
   "/forgot-password",
   isLoggedOut,
   validate(forgotPasswordSchema),
   forgotPassword
-);
+); // recheck COMPLETE
 // reset password route
 authRouter.post(
   "/reset-password",
   isLoggedOut,
   validate(resetPasswordSchema),
   resetPassword
-);
+); // recheck COMPLETE
 // refresh token route
 authRouter.post(
   "/refresh-token",
   isLoggedOut,
   validate(refreshTokenSchema),
   refreshToken
-);
+); // recheck COMPLETE
 
 // user logout route
-authRouter.post("/logout", isLoggedIn, authLogout);
+authRouter.post("/logout", isLoggedIn, authLogout); // recheck COMPLETE
 // get user profile route
-authRouter.get("/profile", isLoggedIn, authProfile);
+authRouter.get("/profile", isLoggedIn, authProfile); // recheck COMPLETE
+
+// update auth profile route
+authRouter.patch(
+  "/profile",
+  isLoggedIn,
+  validate(updateAuthProfileSchema),
+  updateAuthProfile
+); // recheck COMPLETE
+
+// get user all access devices list route
+authRouter.get("/devices-permission", isLoggedIn, getUserPermissionDevices); // recheck COMPLETE
+
 // change password route
-authRouter.post(
+authRouter.patch(
   "/change-password",
   isLoggedIn,
   validate(changePasswordSchema),
   changePassword
-);
-// update auth profile route
-authRouter.patch(
-  "/update-profile",
-  isLoggedIn,
-  validate(updateAuthProfileSchema),
-  updateAuthProfile
-);
+); // recheck COMPLETE
 
 export default authRouter;

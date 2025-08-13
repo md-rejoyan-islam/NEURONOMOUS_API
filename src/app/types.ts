@@ -81,7 +81,7 @@ export interface IGroup extends Pick<IGroupSchema, "name" | "description"> {
 }
 
 export interface IRequestWithUser extends Request {
-  user?: IUser;
+  user?: Pick<IUser, "_id" | "email" | "role">;
 }
 
 export interface IJwtPayload extends JwtPayload {

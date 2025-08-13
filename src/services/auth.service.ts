@@ -2,14 +2,15 @@ import bcrypt from "bcryptjs";
 import createError from "http-errors";
 import { Types } from "mongoose";
 import secret from "../app/secret";
-import { IUser } from "../app/types";
+import { IJwtPayload, IUser } from "../app/types";
 import forgotPasswordMail from "../mails/forgot-password-mail";
 import resetPasswordMail from "../mails/reset-password-mail";
+import { DeviceModel } from "../models/device.model";
 import { UserModel } from "../models/user.model";
 import { emitInvalidateOtherSessions } from "../socket";
 import { generateRandomPin } from "../utils/generate-random-pin";
 import generateToken, { verifyToken } from "../utils/generate-token";
-import { errorLogger } from "../utils/logger";
+import { errorLogger, logger } from "../utils/logger";
 import { comparePassword } from "../utils/password";
 
 // auth login service
@@ -17,7 +18,7 @@ export const authLoginService = async (email: string, password: string) => {
   // Find user by email
   const user = await UserModel.findOne({
     email: email.toLowerCase(),
-  });
+  }).select("password status role first_name last_name ");
 
   if (!user) throw createError(404, "User not found.");
   if (user.status !== "active") {
@@ -57,7 +58,7 @@ export const authLoginService = async (email: string, password: string) => {
   );
 
   // Update last login timestamp
-  user.refresh_token = refreshToken; // Store refresh token in user document
+  user.refresh_token = refreshToken;
   user.last_login = Date.now();
   user.reset_code = null; // Clear reset code if user logs in
   user.reset_code_expires = null; // Clear reset code expiration if user logs in
@@ -74,10 +75,6 @@ export const authLoginService = async (email: string, password: string) => {
       role: user.role,
       first_name: user.first_name,
       last_name: user.last_name,
-      phone: user.phone,
-      address: user.address,
-      notes: user.notes,
-      status: user.status,
       last_login: user.last_login,
     },
   };
@@ -93,7 +90,7 @@ export const forgotPasswordService = async (email: string) => {
     throw createError(403, "User is inactive. Please contact support.");
 
   // password reset code generation
-  const resetCode = generateRandomPin(7);
+  const resetCode = generateRandomPin(7).toString();
 
   // Hash the reset code for secure storage in the database
   const saltRounds = await bcrypt.genSalt(10);
@@ -112,6 +109,7 @@ export const forgotPasswordService = async (email: string) => {
       name: user.first_name + " " + user.last_name,
       resetCode,
     });
+    logger.info(`Forgot password email sent to ${user.email}`);
   } catch (error) {
     errorLogger.error(
       `Failed to send forgot password email to ${user.email}: ${error}`
@@ -125,7 +123,9 @@ export const resetPasswordService = async (
   resetCode: string,
   newPassword: string
 ) => {
-  const user = await UserModel.findOne({ email: email.toLowerCase() });
+  const user = await UserModel.findOne({ email: email.toLowerCase() }).select(
+    "reset_code reset_code_expires password email first_name last_name"
+  );
 
   if (!user) throw createError(404, "User not found.");
 
@@ -149,10 +149,17 @@ export const resetPasswordService = async (
   await user.save();
 
   // Send confirmation email
-  await resetPasswordMail({
-    to: user.email,
-    name: user.first_name + " " + user.last_name,
-  });
+  try {
+    await resetPasswordMail({
+      to: user.email,
+      name: user.first_name + " " + user.last_name,
+    });
+    logger.info(`Reset password confirmation email sent to ${user.email}`);
+  } catch (error) {
+    errorLogger.error(
+      `Failed to send reset password confirmation email to ${user.email}: ${error}`
+    );
+  }
 };
 
 // change password service
@@ -162,8 +169,12 @@ export const changePasswordService = async (
   newPassword: string
 ) => {
   // Find user by ID
-  const user = await UserModel.findById(userId);
+  const user = await UserModel.findById(userId).select("password status");
   if (!user) throw createError(404, "User not found.");
+
+  if (user.status !== "active") {
+    throw createError(403, "User is inactive. Please contact support.");
+  }
 
   // Compare current password
   const isMatch = await comparePassword(currentPassword, user.password);
@@ -173,32 +184,58 @@ export const changePasswordService = async (
   user.password = newPassword;
   user.last_login = Date.now();
   await user.save();
+};
 
-  return {
-    _id: user._id,
-    email: user.email,
-    role: user.role,
-    first_name: user.first_name,
-    last_name: user.last_name,
-    phone: user.phone,
-    address: user.address,
-    notes: user.notes,
-    status: user.status,
-    last_login: user.last_login,
-  };
+// auth profile service
+export const authProfileService = async (
+  userId: Types.ObjectId,
+  fields?: string
+) => {
+  // Find user by ID
+  const user = await UserModel.findById(userId)
+    .select(fields ? fields.split(",").join(" ") : "-__v -updatedAt")
+    .lean();
+  if (!user) throw createError(404, "User not found.");
+
+  return user;
 };
 
 // logout service
 export const authLogoutService = async (userId: Types.ObjectId) => {
   // Find user by ID
-  const user = await UserModel.findByIdAndUpdate(
+  UserModel.findByIdAndUpdate(
     userId,
-    { refresh_token: null }, // Clear refresh token
+    {
+      refresh_token: null,
+      last_login: Date.now(), // Update last login timestamp
+      reset_code: null,
+      reset_code_expires: null,
+    },
     { new: true }
-  ).lean();
-  if (!user) throw createError(404, "User not found.");
+  ).exec();
 
   return true;
+};
+
+// getUserPermissionDevicesService
+export const getUserPermissionDevicesService = async (
+  userId: Types.ObjectId,
+  role: "admin" | "superadmin" | "user"
+) => {
+  if (role === "superadmin") {
+    const devices = await DeviceModel.find({}).select("_id name status").lean();
+    return devices || [];
+  }
+
+  const devices = await DeviceModel.findOne({
+    allowed_users: {
+      $in: [userId],
+    },
+  })
+    .select("_id id name status")
+    .lean();
+
+  return devices || [];
 };
 
 // update auth profile service
@@ -232,9 +269,7 @@ export const updateAuthProfileService = async (
       new: true,
       runValidators: true,
     }
-  )
-    .select("-password -__v -createdAt -updatedAt")
-    .lean();
+  ).lean();
   if (!user) throw createError(404, "User not found.");
 
   return user;
@@ -243,16 +278,17 @@ export const updateAuthProfileService = async (
 // refresh token service
 export const refreshTokenService = async (refreshToken: string) => {
   // Verify the refresh token
-  const payload = verifyToken(refreshToken, secret.jwt.refreshTokenSecret) as {
-    _id: Types.ObjectId;
-    loginCode: string;
-    role: string;
-  };
+  const payload = verifyToken(
+    refreshToken,
+    secret.jwt.refreshTokenSecret
+  ) as IJwtPayload;
 
   if (!payload) throw createError(401, "Invalid refresh token.");
 
   // Find user by ID
-  const user = await UserModel.findById(payload._id).lean();
+  const user = await UserModel.findById(payload._id)
+    .select("refresh_token role")
+    .lean();
 
   if (!user) throw createError(404, "User not found.");
 
@@ -264,7 +300,6 @@ export const refreshTokenService = async (refreshToken: string) => {
   const accessToken = generateToken(
     {
       loginCode: payload.loginCode,
-      // email: user.email,
       role: user.role,
       _id: user._id.toString(),
     },

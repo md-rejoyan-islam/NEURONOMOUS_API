@@ -344,9 +344,7 @@ export const giveDeviceAccessToUsersInGroup = asyncHandler(
 export const revokeDeviceAccessFromUser = asyncHandler(
   async (req: IRequestWithUser, res: Response) => {
     const { deviceId, userId } = req.params;
-    if (!req.user) {
-      throw createError(401, "Unauthorized");
-    }
+
     // Assuming a service to revoke device access from a user exists
     await revokeDeviceAccessFromUserService(deviceId, userId);
     successResponse(res, {

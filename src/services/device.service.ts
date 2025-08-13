@@ -584,7 +584,7 @@ export const revokeDeviceAccessFromUserService = async (
   if (!device) throw createError(404, `Device ${deviceId} not found.`);
   // Check if the user exists and has access to the device
 
-  if (!device.allowed_users?.includes(user._id)) {
+  if (!device.allowed_users?.toString().includes(userId)) {
     throw createError(
       404,
       `User ${userId} does not have access to device ${deviceId}.`

@@ -1,9 +1,9 @@
-import jwt, { JwtPayload } from "jsonwebtoken";
-import { IUser } from "../app/types";
+import jwt from "jsonwebtoken";
+import { IJwtPayload } from "../app/types";
 
 // Utility function to generate JWT tokens
-const generateToken = <T extends object>(
-  payload: T,
+const generateToken = (
+  payload: IJwtPayload,
   config: {
     secret: string;
     expiresIn: number;
@@ -17,10 +17,7 @@ const generateToken = <T extends object>(
 // verify the token
 export const verifyToken = (token: string, secret: string) => {
   try {
-    return jwt.verify(token, secret) as JwtPayload as Pick<
-      IUser,
-      "_id" | "role"
-    >;
+    return jwt.verify(token, secret) as IJwtPayload;
   } catch {
     throw new Error("Invalid token.");
   }

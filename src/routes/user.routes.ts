@@ -34,6 +34,13 @@ userRouter.post(
   createAdminUserWithGroup
 ); // COMPLETE
 
+// delete user by superadmin/admin
+userRouter.delete(
+  "/:userId",
+  authorize(["admin", "superadmin"]),
+  deleteUserById
+); // COMPLETE
+
 // change user password by superadmin/admin
 userRouter.patch(
   "/:userId/change-password",
@@ -74,12 +81,6 @@ userRouter.patch(
   revokeDeviceAccessToUserInGroup
 );
 
-// delete user by superadmin/admin
-userRouter.delete(
-  "/:userId",
-  authorize(["admin", "superadmin"]),
-  deleteUserById
-);
 // create user with devices acccess by superadmin/admin
 // userRouter.post(
 //   "/create-user-with-devices",

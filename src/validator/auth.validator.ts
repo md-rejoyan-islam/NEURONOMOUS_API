@@ -76,7 +76,6 @@ export const resetPasswordSchema = z.object({
         .int({
           message: "Reset code must be an integer.",
         }),
-
       newPassword: z
         .string({
           error: (iss) => {

@@ -1,6 +1,6 @@
 import createError from "http-errors";
 import { Types } from "mongoose";
-import { IDevice, IGroup } from "../app/types";
+import { IDevice, IGroup, IUser } from "../app/types";
 import { DeviceModel } from "../models/device.model";
 import { GroupModel } from "../models/group.model";
 import { UserModel } from "../models/user.model";
@@ -150,11 +150,11 @@ export const addDeviceToGroupService = async (
   }
 
   // check device already in another group
-  const existingGroup = await GroupModel.findOne({
+  const existingGroup = await GroupModel.exists({
     devices: {
       $in: [device._id],
     },
-  }).lean();
+  });
   if (existingGroup) {
     throw createError(400, "Device already connected to group");
   }
@@ -170,7 +170,7 @@ export const addDeviceToGroupService = async (
       runValidators: true,
     }
   )
-    .populate("devices", "-__v")
+    .populate<{ members: IUser[] }>("members", "role _id email")
     .select("-__v -members -createdAt -updatedAt");
   // .populate("members", "-password -__v");
 
@@ -178,11 +178,14 @@ export const addDeviceToGroupService = async (
     throw createError(404, "Group not found");
   }
 
+  const adminId = group.members.find((member) => member.role === "admin")?._id;
   // name and location update
   device.name = name;
   device.location = location;
   device.last_seen = Date.now();
   device.group = new Types.ObjectId(groupId);
+
+  device.allowed_users = adminId ? [adminId] : [];
   await device.save();
 
   return group;
