@@ -1,6 +1,5 @@
 import { Server as HttpServer } from "http";
 import { Server, Socket } from "socket.io";
-import secret from "../app/secret";
 import { logger } from "../utils/logger";
 
 let io: Server | null = null;
@@ -8,10 +7,22 @@ let io: Server | null = null;
 export const initSocketServer = (server: HttpServer) => {
   io = new Server(server, {
     cors: {
-      origin: secret.client_url,
-      credentials: true,
+      // origin: secret.client_url,
+      // credentials: true,
+      // for vps hosting
+      origin: "*",
     },
   });
+
+  // requestHeaders.delete("connection");
+  // requestHeaders.delete("keep-alive");
+  // requestHeaders.delete("transfer-encoding");
+  // requestHeaders.delete("upgrade");
+  // requestHeaders.delete("proxy-connection");
+  // requestHeaders.delete("proxy-authenticate");
+  // requestHeaders.delete("proxy-authorization");
+  // requestHeaders.delete("te");
+  // requestHeaders.delete("trailer");
 
   io.on("connection", (socket: Socket) => {
     // Join room for this socket when login
