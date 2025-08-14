@@ -14,8 +14,6 @@ export const initSocketServer = (server: HttpServer) => {
   });
 
   io.on("connection", (socket: Socket) => {
-    logger.info(`Socket connected: ${socket.id}`);
-
     // Join room for this socket when login
     socket.on("auth:login", (payload: { userId: string }) => {
       console.log(socket.id, "auth:login", payload);
@@ -53,6 +51,8 @@ export const emitDeviceStatusUpdate = (payload: { id: string }) => {
 export const emitInvalidateOtherSessions = (userId: string) => {
   if (!io) return;
   const room = io.sockets.adapter.rooms.get(`user:${userId}`);
+  console.log(`Emitting invalidate sessions for user: ${userId}`, room);
+
   let targeted = false;
   if (room) {
     for (const socketId of room) {

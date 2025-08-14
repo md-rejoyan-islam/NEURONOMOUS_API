@@ -20,7 +20,7 @@ export const isLoggedIn = asyncHandler(
       secret.jwt.accessTokenSecret
     ) as IJwtPayload;
     const user = await UserModel.findById(decoded._id)
-      .select("-password -__v -createdAt -updatedAt")
+      .select("refresh_token role email")
       .lean();
 
     if (!user) {
@@ -37,6 +37,7 @@ export const isLoggedIn = asyncHandler(
       ) as IJwtPayload;
 
       const isValidLoginCode = refreshDecoded.loginCode === decoded.loginCode;
+
       if (!isValidLoginCode) {
         throw createError.Unauthorized("Can't login in multiple device.");
       }
