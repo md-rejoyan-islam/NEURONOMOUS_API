@@ -33,6 +33,12 @@ jobs:
       - name: Build project
         run: npm run build
 
+        # print env variables
+      - name: Print environment variables
+        run: |
+          echo "VPS_HOST: ${{ secrets.ENV_FILE }}"
+          echo "VPS_USER: ${{ secrets.HOST_USER }}"
+
       # 6. Deploy to VPS via SSH with password
       - name: Deploy to VPS
         uses: appleboy/ssh-action@master
@@ -49,6 +55,7 @@ jobs:
             cat > .env <<EOL
             NODE_ENV=production
             PORT=3000
+
             API_URL=https://example.com/api
             DB_URI=mongodb://localhost:27017/mydb
             JWT_SECRET=mysecret
