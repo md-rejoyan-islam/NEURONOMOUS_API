@@ -51,6 +51,7 @@ jobs:
           port: 22
           script: |
             DIR="/home/apps/server"
+            NPM_PATH=$(which npm)
 
             # Delete if exists
             if [ -d "$DIR" ]; then
@@ -78,11 +79,11 @@ jobs:
 
             # Path
             # export PATH=${which npm}
-            NPM_PATH=$(which npm)
-            echo "NPM Path: $NPM_PATH"
+
+            echo $NPM_PATH
 
             # Install dependencies
-            "$NPM_PATH" install
+            $NPM_PATH install
 
 
             # Build the project
