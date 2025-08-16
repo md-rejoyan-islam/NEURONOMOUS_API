@@ -53,6 +53,12 @@ jobs:
             DIR="/home/apps/server"
             NPM_PATH= "/root/.nvm/versions/node/v22.18.0/bin/npm"
 
+            # Check if PM2 process exists and stop it
+            if pm2 list | grep -q "server"; then
+              pm2 stop server
+              pm2 delete server
+            fi
+
             # Delete if exists
             if [ -d "$DIR" ]; then
                 sudo rm -rf "$DIR"
