@@ -72,6 +72,12 @@ jobs:
             echo "${{ secrets.ENV_FILE }}" | sudo tee "$DIR/.env" > /dev/null
             echo "Environment file created."
 
+            # Install dependencies
+            npm i
+
+            # Build the project
+            npm run build
+
             # Update pm2 configuration
             pm2 reload server
 
