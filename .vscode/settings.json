@@ -1,5 +1,5 @@
 {
-  "deepscan.enable": false,
+  "deepscan.enable": true,
   "todohighlight.isEnable": true,
   "todohighlight.keywords": [
     "TODO",

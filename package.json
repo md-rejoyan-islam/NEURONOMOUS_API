@@ -8,10 +8,11 @@
     "dev": "nodemon src/server.ts",
     "start": "node dist/server.js",
     "build": "tsc",
-    "prettier": "prettier --check src",
-    "prettier:fix": "npx prettier --write src",
+    "format": "prettier --check src",
+    "format:fix": "npx prettier --write src",
     "lint": "eslint src ",
-    "lint:fix": "npx eslint src --fix"
+    "lint:fix": "npx eslint src --fix",
+    "prepare": "husky"
   },
   "keywords": [],
   "author": "",
@@ -48,6 +49,7 @@
     "eslint": "^9.33.0",
     "eslint-config-prettier": "^10.1.8",
     "globals": "^16.3.0",
+    "husky": "^9.1.7",
     "nodemon": "^3.1.10",
     "prettier": "^3.6.2",
     "typescript": "^5.9.2",

@@ -10,7 +10,7 @@ export const initSocketServer = (server: HttpServer) => {
       // origin: secret.client_url,
       // credentials: true,
       // for vps hosting
-      origin: "*",
+      origin: "http://localhost:3000",
     },
   });
 
@@ -60,6 +60,7 @@ export const emitDeviceStatusUpdate = (payload: { id: string }) => {
 };
 
 export const emitInvalidateOtherSessions = (userId: string) => {
+  // const data = { userId, time: Date.now() };
   if (!io) return;
   const room = io.sockets.adapter.rooms.get(`user:${userId}`);
   console.log(`Emitting invalidate sessions for user: ${userId}`, room);
@@ -67,7 +68,10 @@ export const emitInvalidateOtherSessions = (userId: string) => {
   let targeted = false;
   if (room) {
     for (const socketId of room) {
+      console.log("Targeting socket for invalidation:", socketId);
+
       const socket = io.sockets.sockets.get(socketId);
+
       if (!socket) continue;
       socket.emit("session:invalidate", { reason: "new_login" });
       targeted = true;
