@@ -1,0 +1,61 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Setup Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      # 3. Install dependencies
+      - name: Install dependencies
+        run: npm ci
+
+      # 4. Run ESLint
+      - name: Run ESLint
+        run: npm run lint
+
+      # 5. Build project
+      - name: Build project
+        run: npm run build
+
+      # 6. Deploy to VPS via SSH with password
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          port: 22
+          script: |
+            cd /home/apps/server2
+            git pull origin main
+
+            # Create .env file with configs
+            cat > .env <<EOL
+            NODE_ENV=production
+            PORT=3000
+            API_URL=https://example.com/api
+            DB_URI=mongodb://localhost:27017/mydb
+            JWT_SECRET=mysecret
+            EOL
+
+            npm install --production
+            npm run build
+            pm2 reload all
+            sudo systemctl reload nginx
+            echo "Deployment successful!"

@@ -60,7 +60,6 @@ export const emitDeviceStatusUpdate = (payload: { id: string }) => {
 };
 
 export const emitInvalidateOtherSessions = (userId: string) => {
-  // const data = { userId, time: Date.now() };
   if (!io) return;
   const room = io.sockets.adapter.rooms.get(`user:${userId}`);
   console.log(`Emitting invalidate sessions for user: ${userId}`, room);
