@@ -19,19 +19,19 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-        #   cache: npm
+          cache: npm
 
       # 3. Install dependencies
       - name: Install dependencies
         run: npm ci
 
       # 4. Run ESLint
-      #   - name: Run ESLint
-      #     run: npm run lint
+      - name: Run ESLint
+        run: npm run lint
 
-      #   # 5. Build project
-      #   - name: Build project
-      #     run: npm run build
+        # 5. Build project
+      - name: Build project
+        run: npm run build
 
       # 6. Create .env file
       - name: Create .env file
@@ -50,8 +50,8 @@ jobs:
           password: ${{ secrets.VPS_PASSWORD }}
           port: 22
           script: |
+            # project directory
             DIR="/home/apps/server"
-            NPM_PATH= "/root/.nvm/versions/node/v22.18.0/bin/npm"
 
             # Path
             export PATH="/root/.nvm/versions/node/v22.18.0/bin:$PATH"
@@ -96,13 +96,8 @@ jobs:
             npm run build
 
             # Update pm2 configuration
-            pm2 start --name server -- run start
+            # pm2 start --name server -- run start
             pm2 reload server
 
             # Update Nginx configuration
-
             systemctl reload nginx
-
-            # Try to revert the path (this is unnecessary)
-            # This command is tricky to get right because you'd need the original path value
-            unset PATH
