@@ -59,7 +59,7 @@ jobs:
             # Check if PM2 process exists and stop it
             if pm2 list | grep -q "server"; then
               pm2 stop server
-              pm2 delete server
+            #   pm2 delete server
             fi
 
             # Delete if exists
