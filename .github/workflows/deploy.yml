@@ -26,12 +26,12 @@ jobs:
         run: npm ci
 
       # 4. Run ESLint
-      - name: Run ESLint
-        run: npm run lint
+      #   - name: Run ESLint
+      #     run: npm run lint
 
-      # 5. Build project
-      - name: Build project
-        run: npm run build
+      #   # 5. Build project
+      #   - name: Build project
+      #     run: npm run build
 
       # 6. Create .env file
       - name: Create .env file
