@@ -53,7 +53,7 @@ jobs:
             DIR="/home/apps/server2"
 
             # Ensure the directory exists
-            [ ! -d "$DIR" ] && mkdir -p "$DIR"
+            [ ! -d "$DIR" ] && sudo mkdir -p "$DIR"
             cd "$DIR"
 
             # Pull latest changes
