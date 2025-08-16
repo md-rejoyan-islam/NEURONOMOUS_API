@@ -77,7 +77,6 @@ jobs:
             echo "Environment file created."
 
             # Path
-            # NPM_PATH=$(which npm)
             export PATH="/root/.nvm/versions/node/v22.18.0/bin:$PATH"
 
             # Install dependencies
