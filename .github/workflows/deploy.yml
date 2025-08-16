@@ -79,6 +79,7 @@ jobs:
             # Path
             # export PATH=${which npm}
             NPM_PATH=$(which npm)
+            echo "NPM Path: $NPM_PATH"
 
             # Install dependencies
             "$NPM_PATH" install
