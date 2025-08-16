@@ -86,7 +86,7 @@ jobs:
             sudo $NPM_PATH run build
 
             # Update pm2 configuration
-            sudo $NPM_PATH pm2 reload server
+            pm2 reload server
 
             # Update Nginx configuration
             systemctl reload nginx
