@@ -81,7 +81,7 @@ jobs:
             NPM_PATH=$(which npm)
 
             # Install dependencies
-            sudo "$NPM_PATH" install
+            "$NPM_PATH" install
 
 
             # Build the project
