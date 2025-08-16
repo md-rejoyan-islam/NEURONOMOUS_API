@@ -71,3 +71,9 @@ jobs:
             # Create .env file with configs
             echo "${{ secrets.ENV_FILE }}" | sudo tee "$DIR/.env" > /dev/null
             echo "Environment file created."
+
+            # Update pm2 configuration
+            pm2 reload server
+
+            # Update Nginx configuration
+            systemctl reload nginx
