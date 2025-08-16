@@ -78,9 +78,10 @@ jobs:
 
             # Path
             # export PATH=${which npm}
+            NPM_PATH=$(which npm)
 
             # Install dependencies
-            sudo ${which npm} install
+            sudo "$NPM_PATH" install
 
 
             # Build the project
