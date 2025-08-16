@@ -12,7 +12,7 @@ const router = Router();
 // home route
 router.get("/", (_, res) => {
   successResponse(res, {
-    message: "Welcome to the IoT Backend Service.",
+    message: "Welcome to the IoT Backend Service2.",
     statusCode: 200,
   });
 });
