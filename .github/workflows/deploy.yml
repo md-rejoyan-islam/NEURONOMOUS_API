@@ -78,16 +78,14 @@ jobs:
             echo "Environment file created."
 
             # Path
-            # export PATH=${which npm}
-
-            echo $NPM_PATH
+            export PATH="/root/.nvm/versions/node/v22.18.0/bin:$PATH"
 
             # Install dependencies
-            /root/.nvm/versions/node/v22.18.0/bin/node /root/.nvm/versions/node/v22.18.0/bin/npm install
+            npm install
 
 
             # Build the project
-            /root/.nvm/versions/node/v22.18.0/bin/node /root/.nvm/versions/node/v22.18.0/bin/npm run build
+            npm run build
 
             # Update pm2 configuration
             pm2 reload server
