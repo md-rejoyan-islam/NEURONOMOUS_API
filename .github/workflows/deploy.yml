@@ -77,17 +77,22 @@ jobs:
             echo "Environment file created."
 
             # Path
-            NPM_PATH=$(which npm)
-            # export PATH="/root/.nvm/versions/node/v22.18.0/bin:$PATH"
+            # NPM_PATH=$(which npm)
+            export PATH="/root/.nvm/versions/node/v22.18.0/bin:$PATH"
 
             # Install dependencies
-            sudo $NPM_PATH install
+            npm install
 
             # Build the project
-            sudo $NPM_PATH run build
+            npm run build
 
             # Update pm2 configuration
-            sudo $NPM_PATH pm2 reload server
+            pm2 reload server
 
             # Update Nginx configuration
+
             systemctl reload nginx
+
+            # Try to revert the path (this is unnecessary)
+            # This command is tricky to get right because you'd need the original path value
+            unset PATH
