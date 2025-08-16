@@ -76,7 +76,7 @@ jobs:
             export PATH="/root/.nvm/versions/node/v22.18.0/bin:$PATH"
 
             # Install dependencies
-            npm install --production
+            npm install
 
             # Build the project
             npm run build
