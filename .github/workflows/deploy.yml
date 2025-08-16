@@ -51,7 +51,7 @@ jobs:
           port: 22
           script: |
             DIR="/home/apps/server"
-            NPM_PATH=$(which npm)
+            NPM_PATH= "/root/.nvm/versions/node/v22.18.0/bin/npm"
 
             # Delete if exists
             if [ -d "$DIR" ]; then
