@@ -96,6 +96,7 @@ jobs:
             npm run build
 
             # Update pm2 configuration
+            pm2 start -- name server -- run start
             pm2 reload server
 
             # Update Nginx configuration
