@@ -53,6 +53,9 @@ jobs:
             DIR="/home/apps/server"
             NPM_PATH= "/root/.nvm/versions/node/v22.18.0/bin/npm"
 
+            # Path
+            export PATH="/root/.nvm/versions/node/v22.18.0/bin:$PATH"
+
             # Check if PM2 process exists and stop it
             if pm2 list | grep -q "server"; then
               pm2 stop server
@@ -83,8 +86,7 @@ jobs:
             echo "${{ secrets.ENV_FILE }}" | sudo tee "$DIR/.env" > /dev/null
             echo "Environment file created."
 
-            # Path
-            export PATH="/root/.nvm/versions/node/v22.18.0/bin:$PATH"
+
 
             # Install dependencies
             npm install
