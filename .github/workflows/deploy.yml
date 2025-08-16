@@ -56,20 +56,20 @@ jobs:
           script: |
 
             # Delete if exists
-            if [ -d "$DIR" ]; then
-                sudo rm -rf "$DIR"
+            if [ -d $DIR ]; then
+                sudo rm -rf $DIR
                 echo "Deleted existing directory: $DIR"
             fi
 
             # Create directory
-            sudo mkdir -p "$DIR"
+            sudo mkdir -p $DIR
             echo "Directory $DIR created."
 
 
-            cd "$DIR"
+            cd $DIR
 
             # Clone the repository
-            sudo git clone "$GIT_REPO" .
+            sudo git clone $GIT_REPO .
 
             # Create .env file with configs
             echo "${{ secrets.ENV_FILE }}" | sudo tee "$DIR/.env" > /dev/null
