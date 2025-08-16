@@ -83,11 +83,11 @@ jobs:
             echo $NPM_PATH
 
             # Install dependencies
-            $NPM_PATH install
+            /root/.nvm/versions/node/v22.18.0/bin/npm install
 
 
             # Build the project
-            npm run build
+            /root/.nvm/versions/node/v22.18.0/bin/npm run build
 
             # Update pm2 configuration
             pm2 reload server
