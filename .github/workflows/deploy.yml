@@ -43,9 +43,9 @@ jobs:
       - name: Deploy to VPS
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.ENV_FILE.VPS_HOST }}
-          username: ${{ secrets.ENV_FILE.VPS_USER }}
-          password: ${{ secrets.ENV_FILE.VPS_PASSWORD }}
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          password: ${{ secrets.VPS_PASSWORD }}
           port: 22
           script: |
             cd /home/apps/server2
