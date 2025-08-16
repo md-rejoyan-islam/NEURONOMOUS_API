@@ -72,6 +72,10 @@ jobs:
             echo "${{ secrets.ENV_FILE }}" | sudo tee "$DIR/.env" > /dev/null
             echo "Environment file created."
 
+            # Path
+            export PATH=$PATH:/usr/local/bin
+            export PATH=$PATH:$(npm bin -g)
+
             # Install dependencies
             npm install --production
 
