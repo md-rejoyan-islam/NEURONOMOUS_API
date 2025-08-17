@@ -13,16 +13,6 @@ export const initSocketServer = (server: HttpServer) => {
     },
   });
 
-  // requestHeaders.delete("connection");
-  // requestHeaders.delete("keep-alive");
-  // requestHeaders.delete("transfer-encoding");
-  // requestHeaders.delete("upgrade");
-  // requestHeaders.delete("proxy-connection");
-  // requestHeaders.delete("proxy-authenticate");
-  // requestHeaders.delete("proxy-authorization");
-  // requestHeaders.delete("te");
-  // requestHeaders.delete("trailer");
-
   io.on("connection", (socket: Socket) => {
     // Join room for this socket when login
     socket.on("auth:login", (payload: { userId: string }) => {
