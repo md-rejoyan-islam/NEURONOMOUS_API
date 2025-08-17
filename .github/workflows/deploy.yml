@@ -82,12 +82,6 @@ jobs:
             echo "${{ secrets.ENV_FILE }}" | sudo tee "$DIR/.env" > /dev/null
             echo "Environment file created."
 
-             # Create .env file with configs
-            echo "${{ secrets.ENV_FILE }}" | sudo tee "$DIR/.env" > /dev/null
-            echo "Environment file created."
-
-
-
             # Install dependencies
             npm install
 
