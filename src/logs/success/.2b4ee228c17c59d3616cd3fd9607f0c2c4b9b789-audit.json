@@ -1,35 +1,35 @@
 {
-    "keep": {
-        "days": true,
-        "amount": 14
+  "keep": {
+    "days": true,
+    "amount": 14
+  },
+  "auditLog": "src/logs/success/.2b4ee228c17c59d3616cd3fd9607f0c2c4b9b789-audit.json",
+  "files": [
+    {
+      "date": 1755405449860,
+      "name": "src/logs/success/success-2025-08-17-10-37.log",
+      "hash": "275163f1b6b69350c48fcdf85c4a98f0a356bed5b2a13344db3d1aed8e83ec9c"
     },
-    "auditLog": "src/logs/success/.2b4ee228c17c59d3616cd3fd9607f0c2c4b9b789-audit.json",
-    "files": [
-        {
-            "date": 1755405449860,
-            "name": "src/logs/success/success-2025-08-17-10-37.log",
-            "hash": "275163f1b6b69350c48fcdf85c4a98f0a356bed5b2a13344db3d1aed8e83ec9c"
-        },
-        {
-            "date": 1755405598495,
-            "name": "src/logs/success/success-2025-08-17-10-39.log",
-            "hash": "adec7cdbbd163c038a869dfe0308ee4302415bc188050b20adb87d0a1c1c58ce"
-        },
-        {
-            "date": 1755406032353,
-            "name": "src/logs/success/success-2025-08-17-10-47.log",
-            "hash": "ee441c39069f47d16294a3134023390ef1cff5b16756244d7dc34fde6d63eee3"
-        },
-        {
-            "date": 1755406211599,
-            "name": "src/logs/success/success-2025-08-17-10-50.log",
-            "hash": "e117c4aab543b76e168b0e34f5a211e858ce1d9edb2de0edd41a9626fab570a6"
-        },
-        {
-            "date": 1755406456946,
-            "name": "src/logs/success/success-2025-08-17-10-54.log",
-            "hash": "cbab249350665b153b741fa7cd02a7f0542f2abd9d05e19379b0f512449a874d"
-        }
-    ],
-    "hashType": "sha256"
+    {
+      "date": 1755405598495,
+      "name": "src/logs/success/success-2025-08-17-10-39.log",
+      "hash": "adec7cdbbd163c038a869dfe0308ee4302415bc188050b20adb87d0a1c1c58ce"
+    },
+    {
+      "date": 1755406032353,
+      "name": "src/logs/success/success-2025-08-17-10-47.log",
+      "hash": "ee441c39069f47d16294a3134023390ef1cff5b16756244d7dc34fde6d63eee3"
+    },
+    {
+      "date": 1755406211599,
+      "name": "src/logs/success/success-2025-08-17-10-50.log",
+      "hash": "e117c4aab543b76e168b0e34f5a211e858ce1d9edb2de0edd41a9626fab570a6"
+    },
+    {
+      "date": 1755406456946,
+      "name": "src/logs/success/success-2025-08-17-10-54.log",
+      "hash": "cbab249350665b153b741fa7cd02a7f0542f2abd9d05e19379b0f512449a874d"
+    }
+  ],
+  "hashType": "sha256"
 }
