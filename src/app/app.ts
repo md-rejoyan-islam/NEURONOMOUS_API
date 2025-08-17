@@ -1,7 +1,9 @@
 import cors from "cors";
 import express from "express";
 import morgan from "morgan";
+import corsOptions from "../config/cors";
 import router from "../routes/routes";
+import secret from "./secret";
 
 const app = express();
 
@@ -10,9 +12,9 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
 // CORS configuration
-// app.use(cors(corsOptions));
+app.use(cors(corsOptions));
 // for vps hosting
-app.use(cors({ origin: "*" }));
+app.use(cors({ origin: secret.client_url, credentials: true }));
 
 // morgan
 if (process.env.NODE_ENV === "development") {
