@@ -13,6 +13,7 @@ import {
   addUserToGroupService,
   bulkChangeGroupDevicesModeService,
   bulkChangeGroupDevicesNoticeService,
+  getAllDevicesInGroupService,
   getAllGroupsService,
   getAllUsersInGroupService,
   getGroupByIdService,
@@ -70,10 +71,8 @@ export const addUserToGroupWithDevicesPermission = asyncHandler(
     if (!isValidMongoId(groupId)) {
       throw createError(400, "Invalid group ID.");
     }
-    if (!req.user) {
-      throw createError(400, "User not found, please login");
-    }
-    const { _id: userId, role } = req.user;
+
+    const { _id: userId, role } = req.user!;
 
     const group = await addUserToGroupService(groupId, userId, role, {
       email,
@@ -288,6 +287,25 @@ export const getAllUsersInGroup = asyncHandler(
       message: "Users in group retrieved successfully",
       payload: {
         data: group.members,
+      },
+    });
+  }
+);
+
+// Get all groups devices
+export const getGroupDevices = asyncHandler(
+  async (req: IRequestWithUser, res: Response) => {
+    const { groupId } = req.params;
+    if (!isValidMongoId(groupId)) {
+      throw createError(400, "Invalid group ID.");
+    }
+
+    const devices = await getAllDevicesInGroupService(groupId);
+
+    successResponse(res, {
+      message: "Devices in group retrieved successfully",
+      payload: {
+        data: devices,
       },
     });
   }

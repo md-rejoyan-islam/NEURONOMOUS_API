@@ -63,6 +63,11 @@ export interface IDeviceSchema {
     start_time: number; // Unix timestamp in milliseconds
     duration: number; // duration in minutes
   }[];
+  type: "single" | "double"; // Type of the device, e.g., single or double display
+  firmware_version: string | null; // Firmware version of the device
+  last_firmware_update: number | null; // Unix timestamp in milliseconds, can be null
+  font: string | null; // Font used by the device, can be null
+  time_format: "12h" | "24h"; // Time format used by the device
 }
 export interface IDevice extends IDeviceSchema {
   _id: Types.ObjectId; // Mongoose ObjectId or string

@@ -5,6 +5,7 @@ import {
   createAdminUserWithGroup,
   deleteUserById,
   getAllUsers,
+  getUserById,
   giveDevicesAccessToUserInGroup,
   revokeDeviceAccessToUserInGroup,
   unbanUserById,
@@ -33,6 +34,9 @@ userRouter.post(
   validate(createAdminUserWithGroupSchema),
   createAdminUserWithGroup
 ); // COMPLETE
+
+// get user by superadmin/admin
+userRouter.get("/:userId", authorize(["admin", "superadmin"]), getUserById); // COMPLETE
 
 // delete user by superadmin/admin
 userRouter.delete(

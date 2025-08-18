@@ -71,6 +71,7 @@ export const addUserToGroupService = async (
     ...payload,
     email: payload.email.toLowerCase(),
     role: "user",
+    group: groupId,
   });
 
   // give access to devices
@@ -307,6 +308,20 @@ export const getAllUsersInGroupService = async (
   }
 
   return group;
+};
+
+// get all devices in group service
+export const getAllDevicesInGroupService = async (
+  groupId: string
+): Promise<IDevice[]> => {
+  // Find the group and populate its devices
+  const group = await GroupModel.findById(groupId)
+    .populate<{ devices: IDevice[] }>("devices", "-__v")
+    .lean();
+  if (!group) {
+    throw createError(404, "Group not found");
+  }
+  return group.devices;
 };
 
 // Show notice on all devices In a group

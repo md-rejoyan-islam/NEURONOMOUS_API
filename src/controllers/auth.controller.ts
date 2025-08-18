@@ -209,6 +209,8 @@ export const updateAuthProfile = asyncHandler(
 
 export const refreshToken = asyncHandler(
   async (req: IRequestWithUser, res: Response) => {
+    console.log("Refreshing token...", req.body.refreshToken);
+
     const { accessToken } = await refreshTokenService(req.body.refreshToken);
 
     successResponse(res, {

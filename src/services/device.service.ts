@@ -464,13 +464,16 @@ export const getAllDevicesService = async (
   // }
   // If the user is a regular user, return only devices associated with them
   else {
+    console.log(_id);
+
     devices = await DeviceModel.find({
       allowed_users: {
-        $in: [new mongoose.Types.ObjectId(_id)],
+        $in: _id,
       },
-    })
-      .populate("allowed_users")
-      .lean();
+    }).lean();
+
+    console.log(devices);
+
     // const users = (await UserModel.findById(_id)
     //   .populate("allowed_devices")
     //   .lean()) as IUserWithPopulateDevices | null;
@@ -553,12 +556,20 @@ export const giveDeviceAccessToUsersInGroupService = async (
     throw createError(404, "No valid users found to give device access.");
   }
 
+  if (users.length !== userIds.length) {
+    throw createError(404, "Some users not found.");
+  }
+
+  console.log(userIds);
+
   const device = await DeviceModel.findByIdAndUpdate(
     deviceId,
-    { $addToSet: { allowed_users: { $each: users.map((user) => user._id) } } },
+    { $addToSet: { allowed_users: { $each: userIds } } },
     { new: true }
   ).lean();
   if (!device) throw createError(404, `Device ${deviceId} not found.`);
+
+  console.log(device);
 
   // Update the users to give them access to the device
 

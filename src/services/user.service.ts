@@ -14,6 +14,15 @@ export const getAllUsersService = async (): Promise<IUser[]> => {
   return users;
 };
 
+// get user by ID service
+export const getUserByIdService = async (userId: string): Promise<IUser> => {
+  const user = await UserModel.findById(userId);
+  if (!user) {
+    throw createError(404, "User not found");
+  }
+  return user;
+};
+
 // change user password service
 export const changeUserPasswordService = async (
   userId: string,

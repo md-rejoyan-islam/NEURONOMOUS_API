@@ -8,6 +8,7 @@ import {
   createAdminUserWithGroupService,
   deleteUserByIdService,
   getAllUsersService,
+  getUserByIdService,
   giveDeviceAccessToUserInGroupService,
   revokeDeviceAccessToUserInGroupService,
   unbanUserByIdService,
@@ -315,3 +316,22 @@ export const deleteUserById = asyncHandler(
     });
   }
 );
+
+// get user by superadmin/admin
+export const getUserById = asyncHandler(async (req: Request, res: Response) => {
+  const { userId } = req.params;
+
+  if (!Types.ObjectId.isValid(userId)) {
+    throw createError(400, "Invalid user ID.");
+  }
+
+  const user = await getUserByIdService(userId);
+
+  successResponse(res, {
+    message: `User ${userId} retrieved successfully`,
+    statusCode: 200,
+    payload: {
+      data: user,
+    },
+  });
+});

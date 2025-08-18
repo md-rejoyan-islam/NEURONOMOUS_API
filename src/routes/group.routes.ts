@@ -8,6 +8,7 @@ import {
   getAllGroups,
   getAllUsersInGroup,
   getGroupById,
+  getGroupDevices,
   removeDeviceFromGroup,
   scheduleNoticeForAllDevicesInGroup,
   scheduleNoticeForDeviceInGroup,
@@ -76,6 +77,13 @@ groupRouter.get(
   "/:groupId/users",
   authorize(["admin", "superadmin"]),
   getAllUsersInGroup
+); // COMPLETE
+
+// Get all groups devices
+groupRouter.get(
+  "/:groupId/devices",
+  authorize(["admin", "superadmin"]),
+  getGroupDevices
 ); // COMPLETE
 
 // send notice to all devices in a group

@@ -29,10 +29,7 @@ import { successResponse } from "../utils/response-handler";
  */
 export const getAllDevices = asyncHandler(
   async (req: IRequestWithUser, res: Response) => {
-    if (!req.user) {
-      throw createError(401, "Unauthorized");
-    }
-    const { role, _id } = req.user;
+    const { role, _id } = req.user!;
 
     const result = await getAllDevicesService(_id as Types.ObjectId, role);
 
@@ -320,10 +317,6 @@ export const giveDeviceAccessToUsersInGroup = asyncHandler(
   async (req: IRequestWithUser, res: Response) => {
     const { deviceId } = req.params;
     const { userIds } = req.body;
-
-    if (!req.user) {
-      throw createError(401, "Unauthorized");
-    }
 
     // Assuming a service to give device access to users exists
     await giveDeviceAccessToUsersInGroupService(deviceId, userIds);

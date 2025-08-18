@@ -227,9 +227,9 @@ export const getUserPermissionDevicesService = async (
     return devices || [];
   }
 
-  const devices = await DeviceModel.findOne({
+  const devices = await DeviceModel.find({
     allowed_users: {
-      $in: [userId],
+      $in: userId,
     },
   })
     .select("_id id name status")
@@ -277,11 +277,15 @@ export const updateAuthProfileService = async (
 
 // refresh token service
 export const refreshTokenService = async (refreshToken: string) => {
+  console.log(refreshToken);
+
   // Verify the refresh token
   const payload = verifyToken(
     refreshToken,
     secret.jwt.refreshTokenSecret
   ) as IJwtPayload;
+
+  console.log(payload);
 
   if (!payload) throw createError(401, "Invalid refresh token.");
 
