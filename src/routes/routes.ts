@@ -4,6 +4,7 @@ import errorHandler from "../middlewares/error-handler";
 import { successResponse } from "../utils/response-handler";
 import authRouter from "./auth.routes";
 import deviceRouter from "./device.routes";
+import firmwareRouter from "./firmware.routes";
 import groupRouter from "./group.routes";
 import userRouter from "./user.routes";
 
@@ -33,6 +34,8 @@ router.use("/api/v1/auth", authRouter);
 router.use("/api/v1/users", userRouter);
 // group routes
 router.use("/api/v1/groups", groupRouter);
+// firmware routes
+router.use("/api/v1/firmwares", firmwareRouter);
 
 // 404 route
 router.use("", (req: Request, _res: Response) => {

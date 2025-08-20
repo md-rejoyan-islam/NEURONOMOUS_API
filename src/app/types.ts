@@ -1,6 +1,6 @@
 import { Request } from "express";
 import { JwtPayload } from "jsonwebtoken";
-import { Types } from "mongoose";
+import { Document, Types } from "mongoose";
 
 export interface ISuccessResponse {
   statusCode?: number;
@@ -13,6 +13,19 @@ export interface IErrorResponse {
   message: string;
   errors: { path: string | number; message: string }[];
   stack?: string;
+}
+
+export type IFirmwareSchema = Document & {
+  version: string;
+  description: string;
+  type: "single" | "double";
+  file: Buffer;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export interface IFirmware extends IFirmwareSchema {
+  _id: Types.ObjectId; // Mongoose ObjectId or string
 }
 
 export interface IUserSchema {
