@@ -17,6 +17,7 @@ import { isLoggedIn } from "../middlewares/verify";
 import {
   changeUserPasswordSchema,
   createAdminUserWithGroupSchema,
+  updateUserProfileSchema,
 } from "../validator/user.validator";
 
 const userRouter = Router();
@@ -45,6 +46,14 @@ userRouter.delete(
   deleteUserById
 ); // COMPLETE
 
+// update user profile by superadmin/admin
+userRouter.patch(
+  "/:userId",
+  authorize(["admin", "superadmin"]),
+  validate(updateUserProfileSchema),
+  updateUserProfile
+);
+
 // change user password by superadmin/admin
 userRouter.patch(
   "/:userId/change-password",
@@ -66,12 +75,6 @@ userRouter.patch(
   unbanUserById
 ); // COMPLETE
 
-// update user profile by superadmin/admin
-userRouter.patch(
-  "/:userId/update-profile",
-  authorize(["admin", "superadmin"]),
-  updateUserProfile
-);
 // give device access to user by superadmin/admin
 userRouter.patch(
   "/:userId/give-device-access",

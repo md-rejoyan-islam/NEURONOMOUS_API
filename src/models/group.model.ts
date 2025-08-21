@@ -6,6 +6,7 @@ const GroupSchema: Schema<IGroupSchema> = new mongoose.Schema<IGroupSchema>(
     name: {
       type: String,
       required: [true, "Group name is required"],
+      unique: [true, "Group name must be unique"],
       minlength: [2, "Group name must be at least 2 characters long"],
       maxlength: [50, "Group name must be at most 50 characters long"],
     },

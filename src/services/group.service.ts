@@ -125,7 +125,10 @@ export const updateGroupByIdService = async (
   const group = await GroupModel.findByIdAndUpdate(
     groupId,
     { name: payload.name, description: payload.description },
-    { new: true }
+    {
+      new: true,
+      runValidators: true,
+    }
   )
     .populate("devices", "-__v")
     .populate("members", "-password -__v")
@@ -202,25 +205,20 @@ export const removeDeviceFromGroupService = async (
     groupId,
     { $pull: { devices: deviceId } },
     { new: true }
-  )
-    .populate("devices", "-__v")
-    .populate("members", "-password -__v")
-    .lean();
+  ).lean();
 
   if (!group) {
     throw createError(404, "Group not found.");
   }
 
-  // remove access from user
-  UserModel.updateMany(
-    { devices: deviceId },
-    { $pull: { devices: deviceId } }
+  // remove group reference from device
+  DeviceModel.findByIdAndUpdate(
+    deviceId,
+    {
+      $set: { group: null, allowed_users: [] },
+    },
+    { new: true, runValidators: true }
   ).exec();
-
-  // unused device
-  DeviceModel.findByIdAndUpdate(deviceId, {
-    is_used: false,
-  }).exec();
 
   return group;
 };

@@ -1,5 +1,5 @@
 import multer, { memoryStorage } from "multer";
-const supportedFormat = [".bin"];
+const supportedFormat = [".bin", "pdf"];
 
 const upload = multer({
   storage: memoryStorage(),

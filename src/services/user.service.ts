@@ -233,6 +233,14 @@ export const createAdminUserWithGroupService = async (payload: {
     throw createError(400, "User with this email already exists");
   }
 
+  // group check
+  const existingGroup = await GroupModel.exists({
+    name: payload.group_name,
+  });
+  if (existingGroup) {
+    throw createError(400, "Group with this name already exists");
+  }
+
   // Create new admin user
   const newUser = new UserModel({
     email: payload.email.toLowerCase(),

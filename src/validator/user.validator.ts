@@ -110,3 +110,43 @@ export const changeUserPasswordSchema = z.object({
     })
     .strict(),
 });
+
+export const updateUserProfileSchema = z.object({
+  body: z
+    .object({
+      first_name: z.string({
+        error: (iss) => {
+          if (!iss.input) {
+            return "First name is required.";
+          } else if (typeof iss.input !== iss.expected) {
+            return "First name must be a string.";
+          }
+          return "Invalid first name.";
+        },
+      }),
+      last_name: z.string({
+        error: (iss) => {
+          if (!iss.input) {
+            return "Last name is required.";
+          } else if (typeof iss.input !== iss.expected) {
+            return "Last name must be a string.";
+          }
+          return "Invalid last name.";
+        },
+      }),
+      email: z.email({
+        error: (iss) => {
+          if (!iss.input) {
+            return "Email is required.";
+          } else if (typeof iss.input !== iss.expected) {
+            return "Email must be a string.";
+          }
+          return "Invalid email format.";
+        },
+      }),
+      phone: z.string().optional(),
+      address: z.string().optional(),
+      notes: z.string().optional(),
+    })
+    .strict(),
+});
