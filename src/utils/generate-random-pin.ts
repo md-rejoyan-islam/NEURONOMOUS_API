@@ -1,6 +1,5 @@
 /**
  * @description Generates a random numeric pin of a specified length.
- *
  * @param length - The desired length of the random pin.
  * @returns A string containing the random numeric pin.
  */

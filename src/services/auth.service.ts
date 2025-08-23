@@ -15,6 +15,7 @@ import { comparePassword } from "../utils/password";
 
 // auth login service
 export const authLoginService = async (email: string, password: string) => {
+  
   // Find user by email
   const user = await UserModel.findOne({
     email: email.toLowerCase(),
@@ -324,6 +325,8 @@ export const createUserService = async (userData: IUser) => {
   const existingUser = await UserModel.findOne({
     email: userData.email.toLowerCase(),
   });
+
+  // If user exists, throw an error
   if (existingUser) throw createError(409, "User already exists.");
 
   // Create new user

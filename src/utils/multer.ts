@@ -4,7 +4,7 @@ const supportedFormat = [".bin", "pdf"];
 const upload = multer({
   storage: memoryStorage(),
   limits: {
-    fileSize: 0.5 * 1024 * 1024, // Set the file size limit to 500KB
+    fileSize: 5 * 1024 * 1024, // Set the file size limit to 5MB
   },
   fileFilter: (req, file, cb) => {
     if (

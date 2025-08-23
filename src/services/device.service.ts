@@ -8,6 +8,7 @@ import {
   scheduleNoticeJob,
 } from "../cron/scheduler";
 import { DeviceModel } from "../models/device.model";
+import { FirmwareModel } from "../models/firmware.model";
 import { UserModel } from "../models/user.model";
 import { emitDeviceStatusUpdate } from "../socket";
 import { dateFormat, formatBytes, formatUptime } from "../utils/date-format";
@@ -496,11 +497,26 @@ export const getDeviceByIdService = async (id: string) => {
 
   if (!device) throw createError(404, `Device ${id} not found.`);
 
+  const firmwares = await FirmwareModel.find({
+    type: device.type,
+    version: {
+      gt: device.firmware_version,
+    },
+  })
+    .sort({ version: 1 })
+    .lean();
+
   return {
     ...device,
     last_seen: dateFormat(device.last_seen),
     uptime: formatUptime(device.uptime),
     free_heap: formatBytes(device.free_heap),
+    is_update_available: firmwares.length > 0,
+    available_firmwares:
+      firmwares.map((fw) => ({
+        _id: fw._id,
+        version: fw.version,
+      })) || [],
   };
 };
 

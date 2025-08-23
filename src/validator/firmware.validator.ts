@@ -13,3 +13,14 @@ export const createFirmwareSchema = z.object({
     })
     .strict(),
 });
+
+export const updateDeviceFirmwareSchema = z.object({
+  body: z
+    .object({
+      version: z.string("Firmware version must be a positive number."),
+      type: z.enum(["single", "double"], {
+        message: "Invalid firmware type. Allowed values are: single, double.",
+      }),
+    })
+    .strict(),
+});

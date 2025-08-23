@@ -1,4 +1,5 @@
 import createError from "http-errors";
+import { DeviceModel } from "../models/device.model";
 import { FirmwareModel } from "../models/firmware.model";
 
 function formatFileSize(bytes: number): string {
@@ -79,4 +80,29 @@ export const downloadFirmwareFileByIdService = async (id: string) => {
   }
 
   return firmware;
+};
+
+// update firmware version by ID
+export const updateFirmwareByIdService = async (
+  id: string,
+  version: string,
+  type: "single" | "double"
+) => {
+  const device = await DeviceModel.findById(id).lean();
+  if (!device) {
+    throw createError(404, `Device with ID ${id} not found`);
+  }
+
+  const firmware = await FirmwareModel.findOne({
+    version: version,
+    type: type,
+  });
+
+  if (!firmware) {
+    throw createError(404, `Firmware version ${version} not found`);
+  }
+
+  const file = firmware.file;
+
+  return file;
 };

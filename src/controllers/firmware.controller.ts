@@ -5,6 +5,7 @@ import {
   downloadFirmwareFileByIdService,
   getAllFirmwaresService,
   getFirmwareByIdService,
+  updateFirmwareByIdService,
 } from "../services/firmware.service";
 import { asyncHandler } from "../utils/async-handler";
 import { successResponse } from "../utils/response-handler";
@@ -95,5 +96,24 @@ export const downloadFirmwareFileById = asyncHandler(
     );
     res.setHeader("Content-Type", "application/octet-stream");
     res.status(200).send(firmware.file);
+  }
+);
+
+// updateFirmwareById
+export const updateFirmwareById = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+
+    const { version, type } = req.body;
+
+    const file = await updateFirmwareByIdService(id, version, type);
+
+    successResponse(res, {
+      message: `Firmware version with ID ${id} updated successfully`,
+      statusCode: 200,
+      payload: {
+        file,
+      },
+    });
   }
 );
