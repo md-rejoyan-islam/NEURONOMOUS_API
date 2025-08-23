@@ -12,6 +12,7 @@ import { UserModel } from "../models/user.model";
 import { emitDeviceStatusUpdate } from "../socket";
 import { dateFormat, formatBytes, formatUptime } from "../utils/date-format";
 import { errorLogger, logger } from "../utils/logger";
+
 // Utility to publish messages to a device
 const publishToDevice = async (
   id: string,
@@ -45,6 +46,7 @@ export const updateDeviceStatusAndHandlePendingNotice = async (
     mode: "clock" | "notice";
     free_heap: number;
     notice: string;
+    firmware_version: string;
   }
 ) => {
   const device = await DeviceModel.findOne({ id });

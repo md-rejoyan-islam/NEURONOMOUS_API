@@ -13,7 +13,9 @@ export const handleMqttMessage = async (topic: string, message: Buffer) => {
   try {
     if (topic === STATUS_TOPIC) {
       const payload = JSON.parse(msg);
-      const { id, status, uptime, mode, free_heap, notice } = payload;
+      console.log("mqtt payload", payload);
+
+      const { id, status, uptime, mode, free_heap, notice, firmware } = payload;
 
       // console.log("payload", payload);
 
@@ -28,6 +30,7 @@ export const handleMqttMessage = async (topic: string, message: Buffer) => {
           mode,
           free_heap,
           notice,
+          firmware_version: firmware,
         });
       } else {
         console.log("changing device status to", status, "for ID:", id);
@@ -40,6 +43,7 @@ export const handleMqttMessage = async (topic: string, message: Buffer) => {
           mode,
           free_heap,
           notice,
+          firmware_version: firmware,
         });
       }
     } else if (topic.startsWith(DATA_TOPIC_PREFIX)) {
