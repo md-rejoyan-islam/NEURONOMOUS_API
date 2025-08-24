@@ -1,6 +1,5 @@
 import createError from "http-errors";
 import mongoose, { Types } from "mongoose";
-import secret from "../app/secret";
 import { IDevice, IUser } from "../app/types";
 import { mqttClient } from "../config/mqtt";
 import {
@@ -231,7 +230,8 @@ export const updateDeviceFirmwareService = async (
   try {
     const firmwareTopic = `device/${device.mac_id}/ota/control`;
 
-    const downloadUrl = `${secret.client_url}/api/v1/firmwares/${firmwareId}/download`;
+    const downloadUrl = `https://eee.rejoyan.me/api/v1/firmwares/${firmwareId}/download`;
+    // const downloadUrl = `${secret.client_url}/api/v1/firmwares/${firmwareId}/download`;
 
     await new Promise<void>((resolve, reject) => {
       mqttClient.publish(
