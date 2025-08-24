@@ -8,10 +8,9 @@ const DeviceSchema: Schema<IDeviceSchema> = new mongoose.Schema<IDeviceSchema>(
       required: [true, "Device ID is required"],
       unique: [true, "Device ID must be unique"],
     },
-    name: {
+    mac_id: {
       type: String,
-      minlength: [2, "Device name must be at least 2 characters long"],
-      maxlength: [100, "Device name must be at most 100 characters long"],
+      // unique: [true, "MAC ID must be unique"],
       default: null,
     },
     status: {
@@ -24,14 +23,40 @@ const DeviceSchema: Schema<IDeviceSchema> = new mongoose.Schema<IDeviceSchema>(
       },
       default: "offline",
     },
+    mode: {
+      type: String,
+      enum: {
+        values: ["clock", "notice"],
+        message:
+          "`{VALUE}` is not a valid mode. Allowed values are: clock, notice.",
+      },
+      default: "clock",
+    },
+    firmware_version: {
+      type: String,
+      required: [true, "Firmware version is required"],
+      // validate: {
+      //   // format ( e.g., "1.0.0" or "2.1.3")
+      //   validator: (v: string) => /^\d+\.\d+\.\d+$/.test(v),
+      //   message: (props: { value: string }) =>
+      //     `${props.value} is not a valid firmware version format. It should be in the format "x.y.z" where x, y, and z are integers.`,
+      // },
+    },
+    notice: { type: String, default: null },
+    uptime: {
+      type: Number,
+      default: 0,
+    },
+    name: {
+      type: String,
+      minlength: [2, "Device name must be at least 2 characters long"],
+      maxlength: [100, "Device name must be at most 100 characters long"],
+      default: null,
+    },
     location: {
       type: String,
       maxlength: [200, "Location must be at most 200 characters long"],
       default: null,
-    },
-    uptime: {
-      type: Number,
-      default: 0,
     },
     group: {
       type: Types.ObjectId,
@@ -44,27 +69,16 @@ const DeviceSchema: Schema<IDeviceSchema> = new mongoose.Schema<IDeviceSchema>(
         ref: "User",
       },
     ],
-    mode: {
-      type: String,
-      enum: {
-        values: ["clock", "notice"],
-        message:
-          "`{VALUE}` is not a valid mode. Allowed values are: clock, notice.",
-      },
-      default: "clock",
-    },
     last_seen: {
       type: Number, // Unix timestamp in milliseconds
       default: () => Date.now(),
       required: true,
     }, // last when the device was online
-    notice: { type: String, default: null },
     duration: {
       type: Number,
       default: null,
       validate: {
         validator: function (val: number | null) {
-          // Allow null, otherwise must be >= 0
           return val === null || val >= 0;
         },
         message: "Duration must be greater than or equal to 0",
@@ -86,7 +100,6 @@ const DeviceSchema: Schema<IDeviceSchema> = new mongoose.Schema<IDeviceSchema>(
       default: null,
       validate: {
         validator: function (val: number | null): boolean {
-          // Allow null, otherwise must be a greater than Date.now() and greater than start_time
           return (
             val === null ||
             (val > Date.now() &&
@@ -98,12 +111,12 @@ const DeviceSchema: Schema<IDeviceSchema> = new mongoose.Schema<IDeviceSchema>(
       },
     },
     free_heap: { type: Number, default: 0 },
-    history: [
-      {
-        message: { type: String, required: true },
-        timestamp: { type: Number, required: true }, // Unix timestamp in milliseconds
-      },
-    ],
+    // history: [
+    //   {
+    //     message: { type: String, required: true },
+    //     timestamp: { type: Number, required: true }, // Unix timestamp in milliseconds
+    //   },
+    // ],
     pending_notice: { type: Boolean, default: false },
     scheduled_notices: [
       {
@@ -113,13 +126,6 @@ const DeviceSchema: Schema<IDeviceSchema> = new mongoose.Schema<IDeviceSchema>(
         duration: { type: Number, required: true }, // duration in minutes
       },
     ],
-    // history: [
-    //   {
-    //     ntp_time: { type: String, required: true },
-    //     rtc_before: { type: String, required: true },
-    //     rtc_after: { type: String, required: true },
-    //     time: { type: String, required: true }, // Store as string for consistency
-    //   }]
   },
   {
     timestamps: true,

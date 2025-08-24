@@ -13,9 +13,19 @@ export const handleMqttMessage = async (topic: string, message: Buffer) => {
   try {
     if (topic === STATUS_TOPIC) {
       const payload = JSON.parse(msg);
-      console.log("mqtt payload", payload);
+      // console.log("mqtt payload", payload);
 
-      const { id, status, uptime, mode, free_heap, notice, firmware } = payload;
+      const {
+        id,
+        macId,
+        status,
+        mode,
+        notice,
+        uptime,
+        free_heap,
+        firmware,
+        type,
+      } = payload;
 
       // console.log("payload", payload);
 
@@ -30,6 +40,8 @@ export const handleMqttMessage = async (topic: string, message: Buffer) => {
           mode,
           free_heap,
           notice,
+          mac_id: macId,
+          type,
           firmware_version: firmware,
         });
       } else {
@@ -38,11 +50,13 @@ export const handleMqttMessage = async (topic: string, message: Buffer) => {
         // Create or update device with the new status
         await createOrUpdateDeviceService({
           id,
+          mac_id: macId,
           status,
-          uptime,
           mode,
-          free_heap,
           notice,
+          uptime,
+          free_heap,
+          type: type || "single",
           firmware_version: firmware,
         });
       }

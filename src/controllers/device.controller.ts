@@ -18,6 +18,7 @@ import {
   scheduleNoticeToAllDevicesService,
   sendNoticeToAllDevicesService,
   sendNoticeToDeviceService,
+  updateDeviceFirmwareService,
 } from "../services/device.service";
 import { asyncHandler } from "../utils/async-handler";
 import { successResponse } from "../utils/response-handler";
@@ -164,6 +165,24 @@ export const sendNoticeInDevice = asyncHandler(
 
     successResponse(res, {
       message: `Notice sent to device ${deviceId}`,
+      statusCode: 200,
+    });
+  }
+);
+
+export const updateDeviceFirmware = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { deviceId } = req.params;
+
+    const { firmwareId } = req.body;
+    if (!firmwareId) {
+      throw createError(400, "Firmware ID is required.");
+    }
+
+    await updateDeviceFirmwareService(deviceId, firmwareId);
+
+    successResponse(res, {
+      message: `Firmware update for device ${deviceId} initiated`,
       statusCode: 200,
     });
   }

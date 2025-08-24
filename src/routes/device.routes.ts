@@ -16,6 +16,7 @@ import {
   scheduleNoticeForDevice,
   sendNoticeInDevice,
   sendNoticeToAllDevices,
+  updateDeviceFirmware,
 } from "../controllers/device.controller";
 import { authorize } from "../middlewares/authorized";
 import validate from "../middlewares/validate";
@@ -61,6 +62,13 @@ deviceRouter.patch(
 
 // get a specific device by ID
 deviceRouter.get("/:deviceId", getDeviceById);
+
+// update a specific device firmware
+deviceRouter.patch(
+  "/:deviceId/update-firmware",
+  authorize(["superadmin", "admin"]),
+  updateDeviceFirmware
+);
 
 // Get all allowed access usrs for a device
 deviceRouter.get("/:deviceId/allowed-users", getAllowedUsersForDevice);

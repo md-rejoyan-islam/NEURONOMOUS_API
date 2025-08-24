@@ -15,7 +15,6 @@ import { comparePassword } from "../utils/password";
 
 // auth login service
 export const authLoginService = async (email: string, password: string) => {
-  
   // Find user by email
   const user = await UserModel.findOne({
     email: email.toLowerCase(),

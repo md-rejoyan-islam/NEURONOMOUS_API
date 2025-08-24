@@ -8,6 +8,7 @@ import {
   updateFirmwareByIdService,
 } from "../services/firmware.service";
 import { asyncHandler } from "../utils/async-handler";
+import { isValidMongoId } from "../utils/is-valid-mongo-id";
 import { successResponse } from "../utils/response-handler";
 
 // Get all firmware versions
@@ -45,7 +46,7 @@ export const getFirmwareById = asyncHandler(
 // Create a new firmware version
 export const createFirmware = asyncHandler(
   async (req: Request, res: Response) => {
-    const { version, description, type } = req.body;
+    const { version, description } = req.body;
 
     if (!req.file || !("buffer" in req.file)) {
       throw new Error("Firmware file is missing or invalid");
@@ -54,7 +55,6 @@ export const createFirmware = asyncHandler(
     const firmware = await createFirmwareService({
       version: version,
       description,
-      type,
       file: req.file.buffer as Buffer,
     });
 
@@ -88,6 +88,10 @@ export const downloadFirmwareFileById = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
 
+    if (!isValidMongoId(id)) {
+      throw new Error("Invalid firmware ID");
+    }
+
     const firmware = await downloadFirmwareFileByIdService(id);
 
     res.setHeader(
@@ -104,16 +108,14 @@ export const updateFirmwareById = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
 
-    const { version, type } = req.body;
+    const { version } = req.body;
 
-    const file = await updateFirmwareByIdService(id, version, type);
+    await updateFirmwareByIdService(id, version);
 
     successResponse(res, {
       message: `Firmware version with ID ${id} updated successfully`,
       statusCode: 200,
-      payload: {
-        file,
-      },
+      payload: {},
     });
   }
 );

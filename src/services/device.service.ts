@@ -1,5 +1,6 @@
 import createError from "http-errors";
 import mongoose, { Types } from "mongoose";
+import secret from "../app/secret";
 import { IDevice, IUser } from "../app/types";
 import { mqttClient } from "../config/mqtt";
 import {
@@ -48,6 +49,8 @@ export const updateDeviceStatusAndHandlePendingNotice = async (
     free_heap: number;
     notice: string;
     firmware_version: string;
+    mac_id?: string;
+    type?: "single" | "double";
   }
 ) => {
   const device = await DeviceModel.findOne({ id });
@@ -156,8 +159,8 @@ export const sendNoticeToDeviceService = async (
   if (!device) throw createError(404, `Device ${id} not found.`);
 
   // Save the notice and duration to history
-  const historyEntry = { message: notice, timestamp: Date.now() };
-  device.history.push(historyEntry);
+  // const historyEntry = { message: notice, timestamp: Date.now() };
+  // device.history.push(historyEntry);
 
   // If the device is offline, set pending_notice flag
   if (device.status === "offline") {
@@ -181,7 +184,7 @@ export const sendNoticeToDeviceService = async (
     duration,
     mode: "notice",
     last_seen: Date.now(),
-    history: device.history,
+    // history: device.history,
   });
   if (duration && duration > 0) {
     console.log("Scheduling expire job for", id, "with duration", duration);
@@ -208,6 +211,45 @@ export const sendNoticeToAllDevicesService = async (
     // }
   }
   return { message: `Notice sent to all online devices.` };
+};
+
+// update device firmware
+export const updateDeviceFirmwareService = async (
+  id: string,
+  firmwareId: string
+) => {
+  const device = await DeviceModel.findById(id).lean();
+  if (!device) {
+    throw createError(404, `Device with ID ${id} not found`);
+  }
+  const firmware = await FirmwareModel.findById(firmwareId).lean();
+  if (!firmware) {
+    throw createError(404, `Firmware with ID ${firmwareId} not found`);
+  }
+
+  try {
+    const firmwareTopic = `device/${id}/ota/control`;
+
+    const downloadUrl = `${secret.client_url}/api/v1/firmwares/${firmwareId}/download`;
+
+    await new Promise<void>((resolve, reject) => {
+      mqttClient.publish(
+        firmwareTopic,
+        downloadUrl,
+        { qos: 1, retain: false },
+        (err) => {
+          if (err) {
+            reject(err);
+          }
+          resolve();
+        }
+      );
+      logger.info(`Firmware version sent`); // Log successful publish
+    });
+  } catch (error) {
+    errorLogger.error(`Failed to update firmaware`, error); // Log the error
+    // throw createError(500, `MQTT publish to ${topic} failed .`);
+  }
 };
 
 // Send a scheduled notice to a single device
@@ -329,6 +371,8 @@ export const createOrUpdateDeviceService = async (
 ) => {
   const { id, ...updateData } = payload;
   console.log("Creating or updating device with ID:", id);
+
+  console.log("Update data:", updateData);
 
   const device = await DeviceModel.findOneAndUpdate(
     { id },
@@ -498,12 +542,9 @@ export const getDeviceByIdService = async (id: string) => {
   if (!device) throw createError(404, `Device ${id} not found.`);
 
   const firmwares = await FirmwareModel.find({
-    type: device.type,
-    version: {
-      gt: device.firmware_version,
-    },
+    version: { $gt: device.firmware_version || "0.0.0" },
   })
-    .sort({ version: 1 })
+    .sort({ version: -1 })
     .lean();
 
   return {
@@ -511,7 +552,6 @@ export const getDeviceByIdService = async (id: string) => {
     last_seen: dateFormat(device.last_seen),
     uptime: formatUptime(device.uptime),
     free_heap: formatBytes(device.free_heap),
-    is_update_available: firmwares.length > 0,
     available_firmwares:
       firmwares.map((fw) => ({
         _id: fw._id,

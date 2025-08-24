@@ -23,15 +23,6 @@ const FirmwareSchema: Schema<IFirmwareSchema> =
           "Firmware description must be at least 10 characters long",
         ],
       },
-      type: {
-        type: String,
-        required: [true, "Firmware type is required"],
-        enum: {
-          values: ["single", "double"],
-          message:
-            "`{VALUE}` is not a valid type. Allowed values are: single, double.",
-        },
-      },
       file: {
         type: Buffer,
         required: [true, "Firmware file is required"],

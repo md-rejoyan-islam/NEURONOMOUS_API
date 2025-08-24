@@ -1,6 +1,8 @@
 import createError from "http-errors";
+import { mqttClient } from "../config/mqtt";
 import { DeviceModel } from "../models/device.model";
 import { FirmwareModel } from "../models/firmware.model";
+import { errorLogger, logger } from "../utils/logger";
 
 function formatFileSize(bytes: number): string {
   if (bytes === 0) return "0 Bytes";
@@ -26,7 +28,6 @@ export const getAllFirmwaresService = async () => {
     version: firmware.version,
     size: formatFileSize(firmware.file.length), // Convert bytes to KB
     description: firmware.description,
-    type: firmware.type,
     createdAt: firmware.createdAt,
     updatedAt: firmware.updatedAt,
   }));
@@ -45,7 +46,6 @@ export const getFirmwareByIdService = async (id: string) => {
 export const createFirmwareService = async (firmwareData: {
   version: number;
   description: string;
-  type: "single" | "double";
   file: File | Buffer;
 }) => {
   const existingFirmware = await FirmwareModel.findOne({
@@ -85,8 +85,7 @@ export const downloadFirmwareFileByIdService = async (id: string) => {
 // update firmware version by ID
 export const updateFirmwareByIdService = async (
   id: string,
-  version: string,
-  type: "single" | "double"
+  version: string
 ) => {
   const device = await DeviceModel.findById(id).lean();
   if (!device) {
@@ -95,14 +94,32 @@ export const updateFirmwareByIdService = async (
 
   const firmware = await FirmwareModel.findOne({
     version: version,
-    type: type,
-  });
+  }).lean();
 
   if (!firmware) {
     throw createError(404, `Firmware version ${version} not found`);
   }
 
-  const file = firmware.file;
+  try {
+    const topic = `device/${id}/ota/control`;
 
-  return file;
+    await new Promise<void>((resolve, reject) => {
+      mqttClient.publish(
+        topic,
+        firmware._id.toString(),
+        { qos: 1, retain: false },
+        (err) => {
+          if (err) {
+            reject(err);
+          }
+
+          resolve();
+        }
+      );
+      logger.info(`Firmware version sent`); // Log successful publish
+    });
+  } catch (error) {
+    errorLogger.error(`Failed to update firmaware`, error); // Log the error
+    // throw createError(500, `MQTT publish to ${topic} failed .`);
+  }
 };

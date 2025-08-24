@@ -18,7 +18,6 @@ export interface IErrorResponse {
 export type IFirmwareSchema = Document & {
   version: string;
   description: string;
-  type: "single" | "double";
   file: Buffer;
   createdAt: Date;
   updatedAt: Date;
@@ -52,22 +51,26 @@ export interface IUser extends IUserSchema {
 
 export interface IDeviceSchema {
   id: string;
-  name: string | null;
+  mac_id: string | null;
   status: "online" | "offline";
-  location: string | null;
-  uptime: number;
   mode: "clock" | "notice";
-  last_seen: number; // Unix timestamp in milliseconds
   notice: string | null;
+  name: string | null;
+  uptime: number;
+  end_time: number | null; // Unix timestamp in milliseconds, can be null
+  firmware_version: string | null;
+  type: "single" | "double";
+  free_heap: number;
+  location: string | null;
+  last_seen: number; // Unix timestamp in milliseconds
   duration: number | null; // duration in minutes, can be null
   start_time: number | null; // Unix timestamp in milliseconds, can be null
-  end_time: number | null; // Unix timestamp in milliseconds, can be null
-  free_heap: number;
+  last_firmware_update: number | null; // Unix timestamp in milliseconds, can be null
   group: Types.ObjectId | null; // Reference to a Group model
-  history: {
-    message: string;
-    timestamp: number;
-  }[];
+  // history: {
+  //   message: string;
+  //   timestamp: number;
+  // }[];
   allowed_users?: Types.ObjectId[]; // Array of user IDs allowed to access the device
   pending_notice: boolean; // Indicates if there is a pending notice to be sent
   scheduled_notices: {
@@ -76,11 +79,8 @@ export interface IDeviceSchema {
     start_time: number; // Unix timestamp in milliseconds
     duration: number; // duration in minutes
   }[];
-  type: "single" | "double"; // Type of the device, e.g., single or double display
-  firmware_version: string | null; // Firmware version of the device
-  last_firmware_update: number | null; // Unix timestamp in milliseconds, can be null
-  font: string | null; // Font used by the device, can be null
-  time_format: "12h" | "24h"; // Time format used by the device
+  font: string | null;
+  time_format: "12h" | "24h";
 }
 export interface IDevice extends IDeviceSchema {
   _id: Types.ObjectId; // Mongoose ObjectId or string

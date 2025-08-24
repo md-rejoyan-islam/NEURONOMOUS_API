@@ -1,7 +1,6 @@
 import cors from "cors";
 import express from "express";
 import morgan from "morgan";
-import limiter from "../config/rate-limiter";
 import router from "../routes/routes";
 import secret from "./secret";
 
@@ -22,7 +21,7 @@ if (process.env.NODE_ENV === "development") {
 }
 
 // rate limiter
-app.use(limiter);
+// app.use(limiter);
 
 app.use(router);
 
