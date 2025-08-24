@@ -24,48 +24,41 @@ export const handleMqttMessage = async (topic: string, message: Buffer) => {
         uptime,
         free_heap,
         firmware,
-        type,
+        boards,
       } = payload;
 
-      if (!id || !macId || !status || !mode || !firmware || !type) {
-        return errorLogger.warn(
-          "Received status message with missing fields:",
-          msg
-        );
-      }
+      if (!id || !macId || !status || !mode || !firmware || !boards) {
+        console.log("missing fields");
 
-      // console.log("payload", payload);
-
-      if (!id)
-        return errorLogger.warn(
-          "Received status message without device ID:",
-          msg
-        );
-      if (status === "online" || status === "offline") {
-        await updateDeviceStatusAndHandlePendingNotice(id, status, {
-          uptime,
-          mode,
-          free_heap,
-          notice,
-          mac_id: macId,
-          type: type || "single",
-          firmware_version: firmware,
-        });
+        errorLogger.warn("Received status message with missing fields:", msg);
+        return false;
       } else {
-        console.log("changing device status to", status, "for ID:", id);
+        if (status === "online" || status === "offline") {
+          await updateDeviceStatusAndHandlePendingNotice(id, status, {
+            uptime,
+            mode,
+            free_heap,
+            notice,
+            mac_id: macId,
+            type: boards == 1 ? "single" : "double",
+            firmware_version: firmware,
+          });
+        } else {
+          console.log("changing device status to", status, "for ID:", id);
 
-        // Create or update device with the new status
-        await createOrUpdateDeviceService({
-          id,
-          mac_id: macId,
-          status,
-          mode,
-          notice,
-          uptime,
-          free_heap,
-          type: type || "single",
-          firmware_version: firmware,
-        });
+          // Create or update device with the new status
+          await createOrUpdateDeviceService({
+            id,
+            mac_id: macId,
+            status,
+            mode,
+            notice,
+            uptime,
+            free_heap,
+            type: boards == 1 ? "single" : "double",
+            firmware_version: firmware,
+          });
+        }
       }
     } else if (topic.startsWith(DATA_TOPIC_PREFIX)) {
       console.log("under data topic", topic);

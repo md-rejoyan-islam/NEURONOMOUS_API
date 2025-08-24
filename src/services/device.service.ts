@@ -49,10 +49,12 @@ export const updateDeviceStatusAndHandlePendingNotice = async (
     notice: string;
     firmware_version: string;
     mac_id?: string;
-    type?: "single" | "double";
+    type: "single" | "double";
   }
 ) => {
   const device = await DeviceModel.findOne({ id });
+
+  console.log("payloadddd", payload);
 
   if (device) {
     if (device.status !== status || device.mode !== payload.mode) {

@@ -23,6 +23,14 @@ const DeviceSchema: Schema<IDeviceSchema> = new mongoose.Schema<IDeviceSchema>(
       },
       default: "offline",
     },
+    type: {
+      type: String,
+      enum: {
+        values: ["single", "double"],
+        message:
+          "`{VALUE}` is not a valid type. Allowed values are: single, double.",
+      },
+    },
     mode: {
       type: String,
       enum: {
