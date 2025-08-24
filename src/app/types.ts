@@ -51,7 +51,7 @@ export interface IUser extends IUserSchema {
 
 export interface IDeviceSchema {
   id: string;
-  mac_id: string | null;
+  mac_id: string;
   status: "online" | "offline";
   mode: "clock" | "notice";
   notice: string | null;

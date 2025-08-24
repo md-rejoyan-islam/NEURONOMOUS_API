@@ -190,6 +190,7 @@ export const addDeviceToGroupService = async (
   device.group = new Types.ObjectId(groupId);
 
   device.allowed_users = adminId ? [adminId] : [];
+
   await device.save();
 
   return group;

@@ -101,7 +101,7 @@ export const updateFirmwareByIdService = async (
   }
 
   try {
-    const topic = `device/${id}/ota/control`;
+    const topic = `device/${device.mac_id}/ota/control`;
 
     await new Promise<void>((resolve, reject) => {
       mqttClient.publish(

@@ -17,11 +17,11 @@ import { errorLogger, logger } from "../utils/logger";
 
 // Utility to publish messages to a device
 const publishToDevice = async (
-  id: string,
+  macId: string,
   topicSuffix: string,
   message: string
 ) => {
-  const topic = `device/${id}/${topicSuffix}`;
+  const topic = `device/${macId}/${topicSuffix}`;
   try {
     await new Promise<void>((resolve, reject) => {
       mqttClient.publish(topic, message, { qos: 1, retain: false }, (err) => {
@@ -57,9 +57,10 @@ export const updateDeviceStatusAndHandlePendingNotice = async (
 
   if (device) {
     if (device.status !== status || device.mode !== payload.mode) {
-      console.log("Updating device status for", id, "to", status);
+      console.log("Updating device status for", device.mac_id, "to", status);
       emitDeviceStatusUpdate({ id });
     }
+    const macId = device.mac_id;
 
     // If device comes online, send pending notice if it exists
     if (
@@ -67,8 +68,8 @@ export const updateDeviceStatusAndHandlePendingNotice = async (
       device.status === "offline" &&
       device.pending_notice
     ) {
-      await publishToDevice(id, "notice", device.notice!);
-      await publishToDevice(id, "mode", "1"); // Switch to notice mode
+      await publishToDevice(macId, "notice", device.notice!);
+      await publishToDevice(macId, "mode", "1"); // Switch to notice mode
       await DeviceModel.findByIdAndUpdate(device._id, {
         status: "online",
         pending_notice: false,
@@ -107,7 +108,7 @@ export const changeDeviceModeService = async (
 
   const modeValue = mode === "clock" ? "0" : "1";
 
-  await publishToDevice(device.id, "mode", modeValue);
+  await publishToDevice(device.mac_id, "mode", modeValue);
 
   return DeviceModel.findByIdAndUpdate(
     device._id,
@@ -175,8 +176,8 @@ export const sendNoticeToDeviceService = async (
   }
 
   // If online, publish the notice and mode change
-  await publishToDevice(device.id, "notice", notice);
-  await publishToDevice(device.id, "mode", "1"); // Switch to notice mode
+  await publishToDevice(device.mac_id, "notice", notice);
+  await publishToDevice(device.mac_id, "mode", "1"); // Switch to notice mode
 
   // Save to DB and schedule the job
   await DeviceModel.findByIdAndUpdate(device._id, {
@@ -228,7 +229,7 @@ export const updateDeviceFirmwareService = async (
   }
 
   try {
-    const firmwareTopic = `device/${id}/ota/control`;
+    const firmwareTopic = `device/${device.mac_id}/ota/control`;
 
     const downloadUrl = `${secret.client_url}/api/v1/firmwares/${firmwareId}/download`;
 
@@ -408,7 +409,7 @@ export const expireNoticeById = async (id: string) => {
     if (device) {
       emitDeviceStatusUpdate({ id: device.id });
       // Publish an MQTT message to the device to change its mode
-      await publishToDevice(device.id, "mode", "0");
+      await publishToDevice(device.mac_id, "mode", "0");
       logger.info(`Notice expired for device ${id}. Switched to clock mode.`);
     } else {
       logger.warn(`Device ${id} not found when trying to expire notice.`);
@@ -458,8 +459,8 @@ export const sendScheduledNotice = async (id: string, scheduleId: string) => {
     }
 
     // Publish the notice to the device
-    await publishToDevice(device.id, "notice", notice);
-    await publishToDevice(device.id, "mode", "1"); // Switch to notice mode
+    await publishToDevice(device.mac_id, "notice", notice);
+    await publishToDevice(device.mac_id, "mode", "1"); // Switch to notice mode
 
     // clear the scheduled notice from the device
 

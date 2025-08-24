@@ -13,7 +13,7 @@ export const handleMqttMessage = async (topic: string, message: Buffer) => {
   try {
     if (topic === STATUS_TOPIC) {
       const payload = JSON.parse(msg);
-      // console.log("mqtt payload", payload);
+      console.log("mqtt payload", payload);
 
       const {
         id,
@@ -26,6 +26,13 @@ export const handleMqttMessage = async (topic: string, message: Buffer) => {
         firmware,
         type,
       } = payload;
+
+      if (!id || !macId || !status || !mode || !firmware || !type) {
+        return errorLogger.warn(
+          "Received status message with missing fields:",
+          msg
+        );
+      }
 
       // console.log("payload", payload);
 
@@ -41,7 +48,7 @@ export const handleMqttMessage = async (topic: string, message: Buffer) => {
           free_heap,
           notice,
           mac_id: macId,
-          type,
+          type: type || "single",
           firmware_version: firmware,
         });
       } else {
