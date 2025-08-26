@@ -156,7 +156,7 @@ export const handleMqttMessage = async (topic: string, message: Buffer) => {
 
       // go to this message in client using socket.io
       emitDeviceFirmwareUpdate({
-        id: device ? device.id : device_mac_id,
+        id: device ? device._id.toString() : device_mac_id,
         status: msg,
       });
 
