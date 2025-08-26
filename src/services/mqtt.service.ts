@@ -30,11 +30,7 @@ export const handleMqttMessage = async (topic: string, message: Buffer) => {
         boards,
       } = payload;
 
-      console.log("payload", payload);
-
       if (status === "online" || status === "offline") {
-        console.log("device online/offline", payload);
-
         await updateDeviceStatusAndHandlePendingNotice(id, status, {
           uptime,
           mode,
@@ -45,8 +41,6 @@ export const handleMqttMessage = async (topic: string, message: Buffer) => {
           firmware_version: firmware,
         });
       } else {
-        console.log("changing device status to", status, "for ID:", id);
-
         // Create or update device with the new status
         await createOrUpdateDeviceService({
           id,

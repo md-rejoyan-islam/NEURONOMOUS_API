@@ -52,13 +52,13 @@ export const updateDeviceStatusAndHandlePendingNotice = async (
     type: "single" | "double";
   }
 ) => {
-  const device = await DeviceModel.findOne({ id });
+  const device = await DeviceModel.findOne({ id }).lean();
 
   if (device) {
-    if (device.status !== status || device.mode !== payload.mode) {
-      console.log("Updating device status for", device.mac_id, "to", status);
-      emitDeviceStatusUpdate({ id });
-    }
+    // if (device.status !== status || device.mode !== payload.mode) {
+    //   console.log("Updating device status for", device.mac_id, "to", status);
+    emitDeviceStatusUpdate({ id });
+    // }
     const macId = device.mac_id;
 
     // If device comes online, send pending notice if it exists
