@@ -11,6 +11,7 @@ import {
   getDeviceById,
   getScheduledNoticeInDevice,
   giveDeviceAccessToUsersInGroup,
+  restartDeviceById,
   revokeDeviceAccessFromUser,
   scheduleNoticeForAllDevices,
   scheduleNoticeForDevice,
@@ -62,6 +63,9 @@ deviceRouter.patch(
 
 // get a specific device by ID
 deviceRouter.get("/:deviceId", getDeviceById);
+
+// restart a specific device
+deviceRouter.patch("/:deviceId/restart", restartDeviceById);
 
 // update a specific device firmware
 deviceRouter.patch(

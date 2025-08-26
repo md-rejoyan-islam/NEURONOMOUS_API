@@ -48,13 +48,11 @@ export const updateDeviceStatusAndHandlePendingNotice = async (
     free_heap: number;
     notice: string;
     firmware_version: string;
-    mac_id?: string;
+    mac_id: string;
     type: "single" | "double";
   }
 ) => {
   const device = await DeviceModel.findOne({ id });
-
-  console.log("payloadddd", payload);
 
   if (device) {
     if (device.status !== status || device.mode !== payload.mode) {
@@ -93,6 +91,13 @@ export const updateDeviceStatusAndHandlePendingNotice = async (
     // If device doesn't exist, create it
     await createOrUpdateDeviceService({ id, status, ...payload });
   }
+};
+
+// restart a device by id service
+export const restartDeviceByIdService = async (id: string) => {
+  const device = await DeviceModel.findById(id);
+  if (!device) throw createError(404, `Device ${id} not found.`);
+  await publishToDevice(device.mac_id, "mode", "5");
 };
 
 // Change a single device's mode
@@ -229,10 +234,16 @@ export const updateDeviceFirmwareService = async (
     throw createError(404, `Firmware with ID ${firmwareId} not found`);
   }
 
+  // check device is online
+  if (device.status !== "online") {
+    throw createError(400, `Device with ID ${id} is offline`);
+  }
+
   try {
     const firmwareTopic = `device/${device.mac_id}/ota/control`;
 
     const downloadUrl = `https://eee.rejoyan.me/api/v1/firmwares/${firmwareId}/download`;
+    // const downloadUrl = `${secret.client_url}/api/v1/firmwares/68ad5507edcf1af037c9a5fe/download`;
     // const downloadUrl = `${secret.client_url}/api/v1/firmwares/${firmwareId}/download`;
 
     await new Promise<void>((resolve, reject) => {
@@ -373,9 +384,6 @@ export const createOrUpdateDeviceService = async (
   payload: Partial<IDevice>
 ) => {
   const { id, ...updateData } = payload;
-  console.log("Creating or updating device with ID:", id);
-
-  console.log("Update data:", updateData);
 
   const device = await DeviceModel.findOneAndUpdate(
     { id },
@@ -522,8 +530,6 @@ export const getAllDevicesService = async (
       },
     }).lean();
 
-    console.log(devices);
-
     // const users = (await UserModel.findById(_id)
     //   .populate("allowed_devices")
     //   .lean()) as IUserWithPopulateDevices | null;
@@ -546,6 +552,7 @@ export const getDeviceByIdService = async (id: string) => {
 
   const firmwares = await FirmwareModel.find({
     version: { $gt: device.firmware_version || "0.0.0" },
+    status: "active",
   })
     .sort({ version: -1 })
     .lean();

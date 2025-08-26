@@ -13,6 +13,7 @@ import {
   getDeviceByIdService,
   getScheduledNoticesForDeviceService,
   giveDeviceAccessToUsersInGroupService,
+  restartDeviceByIdService,
   revokeDeviceAccessFromUserService,
   scheduleNoticeService,
   scheduleNoticeToAllDevicesService,
@@ -21,6 +22,7 @@ import {
   updateDeviceFirmwareService,
 } from "../services/device.service";
 import { asyncHandler } from "../utils/async-handler";
+import { isValidMongoId } from "../utils/is-valid-mongo-id";
 import { successResponse } from "../utils/response-handler";
 
 /**
@@ -183,6 +185,24 @@ export const updateDeviceFirmware = asyncHandler(
 
     successResponse(res, {
       message: `Firmware update for device ${deviceId} initiated`,
+      statusCode: 200,
+    });
+  }
+);
+
+// restart Device
+export const restartDeviceById = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { deviceId } = req.params;
+
+    if (!isValidMongoId(deviceId)) {
+      throw createError(400, "Invalid device ID format.");
+    }
+
+    await restartDeviceByIdService(deviceId);
+
+    successResponse(res, {
+      message: `Device ${deviceId} restart command sent successfully`,
       statusCode: 200,
     });
   }

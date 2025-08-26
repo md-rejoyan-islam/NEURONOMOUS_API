@@ -35,6 +35,15 @@ const FirmwareSchema: Schema<IFirmwareSchema> =
           message: "Firmware file cannot be empty",
         },
       },
+      status: {
+        type: String,
+        enum: {
+          values: ["active", "inactive"],
+          message:
+            "`{VALUE}` is not a valid status. Allowed values are: active, inactive.",
+        },
+        default: "inactive",
+      },
     },
     {
       timestamps: true,

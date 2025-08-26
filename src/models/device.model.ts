@@ -10,8 +10,8 @@ const DeviceSchema: Schema<IDeviceSchema> = new mongoose.Schema<IDeviceSchema>(
     },
     mac_id: {
       type: String,
-      // unique: [true, "MAC ID must be unique"],
-      default: null,
+      unique: [true, "MAC ID must be unique"],
+      required: [true, "MAC ID is required"],
     },
     status: {
       type: String,

@@ -27,6 +27,7 @@ export const getAllFirmwaresService = async () => {
     _id: firmware._id,
     version: firmware.version,
     size: formatFileSize(firmware.file.length), // Convert bytes to KB
+    status: firmware.status,
     description: firmware.description,
     createdAt: firmware.createdAt,
     updatedAt: firmware.updatedAt,
@@ -50,6 +51,7 @@ export const createFirmwareService = async (firmwareData: {
 }) => {
   const existingFirmware = await FirmwareModel.findOne({
     version: firmwareData.version,
+    status: "inactive",
   });
 
   if (existingFirmware) {
@@ -122,4 +124,18 @@ export const updateFirmwareByIdService = async (
     errorLogger.error(`Failed to update firmaware`, error); // Log the error
     // throw createError(500, `MQTT publish to ${topic} failed .`);
   }
+};
+
+// update firmware status by ID
+export const updateFirmwareStatusByIdService = async (
+  id: string,
+  status: "active" | "inactive"
+) => {
+  const firmware = await FirmwareModel.findById(id);
+  if (!firmware) {
+    throw createError(404, `Firmware with ID ${id} not found`);
+  }
+
+  firmware.status = status;
+  await firmware.save();
 };

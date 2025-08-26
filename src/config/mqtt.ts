@@ -27,6 +27,7 @@ export const setupMqttClient = () => {
     mqttClient.subscribe(`${DATA_TOPIC_PREFIX}#`);
     mqttClient.subscribe(`${NOTICE_TOPIC_PREFIX}+/notice`);
     mqttClient.subscribe(`${MODE_TOPIC_PREFIX}+/mode`);
+    mqttClient.subscribe(`device/+/ota/log`);
     mqttClient.subscribe("esp32/lwt");
     logger.info("Subscribed to MQTT topics");
   });

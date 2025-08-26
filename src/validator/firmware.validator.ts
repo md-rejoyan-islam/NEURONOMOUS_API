@@ -18,3 +18,13 @@ export const updateDeviceFirmwareSchema = z.object({
     })
     .strict(),
 });
+
+export const updateFirmwareStatusSchema = z.object({
+  body: z
+    .object({
+      status: z.enum(["active", "inactive"], {
+        message: 'Status must be either "active" or "inactive".',
+      }),
+    })
+    .strict(),
+});

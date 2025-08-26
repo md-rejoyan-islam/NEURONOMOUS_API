@@ -1,3 +1,5 @@
+import { DeviceModel } from "../models/device.model";
+import { emitDeviceFirmwareUpdate } from "../socket";
 import { errorLogger } from "../utils/logger";
 import {
   createOrUpdateDeviceService,
@@ -6,6 +8,7 @@ import {
 
 const STATUS_TOPIC = "esp32/status";
 const DATA_TOPIC_PREFIX = "esp32/data/ntp/";
+const FIRMWARE_LOG_TOPIC_SUFFIX = "/ota/log";
 
 export const handleMqttMessage = async (topic: string, message: Buffer) => {
   const msg = message.toString();
@@ -13,7 +16,7 @@ export const handleMqttMessage = async (topic: string, message: Buffer) => {
   try {
     if (topic === STATUS_TOPIC) {
       const payload = JSON.parse(msg);
-      console.log("mqtt payload", payload);
+      // console.log("mqtt payload", payload);
 
       const {
         id,
@@ -27,38 +30,35 @@ export const handleMqttMessage = async (topic: string, message: Buffer) => {
         boards,
       } = payload;
 
-      if (!id || !macId || !status || !mode || !firmware || !boards) {
-        console.log("missing fields");
+      console.log("payload", payload);
 
-        errorLogger.warn("Received status message with missing fields:", msg);
-        return false;
+      if (status === "online" || status === "offline") {
+        console.log("device online/offline", payload);
+
+        await updateDeviceStatusAndHandlePendingNotice(id, status, {
+          uptime,
+          mode,
+          free_heap,
+          notice,
+          mac_id: macId,
+          type: boards == 1 ? "single" : "double",
+          firmware_version: firmware,
+        });
       } else {
-        if (status === "online" || status === "offline") {
-          await updateDeviceStatusAndHandlePendingNotice(id, status, {
-            uptime,
-            mode,
-            free_heap,
-            notice,
-            mac_id: macId,
-            type: boards == 1 ? "single" : "double",
-            firmware_version: firmware,
-          });
-        } else {
-          console.log("changing device status to", status, "for ID:", id);
+        console.log("changing device status to", status, "for ID:", id);
 
-          // Create or update device with the new status
-          await createOrUpdateDeviceService({
-            id,
-            mac_id: macId,
-            status,
-            mode,
-            notice,
-            uptime,
-            free_heap,
-            type: boards == 1 ? "single" : "double",
-            firmware_version: firmware,
-          });
-        }
+        // Create or update device with the new status
+        await createOrUpdateDeviceService({
+          id,
+          mac_id: macId,
+          status,
+          mode,
+          notice,
+          uptime,
+          free_heap,
+          type: boards == 1 ? "single" : "double",
+          firmware_version: firmware,
+        });
       }
     } else if (topic.startsWith(DATA_TOPIC_PREFIX)) {
       console.log("under data topic", topic);
@@ -145,6 +145,22 @@ export const handleMqttMessage = async (topic: string, message: Buffer) => {
       //     },
       //     { upsert: true, new: true }
       //   );
+    } else if (topic.endsWith(FIRMWARE_LOG_TOPIC_SUFFIX)) {
+      console.log("under firmware log topic", topic);
+
+      const device_mac_id = topic.split("/")[1];
+
+      const device = await DeviceModel.findOne({
+        mac_id: device_mac_id,
+      }).lean();
+
+      // go to this message in client using socket.io
+      emitDeviceFirmwareUpdate({
+        id: device ? device.id : device_mac_id,
+        status: msg,
+      });
+
+      // Here, you can also store the log in the database if needed.
     }
   } catch (err) {
     errorLogger.error("MQTT message handling error:", err);

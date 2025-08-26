@@ -19,6 +19,7 @@ export type IFirmwareSchema = Document & {
   version: string;
   description: string;
   file: Buffer;
+  status: "active" | "inactive";
   createdAt: Date;
   updatedAt: Date;
 };

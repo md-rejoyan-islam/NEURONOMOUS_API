@@ -48,6 +48,15 @@ export const emitDeviceStatusUpdate = (payload: { id: string }) => {
   io?.emit(`device:status`, payload);
 };
 
+export const emitDeviceFirmwareUpdate = (payload: {
+  id: string;
+  status: string;
+}) => {
+  console.log("Emitting firmware update", payload);
+
+  io?.emit(`device:${payload.id}:firmware`, payload);
+};
+
 export const emitInvalidateOtherSessions = (userId: string) => {
   if (!io) return;
   const room = io.sockets.adapter.rooms.get(`user:${userId}`);

@@ -6,6 +6,7 @@ import {
   getAllFirmwares,
   getFirmwareById,
   updateFirmwareById,
+  updateFirmwareStatusById,
 } from "../controllers/firmware.controller";
 import { authorize } from "../middlewares/authorized";
 import validate from "../middlewares/validate";
@@ -14,6 +15,7 @@ import upload from "../utils/multer";
 import {
   createFirmwareSchema,
   updateDeviceFirmwareSchema,
+  updateFirmwareStatusSchema,
 } from "../validator/firmware.validator";
 
 const firmwareRouter = Router();
@@ -24,14 +26,6 @@ const firmwareRouter = Router();
 // Get all firmware versions
 firmwareRouter.get("/", isLoggedIn, authorize(["superadmin"]), getAllFirmwares);
 
-// Get firmware version by ID
-firmwareRouter.get(
-  "/:id",
-  isLoggedIn,
-  authorize(["superadmin"]),
-  getFirmwareById
-);
-
 // Create a new firmware version
 firmwareRouter.post(
   "/",
@@ -40,6 +34,22 @@ firmwareRouter.post(
   upload.single("file"),
   validate(createFirmwareSchema),
   createFirmware
+);
+
+// Get firmware version by ID
+firmwareRouter.get(
+  "/:id",
+  isLoggedIn,
+  authorize(["superadmin"]),
+  getFirmwareById
+);
+
+// update firmware version by ID
+firmwareRouter.patch(
+  "/:id",
+  authorize(["superadmin", "admin"]),
+  validate(updateDeviceFirmwareSchema),
+  updateFirmwareById
 );
 
 // Delete a firmware version by ID
@@ -57,12 +67,13 @@ firmwareRouter.get(
   downloadFirmwareFileById
 );
 
-// update firmware version by ID
+// firmware status change route
 firmwareRouter.patch(
-  "/:id",
-  authorize(["superadmin", "admin"]),
-  validate(updateDeviceFirmwareSchema),
-  updateFirmwareById
+  "/:id/status",
+  isLoggedIn,
+  authorize(["superadmin"]),
+  validate(updateFirmwareStatusSchema),
+  updateFirmwareStatusById
 );
 
 export default firmwareRouter;

@@ -6,6 +6,7 @@ import {
   getAllFirmwaresService,
   getFirmwareByIdService,
   updateFirmwareByIdService,
+  updateFirmwareStatusByIdService,
 } from "../services/firmware.service";
 import { asyncHandler } from "../utils/async-handler";
 import { isValidMongoId } from "../utils/is-valid-mongo-id";
@@ -114,6 +115,23 @@ export const updateFirmwareById = asyncHandler(
 
     successResponse(res, {
       message: `Firmware version with ID ${id} updated successfully`,
+      statusCode: 200,
+      payload: {},
+    });
+  }
+);
+
+// firmware status change
+export const updateFirmwareStatusById = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+
+    const { status } = req.body;
+
+    await updateFirmwareStatusByIdService(id, status);
+
+    successResponse(res, {
+      message: `Firmware status with ID ${id} updated successfully`,
       statusCode: 200,
       payload: {},
     });
