@@ -7,7 +7,6 @@ import forgotPasswordMail from "../mails/forgot-password-mail";
 import resetPasswordMail from "../mails/reset-password-mail";
 import { DeviceModel } from "../models/device.model";
 import { UserModel } from "../models/user.model";
-import { emitInvalidateOtherSessions } from "../socket";
 import { generateRandomPin } from "../utils/generate-random-pin";
 import generateToken, { verifyToken } from "../utils/generate-token";
 import { errorLogger, logger } from "../utils/logger";
@@ -64,7 +63,7 @@ export const authLoginService = async (email: string, password: string) => {
   user.reset_code_expires = null; // Clear reset code expiration if user logs in
   await user.save();
 
-  emitInvalidateOtherSessions(user._id.toString());
+  // emitInvalidateOtherSessions(user._id.toString());
 
   return {
     accessToken,

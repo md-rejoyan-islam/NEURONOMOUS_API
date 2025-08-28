@@ -39,6 +39,7 @@ export const isLoggedIn = asyncHandler(
       const isValidLoginCode = refreshDecoded.loginCode === decoded.loginCode;
 
       if (!isValidLoginCode) {
+        // emitInvalidateOtherSessions(user._id.toString());
         throw createError.Unauthorized("Can't login in multiple device.");
       }
     }

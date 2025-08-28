@@ -140,7 +140,7 @@ export const handleMqttMessage = async (topic: string, message: Buffer) => {
       //     { upsert: true, new: true }
       //   );
     } else if (topic.endsWith(FIRMWARE_LOG_TOPIC_SUFFIX)) {
-      console.log("under firmware log topic", topic);
+      // console.log("under firmware log topic", topic);
 
       const device_mac_id = topic.split("/")[1];
 

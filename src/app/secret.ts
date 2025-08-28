@@ -36,6 +36,7 @@ const emailUsername: string = process.env.EMAIL_USERNAME!;
 const emailPassword: string = process.env.EMAIL_PASSWORD!;
 
 const client_url: string = process.env.CLIENT_URL!;
+const FIRMWARE_BASE_URL: string = process.env.FIRMWARE_BASE_URL!;
 
 const secret = {
   mqtt_broker_url,
@@ -50,6 +51,7 @@ const secret = {
   max_requests_window,
   clinetWhiteList,
   passwordResetCodeExpiresIn,
+  FIRMWARE_BASE_URL,
   jwt: {
     accessTokenSecret,
     refreshTokenSecret,

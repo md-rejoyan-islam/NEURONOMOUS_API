@@ -5,6 +5,8 @@ import { logger } from "../utils/logger";
 
 let io: Server | null = null;
 
+const activeSessions = new Map<string, string>(); // userId -> Set of socketId
+
 export const initSocketServer = (server: HttpServer) => {
   io = new Server(server, {
     cors: {
@@ -13,14 +15,61 @@ export const initSocketServer = (server: HttpServer) => {
     },
   });
 
+  io.use((socket, next) => {
+    const userId = socket.handshake.auth.userId;
+
+    // if (!userId) {
+    //   return next(new Error("Authentication error: Token required"));
+    // }
+
+    if (userId) {
+      activeSessions.set(userId, socket.id);
+    }
+
+    // update active sessions
+
+    // socket.data.userId = userId;
+    next();
+  });
+
   io.on("connection", (socket: Socket) => {
+    console.log("active sessions", activeSessions);
+
     // Join room for this socket when login
     socket.on("auth:login", (payload: { userId: string }) => {
       console.log(socket.id, "auth:login", payload);
 
       try {
         if (!payload?.userId) return;
-        socket.join(`user:${payload.userId}`);
+
+        // force disconnect previous session
+        const existingSocketId = activeSessions.get(payload.userId);
+        console.log("existingSocketId", existingSocketId, socket.id);
+
+        if (existingSocketId && existingSocketId !== socket.id) {
+          console.log("Disconnecting previous socket", existingSocketId);
+
+          const existingSocket = io?.sockets.sockets.get(existingSocketId);
+          if (existingSocket) {
+            existingSocket.emit("session:invalidate", { reason: "new_login" });
+            existingSocket.disconnect(true);
+            logger.info(
+              `Disconnected previous socket ${existingSocketId} for user ${payload.userId}`
+            );
+          }
+        }
+
+        // add to active sessions
+        activeSessions.set(payload.userId, socket.id);
+
+        // // if user with same id not added to room again
+
+        // const rooms = socket.rooms;
+        // console.log(rooms);
+
+        // if (rooms.has(`user:${payload.userId}`)) return;
+
+        // socket.join(`user:${payload.userId}`);
         logger.info(
           `Socket ${socket.id} joined user room: user:${payload.userId}`
         );
@@ -44,7 +93,7 @@ export const getIO = () => {
 
 // Broadcast helpers
 export const emitDeviceStatusUpdate = (payload: { id: string }) => {
-  console.log("Emitting device status update", payload);
+  // console.log("Emitting device status update", payload);
 
   io?.emit(`device:${payload.id}:status`, payload);
   io?.emit(`device:status`, payload);
@@ -54,33 +103,33 @@ export const emitDeviceFirmwareUpdate = (payload: {
   id: string;
   status: string;
 }) => {
-  console.log("Emitting firmware update", payload);
+  // console.log("Emitting firmware update", payload);
 
   io?.emit(`device:${payload.id}:firmware`, payload);
 };
 
-export const emitInvalidateOtherSessions = (userId: string) => {
-  if (!io) return;
-  const room = io.sockets.adapter.rooms.get(`user:${userId}`);
-  console.log(`Emitting invalidate sessions for user: ${userId}`, room);
+// export const emitInvalidateOtherSessions = (userId: string) => {
+//   if (!io) return;
+//   const room = io.sockets.adapter.rooms.get(`user:${userId}`);
+//   console.log(`Emitting invalidate sessions for user: ${userId}`, room);
 
-  let targeted = false;
-  if (room) {
-    for (const socketId of room) {
-      console.log("Targeting socket for invalidation:", socketId);
+//   let targeted = false;
+//   if (room) {
+//     for (const socketId of room) {
+//       console.log("Targeting socket for invalidation:", socketId);
 
-      const socket = io.sockets.sockets.get(socketId);
+//       const socket = io.sockets.sockets.get(socketId);
 
-      if (!socket) continue;
-      socket.emit("session:invalidate", { reason: "new_login" });
-      targeted = true;
-    }
-  }
-  // Fallback broadcast, clients will self-check user
-  if (!targeted) {
-    io.emit("session:invalidate-broadcast", { userId });
-  }
-};
+//       if (!socket) continue;
+//       socket.emit("session:invalidate", { reason: "new_login" });
+//       targeted = true;
+//     }
+//   }
+//   // Fallback broadcast, clients will self-check user
+//   if (!targeted) {
+//     io.emit("session:invalidate-broadcast", { userId });
+//   }
+// };
 
 // not used
 
