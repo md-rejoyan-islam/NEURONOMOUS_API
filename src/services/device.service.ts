@@ -163,7 +163,9 @@ export const sendNoticeToDeviceService = async (
   notice: string,
   duration: number | null
 ) => {
-  const device = await DeviceModel.findById(id);
+  const device = await DeviceModel.findById(id)
+    .select("status mac_id _id")
+    .exec();
   if (!device) throw createError(404, `Device ${id} not found.`);
 
   // Save the notice and duration to history
@@ -244,6 +246,10 @@ export const updateDeviceFirmwareService = async (
     const firmwareTopic = `device/${device.mac_id}/ota/control`;
 
     const downloadUrl = `${secret.FIRMWARE_BASE_URL}/${firmwareId}/download`;
+    console.log("Firmware download URL:", downloadUrl);
+
+    // const downloadUrl = `${secret.client_url}/api/v1/firmwares/68ad5507edcf1af037c9a5fe/download`;
+    // const downloadUrl = `${secret.client_url}/api/v1/firmwares/${firmwareId}/download`;
 
     await new Promise<void>((resolve, reject) => {
       mqttClient.publish(
@@ -412,7 +418,7 @@ export const expireNoticeById = async (id: string) => {
       },
       { new: true }
     )
-      .select("id")
+      .select("id mac_id _id")
       .lean();
 
     if (device) {
