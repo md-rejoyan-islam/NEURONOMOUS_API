@@ -6,6 +6,7 @@ import authRouter from "./auth.routes";
 import deviceRouter from "./device.routes";
 import firmwareRouter from "./firmware.routes";
 import groupRouter from "./group.routes";
+import systemRouter from "./system.routes";
 import userRouter from "./user.routes";
 
 const router = Router();
@@ -36,6 +37,8 @@ router.use("/api/v1/users", userRouter);
 router.use("/api/v1/groups", groupRouter);
 // firmware routes
 router.use("/api/v1/firmwares", firmwareRouter);
+// system routes
+router.use("/api/v1/system", systemRouter);
 
 // 404 route
 router.use("", (req: Request, _res: Response) => {

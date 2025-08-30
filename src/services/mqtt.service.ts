@@ -16,7 +16,7 @@ export const handleMqttMessage = async (topic: string, message: Buffer) => {
   try {
     if (topic === STATUS_TOPIC) {
       const payload = JSON.parse(msg);
-      console.log("mqtt payload", payload);
+      // console.log("mqtt payload", payload);
 
       const {
         id,
@@ -28,6 +28,7 @@ export const handleMqttMessage = async (topic: string, message: Buffer) => {
         free_heap,
         firmware,
         boards,
+        timestamp,
       } = payload;
 
       if (status === "online" || status === "offline") {
@@ -36,8 +37,7 @@ export const handleMqttMessage = async (topic: string, message: Buffer) => {
           mode,
           free_heap,
           notice,
-          mac_id: macId,
-          type: boards == 1 ? "single" : "double",
+          timestamp,
           firmware_version: firmware,
         });
       } else {
@@ -52,6 +52,7 @@ export const handleMqttMessage = async (topic: string, message: Buffer) => {
           free_heap,
           type: boards == 1 ? "single" : "double",
           firmware_version: firmware,
+          timestamp,
         });
       }
     } else if (topic.startsWith(DATA_TOPIC_PREFIX)) {
@@ -112,7 +113,7 @@ export const handleMqttMessage = async (topic: string, message: Buffer) => {
       //     { upsert: true, new: true }
       //   );
     } else if (topic.endsWith("/mode")) {
-      console.log("under mode topic", topic);
+      // console.log("under mode topic", topic);
 
       const device_id = topic.split("/")[1];
 
@@ -140,8 +141,8 @@ export const handleMqttMessage = async (topic: string, message: Buffer) => {
       //     { upsert: true, new: true }
       //   );
     } else if (topic.endsWith(FIRMWARE_LOG_TOPIC_SUFFIX)) {
-      console.log("under firmware log topic", topic);
-      console.log("firmware log message", msg);
+      // console.log("under firmware log topic", topic);
+      // console.log("firmware log message", msg);
 
       const device_mac_id = topic.split("/")[1];
 

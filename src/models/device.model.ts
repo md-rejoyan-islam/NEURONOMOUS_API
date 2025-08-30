@@ -119,6 +119,7 @@ const DeviceSchema: Schema<IDeviceSchema> = new mongoose.Schema<IDeviceSchema>(
       },
     },
     free_heap: { type: Number, default: 0 },
+    timestamp: { type: String, default: null },
     // history: [
     //   {
     //     message: { type: String, required: true },

@@ -4,6 +4,7 @@ import { IDevice, IGroup, IUser } from "../app/types";
 import { DeviceModel } from "../models/device.model";
 import { GroupModel } from "../models/group.model";
 import { UserModel } from "../models/user.model";
+import { dateFormat, formatBytes, formatUptime } from "../utils/date-format";
 import {
   changeDeviceModeService,
   sendNoticeToDeviceService,
@@ -108,13 +109,21 @@ export const addUserToGroupService = async (
 // get group by id service
 export const getGroupByIdService = async (groupId: string) => {
   const group = await GroupModel.findById(groupId)
-    .populate("devices", "-__v")
+    .populate<{ devices: IDevice[] }>("devices", "-__v")
     .populate("members", "-password -__v")
     .lean();
   if (!group) {
     throw createError(404, "Group not found.");
   }
-  return group;
+  return {
+    ...group,
+    devices: group?.devices?.map((device) => ({
+      ...device,
+      last_seen: dateFormat(device.last_seen),
+      uptime: formatUptime(device.uptime),
+      free_heap: formatBytes(device.free_heap),
+    })),
+  };
 };
 
 // update group by id service

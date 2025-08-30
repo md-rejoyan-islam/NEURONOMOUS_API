@@ -37,9 +37,11 @@ const emailPassword: string = process.env.EMAIL_PASSWORD!;
 
 const client_url: string = process.env.CLIENT_URL!;
 const FIRMWARE_BASE_URL: string = process.env.FIRMWARE_BASE_URL!;
+const PRODUCTION_CLIENT_URL: string = process.env.PRODUCTION_CLIENT_URL!;
 
 const secret = {
   mqtt_broker_url,
+  PRODUCTION_CLIENT_URL,
   mqtt_port,
   mqtt_user,
   mqtt_pass,

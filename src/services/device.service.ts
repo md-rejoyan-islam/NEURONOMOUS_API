@@ -49,8 +49,7 @@ export const updateDeviceStatusAndHandlePendingNotice = async (
     free_heap: number;
     notice: string;
     firmware_version: string;
-    mac_id: string;
-    type: "single" | "double";
+    timestamp: string;
   }
 ) => {
   const device = await DeviceModel.findOne({ id }).lean();

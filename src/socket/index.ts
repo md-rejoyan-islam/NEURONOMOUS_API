@@ -18,17 +18,10 @@ export const initSocketServer = (server: HttpServer) => {
   io.use((socket, next) => {
     const userId = socket.handshake.auth.userId;
 
-    // if (!userId) {
-    //   return next(new Error("Authentication error: Token required"));
-    // }
-
+    // update active sessions
     if (userId) {
       activeSessions.set(userId, socket.id);
     }
-
-    // update active sessions
-
-    // socket.data.userId = userId;
     next();
   });
 
@@ -61,6 +54,10 @@ export const initSocketServer = (server: HttpServer) => {
 
         // add to active sessions
         activeSessions.set(payload.userId, socket.id);
+        socket.broadcast.emit(
+          "active-users",
+          Array.from(activeSessions.keys())
+        );
 
         // // if user with same id not added to room again
 
@@ -78,8 +75,31 @@ export const initSocketServer = (server: HttpServer) => {
       }
     });
 
+    // sent active sessions  to client
+    // socket.emit("sessions:active", {
+    //   sessions: Array.from(activeSessions.entries()).map(
+    //     ([userId, socketId]) => ({
+    //       userId,
+    //       socketId,
+    //     })
+    //   ),
+    // });
+
+    socket.on("active-users", (_, callback) => {
+      const sessions = Array.from(activeSessions.keys());
+      callback(sessions);
+    });
+
     socket.on("disconnect", (reason) => {
       logger.info(`Socket disconnected: ${socket.id} (${reason})`);
+      // Remove from active sessions
+      for (const [userId, socketId] of activeSessions.entries()) {
+        if (socketId === socket.id) {
+          activeSessions.delete(userId);
+          break;
+        }
+      }
+      socket.broadcast.emit("active-users", Array.from(activeSessions.keys()));
     });
   });
 
@@ -93,7 +113,7 @@ export const getIO = () => {
 
 // Broadcast helpers
 export const emitDeviceStatusUpdate = (payload: { id: string }) => {
-  console.log("Emitting device status update", payload);
+  // console.log("Emitting device status update", payload);
 
   io?.emit(`device:${payload.id}:status`, payload);
   io?.emit(`device:status`, payload);

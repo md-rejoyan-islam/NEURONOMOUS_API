@@ -82,6 +82,7 @@ export interface IDeviceSchema {
   }[];
   font: string | null;
   time_format: "12h" | "24h";
+  timestamp: string;
 }
 export interface IDevice extends IDeviceSchema {
   _id: Types.ObjectId; // Mongoose ObjectId or string
