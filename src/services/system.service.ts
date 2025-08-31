@@ -18,10 +18,10 @@ export const getMemoryDetailsService = () => {
 export const getCpuDetailsService = async () => {
   const cpu = await si.currentLoad(); // CPU load info
 
-  const totalCores = os.cpus().length;
+  const cores = os.cpus().length;
   const cpuUsagePercent = cpu.currentLoad;
   return {
-    totalCores,
+    cores,
     cpuUsagePercent: cpuUsagePercent.toFixed(2),
   };
 };

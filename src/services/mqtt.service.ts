@@ -10,6 +10,8 @@ const STATUS_TOPIC = "esp32/status";
 const DATA_TOPIC_PREFIX = "esp32/data/ntp/";
 const FIRMWARE_LOG_TOPIC_SUFFIX = "/ota/log";
 
+const macIds = new Set<string>();
+
 export const handleMqttMessage = async (topic: string, message: Buffer) => {
   const msg = message.toString();
 
@@ -31,7 +33,7 @@ export const handleMqttMessage = async (topic: string, message: Buffer) => {
         timestamp,
       } = payload;
 
-      if (status === "online" || status === "offline") {
+      if ((macIds.has(macId) && status === "online") || status === "offline") {
         await updateDeviceStatusAndHandlePendingNotice(id, status, {
           uptime,
           mode,
