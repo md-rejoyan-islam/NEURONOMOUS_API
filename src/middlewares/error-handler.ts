@@ -9,6 +9,7 @@ import {
 } from "http-errors";
 import secret from "../app/secret";
 import { IErrorResponse } from "../app/types";
+import { errorLogger } from "../utils/logger";
 
 const errorHandler = (
   error: Error,
@@ -68,6 +69,9 @@ const errorHandler = (
   if (secret.node_env !== "production") {
     response.stack = error.stack;
   }
+  errorLogger.error(
+    `Error: ${message}, Status Code: ${statusCode}, Stack: ${error.stack}`
+  );
 
   res.status(statusCode).json(response);
 };

@@ -496,50 +496,52 @@ export const sendScheduledNotice = async (id: string, scheduleId: string) => {
 // Get all devices from the database
 export const getAllDevicesService = async (
   _id: Types.ObjectId,
-  role: string
+  role: string,
+  query: { mode?: string; status?: string; search?: string; type?: string }
 ) => {
   let devices: IDevice[] = [];
-  // If the user is a superadmin, return all devices
-  if (role === "superadmin") {
-    devices = await DeviceModel.find({}).lean();
+
+  const filter: {
+    mode?: string;
+    status?: string;
+    type?: string;
+    $or?: (
+      | { name: { $regex: RegExp } }
+      | { id: { $regex: RegExp } }
+      | { mac_id: { $regex: RegExp } }
+    )[];
+  } = {};
+
+  if (query.mode) {
+    filter.mode = query.mode;
+  }
+  if (query.status) {
+    filter.status = query.status;
+  }
+  if (query.type) {
+    filter.type = query.type;
+  }
+  if (query.search) {
+    const searchRegex = new RegExp(query.search, "i"); // Case-insensitive regex
+    filter.$or = [
+      { name: { $regex: searchRegex } },
+      { id: { $regex: searchRegex } },
+      { mac_id: { $regex: searchRegex } },
+    ];
   }
 
-  // else if (role === "admin") {
-  //   // If the user is an admin, return devices associated with their group
-  //   devices = await DeviceModel.find({
-  //     allowed_users: {
-  //       $in: [new mongoose.Types.ObjectId(_id)],
-  //     },
-  //   })
-  //     .populate("allowed_users")
-  //     .lean();
-  //   // const user = (await UserModel.findById(_id)
-  //   //   .populate({
-  //   //     path: "group",
-  //   //     populate: {
-  //   //       path: "devices",
-  //   //     },
-  //   //   })
-  //   //   .lean()) as IUserWithPopulateGroup | null;
-  //   // // Extract devices from the user's group
-  //   // devices = user?.group?.devices || [];
-  // }
-  // If the user is a regular user, return only devices associated with them
-  else {
-    console.log(_id);
-
+  // If the user is a superadmin, return all devices
+  if (role === "superadmin") {
+    devices = await DeviceModel.find(filter).lean();
+  } else {
     devices = await DeviceModel.find({
+      ...filter,
       allowed_users: {
         $in: _id,
       },
     }).lean();
-
-    // const users = (await UserModel.findById(_id)
-    //   .populate("allowed_devices")
-    //   .lean()) as IUserWithPopulateDevices | null;
-    // devices = users?.allowed_devices || [];
   }
-  // const devices = await DeviceModel.find({}).lean();
+
   return devices.map((device) => ({
     ...device,
     last_seen: dateFormat(device.last_seen),

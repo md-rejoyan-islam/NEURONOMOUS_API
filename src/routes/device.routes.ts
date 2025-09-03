@@ -25,6 +25,7 @@ import { isLoggedIn } from "../middlewares/verify";
 import {
   changeDeviceModeSchema,
   changeSelectedDeviceModeSchema,
+  getAllDevicesSchema,
   giveDeviceAccessToUsersSchema,
   scheduleNoticeForDeviceSchema,
   sendNoticeToDeviceSchema,
@@ -38,7 +39,7 @@ const deviceRouter = Router();
 deviceRouter.use(isLoggedIn);
 
 // get all devices
-deviceRouter.get("/", getAllDevices);
+deviceRouter.get("/", validate(getAllDevicesSchema), getAllDevices);
 
 // change the mode of all devices
 deviceRouter.patch(

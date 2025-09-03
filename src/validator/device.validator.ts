@@ -156,6 +156,45 @@ export const changeSelectedDeviceModeSchema = z.object({
     .strict(),
 });
 
+export const getAllDevicesSchema = z.object({
+  query: z
+    .object({
+      mode: z
+        .enum(["clock", "notice"], {
+          error: (iss) => {
+            if (typeof iss.input !== iss.expected) {
+              return "Mode must be a string.";
+            }
+            return `Invalid mode. Allowed values are: clock, notice.`;
+          },
+        })
+        .optional(),
+      type: z
+        .enum(["single", "double"], {
+          error: (iss) => {
+            if (typeof iss.input !== iss.expected) {
+              return "Type must be a string.";
+            }
+            return `Invalid type. Allowed values are: single, double.`;
+          },
+        })
+        .optional(),
+
+      status: z
+        .enum(["online", "offline"], {
+          error: (iss) => {
+            if (typeof iss.input !== iss.expected) {
+              return "Status must be a string.";
+            }
+            return `Invalid status. Allowed values are: online, offline.`;
+          },
+        })
+        .optional(),
+      search: z.string().optional(),
+    })
+    .strict(),
+});
+
 export const sendScheduleNoticeToSelectedDeviceSchema =
   scheduleNoticeForDeviceSchema.extend({
     body: z.object({

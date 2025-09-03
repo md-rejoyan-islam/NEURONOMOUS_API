@@ -34,7 +34,14 @@ export const getAllDevices = asyncHandler(
   async (req: IRequestWithUser, res: Response) => {
     const { role, _id } = req.user!;
 
-    const result = await getAllDevicesService(_id as Types.ObjectId, role);
+    const { mode, status, search, type } = req.query;
+
+    const result = await getAllDevicesService(_id as Types.ObjectId, role, {
+      mode: mode as string,
+      status: status as string,
+      search: search as string,
+      type: type as string,
+    });
 
     successResponse(res, {
       message: "Devices fetched successfully",
