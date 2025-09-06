@@ -1,7 +1,7 @@
 import mqtt, { MqttClient } from "mqtt";
 import secret from "../app/secret";
 import { handleMqttMessage } from "../services/mqtt.service";
-import { errorLogger, logger } from "../utils/logger";
+import { logger } from "../utils/logger";
 
 const mqttOptions = {
   port: secret.mqtt_port,
@@ -35,7 +35,7 @@ export const setupMqttClient = () => {
   mqttClient.on("message", handleMqttMessage);
 
   mqttClient.on("error", (err) => {
-    errorLogger.error("MQTT connection error:", err);
+    logger.error("MQTT connection error:", err);
     // process.exit(1);
   });
 };

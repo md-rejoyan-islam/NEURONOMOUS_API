@@ -9,7 +9,7 @@ import { DeviceModel } from "../models/device.model";
 import { UserModel } from "../models/user.model";
 import { generateRandomPin } from "../utils/generate-random-pin";
 import generateToken, { verifyToken } from "../utils/generate-token";
-import { errorLogger, logger } from "../utils/logger";
+import { logger } from "../utils/logger";
 import { comparePassword } from "../utils/password";
 
 // auth login service
@@ -110,7 +110,7 @@ export const forgotPasswordService = async (email: string) => {
     });
     logger.info(`Forgot password email sent to ${user.email}`);
   } catch (error) {
-    errorLogger.error(
+    logger.error(
       `Failed to send forgot password email to ${user.email}: ${error}`
     );
   }
@@ -155,7 +155,7 @@ export const resetPasswordService = async (
     });
     logger.info(`Reset password confirmation email sent to ${user.email}`);
   } catch (error) {
-    errorLogger.error(
+    logger.error(
       `Failed to send reset password confirmation email to ${user.email}: ${error}`
     );
   }

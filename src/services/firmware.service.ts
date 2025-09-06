@@ -2,7 +2,7 @@ import createError from "http-errors";
 import { mqttClient } from "../config/mqtt";
 import { DeviceModel } from "../models/device.model";
 import { FirmwareModel } from "../models/firmware.model";
-import { errorLogger, logger } from "../utils/logger";
+import { logger } from "../utils/logger";
 
 function formatFileSize(bytes: number): string {
   if (bytes === 0) return "0 Bytes";
@@ -121,7 +121,7 @@ export const updateFirmwareByIdService = async (
       logger.info(`Firmware version sent`); // Log successful publish
     });
   } catch (error) {
-    errorLogger.error(`Failed to update firmaware`, error); // Log the error
+    logger.error(`Failed to update firmaware`, error); // Log the error
     // throw createError(500, `MQTT publish to ${topic} failed .`);
   }
 };

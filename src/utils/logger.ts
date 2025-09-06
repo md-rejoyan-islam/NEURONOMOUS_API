@@ -1,70 +1,54 @@
 import { createLogger, format, transports } from "winston";
 import DailyRotateFile from "winston-daily-rotate-file";
-const { combine, timestamp, label, printf, colorize } = format;
+import "winston-mongodb";
+import secret from "../app/secret";
+const { printf } = format;
 
-const myFormat = printf(({ message, label, timestamp }) => {
-  const date = new Date(timestamp as string);
-  const hour = date.getHours();
-  const minutes = date.getMinutes();
-  const seconds = date.getSeconds();
-  return `${date.toDateString()} ${hour}:${minutes}:${seconds}  [${label}] : ${message}`;
-});
+const logDirectory = "src/logs";
 
 const syslogColors = {
   info: "bold magenta inverse",
   error: "bold red inverse",
 };
 
-// use tmp when running on AWS Lambda or other serverless platforms
-// const logDirectory = "/tmp/logs"; // "src/logs";
-const logDirectory = "src/logs";
+const myFormat = printf(({ message, timestamp, level }) => {
+  const date = new Date(timestamp as string);
+  const hour = date.getHours();
+  const minutes = date.getMinutes();
+  const seconds = date.getSeconds();
+  return `${date.toDateString()} ${hour}:${minutes}:${seconds}  [${level}] : ${message}`;
+});
+
+const consoleFormat = format.combine(
+  format.colorize({ all: true, colors: syslogColors }),
+  format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
+  myFormat
+);
+
+const jsonFormat = format.combine(format.timestamp(), format.json());
 
 export const logger = createLogger({
   level: "info",
-  format: combine(
-    label({
-      label: "success",
-    }),
-    colorize({
-      all: true,
-      colors: syslogColors,
-    }),
-    timestamp(),
-    myFormat
-  ),
+  format: jsonFormat,
   transports: [
-    new transports.Console(),
+    new transports.Console({
+      format: consoleFormat,
+    }),
     new DailyRotateFile({
-      filename: `${logDirectory}/success/success-%DATE%.log`,
-      datePattern: "YYYY-MM-DD-HH-mm",
+      level: "info",
+      filename: `${logDirectory}/combined-%DATE%.log`,
+      datePattern: "YYYY-MM-DD",
       zippedArchive: true,
       maxSize: "20m",
       maxFiles: "14d",
     }),
-  ],
-});
-
-export const errorLogger = createLogger({
-  level: "error",
-  format: combine(
-    label({
-      label: "error",
-    }),
-    colorize({
-      all: true,
-      colors: syslogColors,
-    }),
-    timestamp(),
-    myFormat
-  ),
-  transports: [
-    new transports.Console(),
-    new DailyRotateFile({
-      filename: `${logDirectory}/error/error-%DATE%.log`,
-      datePattern: "YYYY-MM-DD-HH-mm",
-      zippedArchive: true,
-      maxSize: "20m",
-      maxFiles: "14d",
+    new transports.MongoDB({
+      level: "info",
+      db: secret.mongo_uri,
+      collection: "logs",
+      format: jsonFormat,
+      capped: true,
+      cappedSize: 10000000, // 10MB
     }),
   ],
 });

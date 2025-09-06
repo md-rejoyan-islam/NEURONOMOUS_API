@@ -1,6 +1,6 @@
 import { DeviceModel } from "../models/device.model";
 import { emitDeviceFirmwareUpdate } from "../socket";
-import { errorLogger } from "../utils/logger";
+import { logger } from "../utils/logger";
 import {
   createOrUpdateDeviceService,
   updateDeviceStatusAndHandlePendingNotice,
@@ -63,10 +63,7 @@ export const handleMqttMessage = async (topic: string, message: Buffer) => {
       const device_id = topic.split("/").pop()!;
 
       if (!device_id) {
-        errorLogger.warn(
-          "Received data message without device ID in topic:",
-          topic
-        );
+        logger.warn("Received data message without device ID in topic:", topic);
         return;
       }
 
@@ -90,7 +87,7 @@ export const handleMqttMessage = async (topic: string, message: Buffer) => {
 
       const device_id = topic.split("/")[1];
       if (!device_id) {
-        errorLogger.warn(
+        logger.warn(
           "Received notice message with invalid topic format:",
           topic
         );
@@ -120,10 +117,7 @@ export const handleMqttMessage = async (topic: string, message: Buffer) => {
       const device_id = topic.split("/")[1];
 
       if (!device_id) {
-        errorLogger.warn(
-          "Received mode message with invalid topic format:",
-          topic
-        );
+        logger.warn("Received mode message with invalid topic format:", topic);
         return;
       }
       // const mode_text = msg === "0" ? "clock" : "notice";
@@ -161,6 +155,6 @@ export const handleMqttMessage = async (topic: string, message: Buffer) => {
       // Here, you can also store the log in the database if needed.
     }
   } catch (err) {
-    errorLogger.error("MQTT message handling error:", err);
+    logger.error("MQTT message handling error:", err);
   }
 };

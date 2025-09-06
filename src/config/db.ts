@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 import secret from "../app/secret";
-import { errorLogger, logger } from "../utils/logger";
+import { logger } from "../utils/logger";
 
 export const connectDB = async (): Promise<void> => {
   try {
@@ -9,7 +9,7 @@ export const connectDB = async (): Promise<void> => {
       `MongoDB connected at ${connection.connection.host}:${connection.connection.port}`
     );
   } catch (error) {
-    errorLogger.error("MongoDB connection error:", error);
+    logger.error("MongoDB connection error:", error);
     process.exit(1);
   }
 };

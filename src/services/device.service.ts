@@ -13,7 +13,7 @@ import { FirmwareModel } from "../models/firmware.model";
 import { UserModel } from "../models/user.model";
 import { emitDeviceStatusUpdate } from "../socket";
 import { dateFormat, formatBytes, formatUptime } from "../utils/date-format";
-import { errorLogger, logger } from "../utils/logger";
+import { logger } from "../utils/logger";
 
 // Utility to publish messages to a device
 const publishToDevice = async (
@@ -34,7 +34,7 @@ const publishToDevice = async (
       logger.info(`Message "${message}" sent to ${topic}.`); // Log successful publish
     });
   } catch (error) {
-    errorLogger.error(`Error publishing to ${topic}:`, error); // Log the error
+    logger.error(`Error publishing to ${topic}:`, error); // Log the error
     throw createError(500, `MQTT publish to ${topic} failed .`);
   }
 };
@@ -265,7 +265,7 @@ export const updateDeviceFirmwareService = async (
       logger.info(`Firmware version sent`); // Log successful publish
     });
   } catch (error) {
-    errorLogger.error(`Failed to update firmaware`, error); // Log the error
+    logger.error(`Failed to update firmaware`, error); // Log the error
     // throw createError(500, `MQTT publish to ${topic} failed .`);
   }
 };
@@ -429,7 +429,7 @@ export const expireNoticeById = async (id: string) => {
       logger.warn(`Device ${id} not found when trying to expire notice.`);
     }
   } catch (err) {
-    errorLogger.error(`Error expiring notice for device ${id}:`, err);
+    logger.error(`Error expiring notice for device ${id}:`, err);
   }
 };
 
@@ -489,7 +489,7 @@ export const sendScheduledNotice = async (id: string, scheduleId: string) => {
     // Now schedule the job to expire the notice after its duration
     scheduleExpireJob(id, duration);
   } catch (err) {
-    errorLogger.error(`Error sending scheduled notice for device ${id}:`, err);
+    logger.error(`Error sending scheduled notice for device ${id}:`, err);
   }
 };
 

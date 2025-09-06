@@ -5,7 +5,7 @@ import accountCreatedMail from "../mails/account-create-mail";
 import { DeviceModel } from "../models/device.model";
 import { GroupModel } from "../models/group.model";
 import { UserModel } from "../models/user.model";
-import { errorLogger } from "../utils/logger";
+import { logger } from "../utils/logger";
 
 // get all users service
 export const getAllUsersService = async (): Promise<IUser[]> => {
@@ -271,7 +271,7 @@ export const createAdminUserWithGroupService = async (payload: {
       to: newUser.email,
     });
   } catch (error) {
-    errorLogger.error(
+    logger.error(
       `Failed to send account creation email to ${newUser.email}: ${error}`
     );
   }
