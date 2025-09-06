@@ -69,9 +69,13 @@ const errorHandler = (
   if (secret.node_env !== "production") {
     response.stack = error.stack;
   }
-  logger.error(
-    `Error: ${message}, Status Code: ${statusCode}, Stack: ${error.stack}`
-  );
+
+  logger.error({
+    message: error.message,
+    name: error.name,
+    stack: error.stack,
+    status: statusCode,
+  });
 
   res.status(statusCode).json(response);
 };

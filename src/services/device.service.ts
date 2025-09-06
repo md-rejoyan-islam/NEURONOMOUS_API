@@ -34,7 +34,12 @@ const publishToDevice = async (
       logger.info(`Message "${message}" sent to ${topic}.`); // Log successful publish
     });
   } catch (error) {
-    logger.error(`Error publishing to ${topic}:`, error); // Log the error
+    logger.error({
+      message: `Error publishing to ${topic}:`,
+      status: 500,
+      name: error instanceof Error ? error.name : "UnknownError",
+      stack: error instanceof Error ? error.stack : "No stack trace available",
+    }); // Log the error
     throw createError(500, `MQTT publish to ${topic} failed .`);
   }
 };

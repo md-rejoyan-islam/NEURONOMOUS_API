@@ -22,20 +22,27 @@ export const setupMqttClient = () => {
   mqttClient = mqtt.connect(secret.mqtt_broker_url, mqttOptions);
 
   mqttClient.on("connect", () => {
-    logger.info("Connected to MQTT Broker!");
+    logger.info({
+      message: "Connected to MQTT broker",
+      status: 200,
+    });
     mqttClient.subscribe(STATUS_TOPIC);
     mqttClient.subscribe(`${DATA_TOPIC_PREFIX}#`);
     mqttClient.subscribe(`${NOTICE_TOPIC_PREFIX}+/notice`);
     mqttClient.subscribe(`${MODE_TOPIC_PREFIX}+/mode`);
     mqttClient.subscribe(`device/+/ota/log`);
     mqttClient.subscribe("esp32/lwt");
-    logger.info("Subscribed to MQTT topics");
   });
 
   mqttClient.on("message", handleMqttMessage);
 
   mqttClient.on("error", (err) => {
-    logger.error("MQTT connection error:", err);
+    logger.error({
+      message: "MQTT Error:",
+      status: 500,
+      name: err.name,
+      stack: err.stack,
+    });
     // process.exit(1);
   });
 };

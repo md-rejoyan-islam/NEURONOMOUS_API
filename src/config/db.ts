@@ -5,11 +5,12 @@ import { logger } from "../utils/logger";
 export const connectDB = async (): Promise<void> => {
   try {
     const connection = await mongoose.connect(secret.mongo_uri);
-    logger.info(
-      `MongoDB connected at ${connection.connection.host}:${connection.connection.port}`
-    );
+    logger.info({
+      message: `MongoDB connected at ${connection.connection.host}:${connection.connection.port}`,
+      status: 200,
+    });
   } catch (error) {
-    logger.error("MongoDB connection error:", error);
+    logger.error(error);
     process.exit(1);
   }
 };

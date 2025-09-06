@@ -271,9 +271,12 @@ export const createAdminUserWithGroupService = async (payload: {
       to: newUser.email,
     });
   } catch (error) {
-    logger.error(
-      `Failed to send account creation email to ${newUser.email}: ${error}`
-    );
+    logger.error({
+      message: `Failed to send account creation email to ${newUser.email}`,
+      status: 500,
+      name: error instanceof Error ? error.name : "UnknownError",
+      stack: error instanceof Error ? error.stack : "No stack trace available",
+    });
   }
 
   return newGroup;

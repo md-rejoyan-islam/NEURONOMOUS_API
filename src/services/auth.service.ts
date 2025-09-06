@@ -108,11 +108,17 @@ export const forgotPasswordService = async (email: string) => {
       name: user.first_name + " " + user.last_name,
       resetCode,
     });
-    logger.info(`Forgot password email sent to ${user.email}`);
+    logger.info({
+      message: `Forgot password email sent to ${user.email}`,
+      status: 200,
+    });
   } catch (error) {
-    logger.error(
-      `Failed to send forgot password email to ${user.email}: ${error}`
-    );
+    logger.error({
+      message: `Failed to send forgot password email to ${user.email}`,
+      status: 500,
+      name: error instanceof Error ? error.name : "UnknownError",
+      stack: error instanceof Error ? error.stack : "No stack trace available",
+    });
   }
 };
 
@@ -153,11 +159,17 @@ export const resetPasswordService = async (
       to: user.email,
       name: user.first_name + " " + user.last_name,
     });
-    logger.info(`Reset password confirmation email sent to ${user.email}`);
+    logger.info({
+      messaege: `Reset password confirmation email sent to ${user.email}`,
+      status: 200,
+    });
   } catch (error) {
-    logger.error(
-      `Failed to send reset password confirmation email to ${user.email}: ${error}`
-    );
+    logger.error({
+      message: `Failed to send reset password confirmation email to ${user.email}`,
+      status: 500,
+      name: error instanceof Error ? error.name : "UnknownError",
+      stack: error instanceof Error ? error.stack : "No stack trace available",
+    });
   }
 };
 
