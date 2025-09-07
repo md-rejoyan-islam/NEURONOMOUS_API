@@ -65,6 +65,7 @@ const secret = {
     emailPort,
     emailUsername,
     emailPassword,
+    emailFrom: process.env.EMAIL_FROM!,
   },
 };
 

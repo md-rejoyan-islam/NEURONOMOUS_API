@@ -24,7 +24,7 @@ export default async function mailTemplate(
   });
 
   const mailOptions = {
-    from: process.env.EMAIL_FROM,
+    from: `Neuronomous | IoT Platform <${secret.nodeMailer.emailFrom}>`,
     to: options.to,
     subject: options.subject,
     html: options.body,
