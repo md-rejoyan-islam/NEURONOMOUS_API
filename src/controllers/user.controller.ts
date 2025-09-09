@@ -283,8 +283,6 @@ export const createAdminUserWithGroup = asyncHandler(
       group_description,
     });
 
-    console.log(user);
-
     successResponse(res, {
       message: "Admin created successfully",
       statusCode: 201,

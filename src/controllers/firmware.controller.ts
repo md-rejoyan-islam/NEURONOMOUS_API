@@ -47,7 +47,7 @@ export const getFirmwareById = asyncHandler(
 // Create a new firmware version
 export const createFirmware = asyncHandler(
   async (req: Request, res: Response) => {
-    const { version, description } = req.body;
+    const { version, description, device_type } = req.body;
 
     if (!req.file || !("buffer" in req.file)) {
       throw new Error("Firmware file is missing or invalid");
@@ -56,6 +56,7 @@ export const createFirmware = asyncHandler(
     const firmware = await createFirmwareService({
       version: version,
       description,
+      device_type,
       file: req.file.buffer as Buffer,
     });
 

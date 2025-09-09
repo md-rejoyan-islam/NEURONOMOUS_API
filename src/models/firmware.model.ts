@@ -44,6 +44,15 @@ const FirmwareSchema: Schema<IFirmwareSchema> =
         },
         default: "inactive",
       },
+      device_type: {
+        type: String,
+        required: [true, "Device type is required"],
+        enum: {
+          values: ["clock", "attendance"],
+          message:
+            "`{VALUE}` is not a valid device type. Allowed values are: clock, attendance.",
+        },
+      },
     },
     {
       timestamps: true,

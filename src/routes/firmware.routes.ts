@@ -20,9 +20,6 @@ import {
 
 const firmwareRouter = Router();
 
-// Middleware to check if user is logged
-// firmwareRouter.use(isLoggedIn);
-
 // Get all firmware versions
 firmwareRouter.get("/", isLoggedIn, authorize(["superadmin"]), getAllFirmwares);
 

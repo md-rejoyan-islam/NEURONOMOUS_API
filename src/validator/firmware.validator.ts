@@ -7,6 +7,9 @@ export const createFirmwareSchema = z.object({
       description: z.string().min(10, {
         message: "Firmware description must be at least 10 characters long.",
       }),
+      device_type: z.enum(["clock", "attendance"], {
+        message: 'Device type must be either "clock" or "attendance".',
+      }),
     })
     .strict(),
 });

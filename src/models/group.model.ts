@@ -23,8 +23,15 @@ const GroupSchema: Schema<IGroupSchema> = new mongoose.Schema<IGroupSchema>(
     ],
     members: [
       {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
+        id: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+          required: [true, "Member user ID is required"],
+        },
+        is_guest: {
+          type: Boolean,
+          required: [true, "is_guest field is required"],
+        },
       },
     ],
   },

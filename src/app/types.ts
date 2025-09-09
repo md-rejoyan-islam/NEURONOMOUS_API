@@ -20,6 +20,7 @@ export type IFirmwareSchema = Document & {
   description: string;
   file: Buffer;
   status: "active" | "inactive";
+  device_type: "clock" | "attendance";
   createdAt: Date;
   updatedAt: Date;
 };
@@ -50,6 +51,36 @@ export interface IUser extends IUserSchema {
   _id: Types.ObjectId; // Mongoose ObjectId or string
 }
 
+export interface ICourseSchema {
+  code: string;
+  name: string;
+  session: string;
+  instructor: Types.ObjectId;
+  enroll_link: string;
+  enrolled_students: Types.ObjectId[];
+  createdAt: Date;
+  updatedAt: Date;
+  records: {
+    date: string;
+    present_students: {
+      student: Types.ObjectId;
+      createdAt: Date;
+      updatedAt: Date;
+    }[];
+    createdAt: Date;
+    updatedAt: Date;
+  }[];
+}
+
+export interface IStudentSchema {
+  name: string;
+  email: string;
+  session: string;
+  rfid: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface IDeviceSchema {
   id: string;
   mac_id: string;
@@ -68,10 +99,6 @@ export interface IDeviceSchema {
   start_time: number | null; // Unix timestamp in milliseconds, can be null
   last_firmware_update: number | null; // Unix timestamp in milliseconds, can be null
   group: Types.ObjectId | null; // Reference to a Group model
-  // history: {
-  //   message: string;
-  //   timestamp: number;
-  // }[];
   allowed_users?: Types.ObjectId[]; // Array of user IDs allowed to access the device
   pending_notice: boolean; // Indicates if there is a pending notice to be sent
   scheduled_notices: {
@@ -91,13 +118,19 @@ export interface IGroupSchema {
   name: string;
   description: string;
   devices: Types.ObjectId[];
-  members: Types.ObjectId[];
+  members: {
+    id: Types.ObjectId;
+    is_guest: boolean;
+  }[];
 }
 
 export interface IGroup extends Pick<IGroupSchema, "name" | "description"> {
   _id: Types.ObjectId;
   devices: Types.ObjectId[] | IDevice[];
-  members: Types.ObjectId[] | IUser[];
+  members: {
+    id: Types.ObjectId | IUser;
+    is_guest: boolean;
+  }[];
 }
 
 export interface IRequestWithUser extends Request {

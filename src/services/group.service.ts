@@ -11,13 +11,19 @@ import {
 } from "./device.service";
 
 // get all groups service
-export const getAllGroupsService = async (): Promise<IGroup[]> => {
+export const getAllGroupsService = async () => {
   const groups = await GroupModel.find()
     .populate<{ devices: IDevice[] }>("devices", "-__v")
-    .populate("members", "-password -__v")
+    .populate("members.id", "-password -__v")
     .lean();
 
-  return groups;
+  return groups.map((group) => ({
+    ...group,
+    members: group?.members?.map((member) => ({
+      ...member.id,
+      is_guest: member.is_guest,
+    })),
+  }));
 };
 
 // add user to group service
@@ -33,8 +39,9 @@ export const addUserToGroupService = async (
     deviceIds: Types.ObjectId[];
     phone?: string;
     notes?: string;
+    is_guest: boolean;
   }
-): Promise<IGroup> => {
+) => {
   // check user existence
   const user = await UserModel.exists({
     email: payload.email.toLowerCase(),
@@ -47,7 +54,7 @@ export const addUserToGroupService = async (
   // group check
   const group = await GroupModel.findById(groupId)
     .select("devices")
-    .populate("members", "-password -__v");
+    .populate("members.id", "-password -__v");
 
   if (!group) {
     throw createError(404, "Group not found.");
@@ -55,7 +62,7 @@ export const addUserToGroupService = async (
 
   if (
     role !== "superadmin" &&
-    !group.members.some((member) => member._id !== userId)
+    !group.members.some((member) => member.id !== userId)
   ) {
     throw createError.Unauthorized("You can't add user in another group.");
   }
@@ -90,14 +97,14 @@ export const addUserToGroupService = async (
   await group
     .updateOne(
       {
-        $addToSet: { members: newUser._id },
+        $addToSet: { members: { id: newUser._id, is_guest: payload.is_guest } },
       },
       {
         new: true,
         runValidators: true,
       }
     )
-    .populate("members", "-password -__v");
+    .populate("members.id", "-password -__v");
 
   await group.save();
 
@@ -110,13 +117,18 @@ export const addUserToGroupService = async (
 export const getGroupByIdService = async (groupId: string) => {
   const group = await GroupModel.findById(groupId)
     .populate<{ devices: IDevice[] }>("devices", "-__v")
-    .populate("members", "-password -__v")
+    .populate("members.id", "-password -__v")
     .lean();
   if (!group) {
     throw createError(404, "Group not found.");
   }
+
   return {
     ...group,
+    members: group?.members?.map((member) => ({
+      ...member.id,
+      is_guest: member.is_guest,
+    })),
     devices: group?.devices?.map((device) => ({
       ...device,
       last_seen: dateFormat(device.last_seen),
@@ -140,12 +152,18 @@ export const updateGroupByIdService = async (
     }
   )
     .populate("devices", "-__v")
-    .populate("members", "-password -__v")
+    .populate("members.id", "-password -__v")
     .lean();
   if (!group) {
     throw createError(404, "Group not found.");
   }
-  return group;
+  return {
+    ...group,
+    members: group?.members?.map((member) => ({
+      ...member.id,
+      is_guest: member.is_guest,
+    })),
+  };
 };
 
 // add device to group service
@@ -154,7 +172,7 @@ export const addDeviceToGroupService = async (
   deviceId: string,
   name: string,
   location: string
-): Promise<IGroup> => {
+) => {
   // check device existence
   const device = await DeviceModel.findOne({ id: deviceId });
 
@@ -308,14 +326,21 @@ export const getAllUsersInGroupService = async (
 ): Promise<IGroup> => {
   // Find the group and populate its members
   const group = await GroupModel.findById(groupId)
-    .populate("members", "-password -__v")
+    .populate("members.id", "-password -__v")
     .lean();
 
   if (!group) {
     throw createError(404, "Group not found");
   }
 
-  return group;
+  return {
+    ...group,
+    members: group?.members?.map((member) => ({
+      ...member.id,
+      is_guest: member.is_guest,
+      id: member.id._id,
+    })),
+  };
 };
 
 // get all devices in group service

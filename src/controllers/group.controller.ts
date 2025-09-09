@@ -65,6 +65,7 @@ export const addUserToGroupWithDevicesPermission = asyncHandler(
       last_name,
       phone,
       notes,
+      is_guest,
       deviceIds = [],
     } = req.body;
 
@@ -81,6 +82,7 @@ export const addUserToGroupWithDevicesPermission = asyncHandler(
       last_name,
       deviceIds,
       phone,
+      is_guest,
       notes,
     });
 

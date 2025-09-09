@@ -75,6 +75,16 @@ export const addUserToGroupWithDevicesPermissionSchema = z.object({
         ),
       phone: z.string().optional(),
       notes: z.string().optional(),
+      is_guest: z.boolean({
+        error: (iss) => {
+          if (iss.input === undefined) {
+            return "is_guest field is required.";
+          } else if (typeof iss.input !== iss.expected) {
+            return "is_guest must be a boolean.";
+          }
+          return "Invalid is_guest value.";
+        },
+      }),
     })
     .strict(),
 });

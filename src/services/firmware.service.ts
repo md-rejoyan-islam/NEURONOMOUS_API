@@ -28,6 +28,7 @@ export const getAllFirmwaresService = async () => {
     version: firmware.version,
     size: formatFileSize(firmware.file.length), // Convert bytes to KB
     status: firmware.status,
+    device_type: firmware.device_type,
     description: firmware.description,
     createdAt: firmware.createdAt,
     updatedAt: firmware.updatedAt,
@@ -47,9 +48,11 @@ export const getFirmwareByIdService = async (id: string) => {
 export const createFirmwareService = async (firmwareData: {
   version: number;
   description: string;
+  device_type: "clock" | "attendance";
   file: File | Buffer;
 }) => {
   const existingFirmware = await FirmwareModel.findOne({
+    device_type: firmwareData.device_type,
     version: firmwareData.version,
     status: "inactive",
   });

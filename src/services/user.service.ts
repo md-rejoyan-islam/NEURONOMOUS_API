@@ -254,7 +254,12 @@ export const createAdminUserWithGroupService = async (payload: {
   const newGroup = new GroupModel({
     name: payload.group_name,
     description: payload.group_description,
-    members: [newUser._id],
+    members: [
+      {
+        id: newUser._id,
+        is_guest: false,
+      },
+    ],
   });
 
   // Save the new user
