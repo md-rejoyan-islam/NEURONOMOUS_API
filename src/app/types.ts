@@ -114,6 +114,21 @@ export interface IDeviceSchema {
 export interface IDevice extends IDeviceSchema {
   _id: Types.ObjectId; // Mongoose ObjectId or string
 }
+
+export interface IAttendanceDeviceSchema {
+  id: string;
+  mac_id: string;
+  status: "online" | "offline";
+  firmware_version: string;
+  group: Types.ObjectId | null; // Reference to a Group model
+  allowed_users?: Types.ObjectId[]; // Array of user IDs allowed to access the device
+  last_seen: number; // Unix timestamp in milliseconds
+  free_heap: number;
+}
+export interface IAttendanceDevice extends IAttendanceDeviceSchema {
+  _id: Types.ObjectId; // Mongoose ObjectId or string
+}
+
 export interface IGroupSchema {
   name: string;
   description: string;

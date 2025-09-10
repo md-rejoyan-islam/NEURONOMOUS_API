@@ -1,5 +1,6 @@
 import { Router } from "express";
 import {
+  addAttendanceDeviceToGroup,
   addDeviceToGroup,
   addUserToGroupWithDevicesPermission,
   bulkChangeGroupDevicesMode,
@@ -19,6 +20,7 @@ import { authorize } from "../middlewares/authorized";
 import validate from "../middlewares/validate";
 import { isLoggedIn } from "../middlewares/verify";
 import {
+  addAttendanceDeviceToGroupSchema,
   addDeviceToGroupSchema,
   addUserToGroupWithDevicesPermissionSchema,
   updateGroupSchema,
@@ -45,10 +47,18 @@ groupRouter.patch(
 
 // add device to group
 groupRouter.post(
-  "/:groupId/add-device",
+  "/:groupId/add-clock-device",
   authorize(["admin", "superadmin"]),
   validate(addDeviceToGroupSchema),
   addDeviceToGroup
+); // COMPLETE
+
+// add attendance device to group
+groupRouter.post(
+  "/:groupId/add-attendace-device",
+  authorize(["admin", "superadmin"]),
+  validate(addAttendanceDeviceToGroupSchema),
+  addAttendanceDeviceToGroup
 ); // COMPLETE
 
 // add user to group and give device access

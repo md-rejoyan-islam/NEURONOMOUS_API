@@ -230,7 +230,7 @@ export const createAdminUserWithGroupService = async (payload: {
     email: payload.email.toLowerCase(),
   });
   if (existingUser) {
-    throw createError(400, "User with this email already exists");
+    throw createError(400, "Email already exists");
   }
 
   // group check

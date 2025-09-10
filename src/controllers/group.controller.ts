@@ -9,6 +9,7 @@ import {
   scheduleNoticeService,
 } from "../services/device.service";
 import {
+  addAttendanceDeviceToGroupService,
   addDeviceToGroupService,
   addUserToGroupService,
   bulkChangeGroupDevicesModeService,
@@ -172,6 +173,26 @@ export const addDeviceToGroup = asyncHandler(
       name,
       location
     );
+
+    successResponse(res, {
+      message: "Device added to group successfully",
+      payload: {
+        data: group,
+      },
+    });
+  }
+);
+
+export const addAttendanceDeviceToGroup = asyncHandler(
+  async (req: IRequestWithUser, res: Response) => {
+    const { groupId } = req.params;
+    const { deviceId } = req.body;
+
+    if (!isValidMongoId(groupId)) {
+      throw createError(400, "Invalid group ID.");
+    }
+
+    const group = await addAttendanceDeviceToGroupService(groupId, deviceId);
 
     successResponse(res, {
       message: "Device added to group successfully",

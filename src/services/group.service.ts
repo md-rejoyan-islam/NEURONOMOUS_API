@@ -1,6 +1,7 @@
 import createError from "http-errors";
 import { Types } from "mongoose";
 import { IDevice, IGroup, IUser } from "../app/types";
+import { AttendanceDeviceModel } from "../models/attendance-device.model";
 import { DeviceModel } from "../models/device.model";
 import { GroupModel } from "../models/group.model";
 import { UserModel } from "../models/user.model";
@@ -202,7 +203,7 @@ export const addDeviceToGroupService = async (
     }
   )
     .populate<{ members: IUser[] }>("members", "role _id email")
-    .select("-__v -members -createdAt -updatedAt");
+    .select("-__v -createdAt -updatedAt");
   // .populate("members", "-password -__v");
 
   if (!group) {
@@ -213,6 +214,72 @@ export const addDeviceToGroupService = async (
   // name and location update
   device.name = name;
   device.location = location;
+  device.last_seen = Date.now();
+  device.group = new Types.ObjectId(groupId);
+
+  device.allowed_users = adminId ? [adminId] : [];
+
+  await device.save();
+
+  return group;
+};
+// add attendance device to group service
+export const addAttendanceDeviceToGroupService = async (
+  groupId: string,
+  deviceId: string
+) => {
+  // check device existence
+  const device = await AttendanceDeviceModel.findOne({ id: deviceId });
+
+  if (!device) {
+    throw createError(404, "Device not found");
+  }
+
+  // check device already in another group
+  const existingGroup = await GroupModel.exists({
+    devices: {
+      $in: [device._id],
+    },
+  });
+  if (existingGroup) {
+    throw createError(400, "Device already connected to group");
+  }
+
+  // Find the group and update its devices
+  const group = await GroupModel.findByIdAndUpdate(
+    groupId,
+    {
+      $addToSet: { devices: device._id },
+    },
+    {
+      new: true,
+      runValidators: true,
+    }
+  )
+    .populate<{ members: { id: IUser }[] }>("members.id", "role _id email")
+    .select("-__v -createdAt -updatedAt");
+  // .populate("members", "-password -__v");
+
+  if (!group) {
+    throw createError(404, "Group not found");
+  }
+  // console.log(group);
+
+  console.log(group.members);
+
+  const adminMember = group.members.find(
+    (member) =>
+      typeof member.id === "object" &&
+      member.id !== null &&
+      "role" in member.id &&
+      member.id.role === "admin"
+  );
+
+  const adminId = adminMember ? adminMember.id._id : undefined;
+
+  // // name and location update
+  // device.name = name;
+  // device.location = location;
   device.last_seen = Date.now();
   device.group = new Types.ObjectId(groupId);
 

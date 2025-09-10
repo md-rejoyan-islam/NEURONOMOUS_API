@@ -2,6 +2,7 @@ import { Request, Response, Router } from "express";
 import createError from "http-errors";
 import errorHandler from "../middlewares/error-handler";
 import { successResponse } from "../utils/response-handler";
+import attendanceRouter from "./attendance-device.routes";
 import authRouter from "./auth.routes";
 import deviceRouter from "./device.routes";
 import firmwareRouter from "./firmware.routes";
@@ -42,6 +43,8 @@ router.use("/api/v1/firmwares", firmwareRouter);
 router.use("/api/v1/system", systemRouter);
 // logs routes
 router.use("/api/v1/logs", logRouter);
+// logs routes
+router.use("/api/v1/attendance-devices", attendanceRouter);
 
 // 404 route
 router.use("", (req: Request, _res: Response) => {
