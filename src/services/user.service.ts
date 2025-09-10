@@ -224,6 +224,7 @@ export const createAdminUserWithGroupService = async (payload: {
   last_name: string;
   group_name: string;
   group_description: string;
+  group_eiin: string;
 }): Promise<IGroup> => {
   // user  check
   const existingUser = await UserModel.exists({
@@ -236,9 +237,10 @@ export const createAdminUserWithGroupService = async (payload: {
   // group check
   const existingGroup = await GroupModel.exists({
     name: payload.group_name,
+    eiin: payload.group_eiin,
   });
   if (existingGroup) {
-    throw createError(400, "Group with this name already exists");
+    throw createError(400, "Group with this name or EIIN already exists");
   }
 
   // Create new admin user
@@ -254,11 +256,9 @@ export const createAdminUserWithGroupService = async (payload: {
   const newGroup = new GroupModel({
     name: payload.group_name,
     description: payload.group_description,
+    eiin: payload.group_eiin,
     members: [
-      {
-        id: newUser._id,
-        is_guest: false,
-      },
+      newUser._id, // Add the new user's ID to the group's members
     ],
   });
 

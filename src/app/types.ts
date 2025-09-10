@@ -56,6 +56,7 @@ export interface ICourseSchema {
   name: string;
   session: string;
   instructor: Types.ObjectId;
+  department: Types.ObjectId;
   enroll_link: string;
   enrolled_students: Types.ObjectId[];
   createdAt: Date;
@@ -132,20 +133,15 @@ export interface IAttendanceDevice extends IAttendanceDeviceSchema {
 export interface IGroupSchema {
   name: string;
   description: string;
+  eiin: string;
   devices: Types.ObjectId[];
-  members: {
-    id: Types.ObjectId;
-    is_guest: boolean;
-  }[];
+  members: Types.ObjectId[];
 }
 
 export interface IGroup extends Pick<IGroupSchema, "name" | "description"> {
   _id: Types.ObjectId;
   devices: Types.ObjectId[] | IDevice[];
-  members: {
-    id: Types.ObjectId | IUser;
-    is_guest: boolean;
-  }[];
+  members: Types.ObjectId[] | IUser[];
 }
 
 export interface IRequestWithUser extends Request {

@@ -51,6 +51,16 @@ export const addUserToGroupWithDevicesPermissionSchema = z.object({
           return "Invalid last name.";
         },
       }),
+      deviceType: z.enum(["clock", "attendance"], {
+        error: (iss) => {
+          if (!iss.input) {
+            return "Device type is required.";
+          } else if (typeof iss.input !== iss.expected) {
+            return "Device type must be a string.";
+          }
+          return "Invalid device type.";
+        },
+      }),
       deviceIds: z
         .array(string(), {
           error: (iss) => {
@@ -75,16 +85,6 @@ export const addUserToGroupWithDevicesPermissionSchema = z.object({
         ),
       phone: z.string().optional(),
       notes: z.string().optional(),
-      is_guest: z.boolean({
-        error: (iss) => {
-          if (iss.input === undefined) {
-            return "is_guest field is required.";
-          } else if (typeof iss.input !== iss.expected) {
-            return "is_guest must be a boolean.";
-          }
-          return "Invalid is_guest value.";
-        },
-      }),
     })
     .strict(),
 });
@@ -155,6 +155,16 @@ export const updateGroupSchema = z.object({
             return "Group name must be a string.";
           }
           return "Invalid group name.";
+        },
+      }),
+      eiin: z.string({
+        error: (iss) => {
+          if (!iss.input) {
+            return "Group EIIN is required.";
+          } else if (typeof iss.input !== iss.expected) {
+            return "Group EIIN must be a string.";
+          }
+          return "Invalid group EIIN.";
         },
       }),
       description: z

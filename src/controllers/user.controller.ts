@@ -272,6 +272,7 @@ export const createAdminUserWithGroup = asyncHandler(
       password,
       group_name,
       group_description,
+      group_eiin,
     } = req.body;
 
     const user = await createAdminUserWithGroupService({
@@ -281,6 +282,7 @@ export const createAdminUserWithGroup = asyncHandler(
       last_name,
       group_name,
       group_description,
+      group_eiin,
     });
 
     successResponse(res, {

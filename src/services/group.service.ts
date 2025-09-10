@@ -15,16 +15,16 @@ import {
 export const getAllGroupsService = async () => {
   const groups = await GroupModel.find()
     .populate<{ devices: IDevice[] }>("devices", "-__v")
-    .populate("members.id", "-password -__v")
+    .populate("members", "-password -__v")
     .lean();
 
-  return groups.map((group) => ({
-    ...group,
-    members: group?.members?.map((member) => ({
-      ...member.id,
-      is_guest: member.is_guest,
-    })),
-  }));
+  return groups;
+};
+// get all groups service for courser
+export const getAllGroupsForCourseService = async () => {
+  const groups = await GroupModel.find().select("name eiin").lean();
+
+  return groups;
 };
 
 // add user to group service
@@ -38,9 +38,9 @@ export const addUserToGroupService = async (
     first_name: string;
     last_name: string;
     deviceIds: Types.ObjectId[];
+    deviceType: "clock" | "attendance";
     phone?: string;
     notes?: string;
-    is_guest: boolean;
   }
 ) => {
   // check user existence
@@ -55,7 +55,7 @@ export const addUserToGroupService = async (
   // group check
   const group = await GroupModel.findById(groupId)
     .select("devices")
-    .populate("members.id", "-password -__v");
+    .populate("members", "-password -__v");
 
   if (!group) {
     throw createError(404, "Group not found.");
@@ -63,7 +63,7 @@ export const addUserToGroupService = async (
 
   if (
     role !== "superadmin" &&
-    !group.members.some((member) => member.id !== userId)
+    !group.members.some((member) => member._id !== userId)
   ) {
     throw createError.Unauthorized("You can't add user in another group.");
   }
@@ -85,27 +85,37 @@ export const addUserToGroupService = async (
 
   // give access to devices
   payload.deviceIds.forEach(async (deviceId) => {
-    DeviceModel.findByIdAndUpdate(
-      deviceId,
-      {
-        $addToSet: { allowed_users: newUser._id },
-      },
-      { new: true }
-    ).exec();
+    if (payload.deviceType === "clock") {
+      DeviceModel.findByIdAndUpdate(
+        deviceId,
+        {
+          $addToSet: { allowed_users: newUser._id },
+        },
+        { new: true }
+      ).exec();
+    } else if (payload.deviceType === "attendance") {
+      AttendanceDeviceModel.findByIdAndUpdate(
+        deviceId,
+        {
+          $addToSet: { allowed_users: newUser._id },
+        },
+        { new: true }
+      ).exec();
+    }
   });
 
   // Find the group and update its members
   await group
     .updateOne(
       {
-        $addToSet: { members: { id: newUser._id, is_guest: payload.is_guest } },
+        $addToSet: { members: newUser._id },
       },
       {
         new: true,
         runValidators: true,
       }
     )
-    .populate("members.id", "-password -__v");
+    .populate("members", "-password -__v");
 
   await group.save();
 
@@ -118,7 +128,7 @@ export const addUserToGroupService = async (
 export const getGroupByIdService = async (groupId: string) => {
   const group = await GroupModel.findById(groupId)
     .populate<{ devices: IDevice[] }>("devices", "-__v")
-    .populate("members.id", "-password -__v")
+    .populate("members", "-password -__v")
     .lean();
   if (!group) {
     throw createError(404, "Group not found.");
@@ -126,10 +136,6 @@ export const getGroupByIdService = async (groupId: string) => {
 
   return {
     ...group,
-    members: group?.members?.map((member) => ({
-      ...member.id,
-      is_guest: member.is_guest,
-    })),
     devices: group?.devices?.map((device) => ({
       ...device,
       last_seen: dateFormat(device.last_seen),
@@ -139,32 +145,61 @@ export const getGroupByIdService = async (groupId: string) => {
   };
 };
 
+export const deleteGroupByIdService = async (groupId: string) => {
+  const group = await GroupModel.findByIdAndDelete(groupId).lean();
+  if (!group) {
+    throw createError(404, "Group not found.");
+  }
+
+  // remove group reference from devices
+  await DeviceModel.updateMany(
+    { _id: { $in: group.devices } },
+    {
+      $set: {
+        group: null,
+        allowed_users: [],
+        name: null,
+        location: null,
+        last_seen: Date.now(),
+      },
+    },
+    { runValidators: true }
+  ).exec();
+
+  await AttendanceDeviceModel.updateMany(
+    { _id: { $in: group.devices } },
+    { $set: { group: null, allowed_users: [] } },
+    { runValidators: true }
+  ).exec();
+
+  // delete all users in the group
+  await UserModel.deleteMany({ _id: { $in: group.members } }).exec();
+
+  return group;
+};
+
 // update group by id service
 export const updateGroupByIdService = async (
   groupId: string,
-  payload: { name: string; description: string }
+  payload: { name: string; description: string; eiin: string }
 ) => {
   const group = await GroupModel.findByIdAndUpdate(
     groupId,
-    { name: payload.name, description: payload.description },
+    {
+      ...payload,
+    },
     {
       new: true,
       runValidators: true,
     }
   )
     .populate("devices", "-__v")
-    .populate("members.id", "-password -__v")
+    .populate("members", "-password -__v")
     .lean();
   if (!group) {
     throw createError(404, "Group not found.");
   }
-  return {
-    ...group,
-    members: group?.members?.map((member) => ({
-      ...member.id,
-      is_guest: member.is_guest,
-    })),
-  };
+  return group;
 };
 
 // add device to group service
@@ -256,7 +291,7 @@ export const addAttendanceDeviceToGroupService = async (
       runValidators: true,
     }
   )
-    .populate<{ members: { id: IUser }[] }>("members.id", "role _id email")
+    .populate<{ members: IUser[] }>("members", "role _id email")
     .select("-__v -createdAt -updatedAt");
   // .populate("members", "-password -__v");
 
@@ -265,17 +300,7 @@ export const addAttendanceDeviceToGroupService = async (
   }
   // console.log(group);
 
-  console.log(group.members);
-
-  const adminMember = group.members.find(
-    (member) =>
-      typeof member.id === "object" &&
-      member.id !== null &&
-      "role" in member.id &&
-      member.id.role === "admin"
-  );
-
-  const adminId = adminMember ? adminMember.id._id : undefined;
+  const adminId = group.members.find((member) => member.role === "admin")?._id;
 
   // // name and location update
   // device.name = name;
@@ -393,21 +418,14 @@ export const getAllUsersInGroupService = async (
 ): Promise<IGroup> => {
   // Find the group and populate its members
   const group = await GroupModel.findById(groupId)
-    .populate("members.id", "-password -__v")
+    .populate("members", "-password -__v")
     .lean();
 
   if (!group) {
     throw createError(404, "Group not found");
   }
 
-  return {
-    ...group,
-    members: group?.members?.map((member) => ({
-      ...member.id,
-      is_guest: member.is_guest,
-      id: member.id._id,
-    })),
-  };
+  return group;
 };
 
 // get all devices in group service

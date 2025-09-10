@@ -14,7 +14,9 @@ import {
   addUserToGroupService,
   bulkChangeGroupDevicesModeService,
   bulkChangeGroupDevicesNoticeService,
+  deleteGroupByIdService,
   getAllDevicesInGroupService,
+  getAllGroupsForCourseService,
   getAllGroupsService,
   getAllUsersInGroupService,
   getGroupByIdService,
@@ -46,6 +48,20 @@ export const getAllGroups = asyncHandler(
   }
 );
 
+export const getAllGroupsForCourse = asyncHandler(
+  async (req: IRequestWithUser, res: Response) => {
+    const groups = await getAllGroupsForCourseService();
+    console.log(groups);
+
+    successResponse(res, {
+      message: "Groups retrieved successfully",
+      payload: {
+        data: groups,
+      },
+    });
+  }
+);
+
 /**
  * @description Add user to a group controller and give device access
  * @method POST
@@ -66,7 +82,7 @@ export const addUserToGroupWithDevicesPermission = asyncHandler(
       last_name,
       phone,
       notes,
-      is_guest,
+      deviceType,
       deviceIds = [],
     } = req.body;
 
@@ -82,8 +98,8 @@ export const addUserToGroupWithDevicesPermission = asyncHandler(
       first_name,
       last_name,
       deviceIds,
+      deviceType,
       phone,
-      is_guest,
       notes,
     });
 
@@ -105,7 +121,7 @@ export const addUserToGroupWithDevicesPermission = asyncHandler(
 export const updateGroupById = asyncHandler(
   async (req: IRequestWithUser, res: Response) => {
     const { groupId } = req.params;
-    const { name, description } = req.body;
+    const { name, description, eiin } = req.body;
 
     if (!isValidMongoId(groupId)) {
       throw createError(400, "Invalid group ID.");
@@ -113,12 +129,28 @@ export const updateGroupById = asyncHandler(
     const group = await updateGroupByIdService(groupId, {
       name,
       description,
+      eiin,
     });
     successResponse(res, {
       message: "Group updated successfully",
       payload: {
         data: group,
       },
+    });
+  }
+);
+
+export const deleteGroupById = asyncHandler(
+  async (req: IRequestWithUser, res: Response) => {
+    const { groupId } = req.params;
+
+    if (!isValidMongoId(groupId)) {
+      throw createError(400, "Invalid group ID.");
+    }
+    await deleteGroupByIdService(groupId);
+    successResponse(res, {
+      message: "Group updated successfully",
+      payload: {},
     });
   }
 );

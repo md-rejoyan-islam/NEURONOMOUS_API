@@ -11,46 +11,88 @@ const initAttendanceWSServer = (server: HttpServer) => {
     console.log("New client connected to Attendance WebSocket");
 
     ws.on("message", (message: string) => {
-      console.log("Received message:", message.toString());
       try {
         const data = JSON.parse(message.toString());
 
-        if (data.action === "record") {
-          ws.send(
-            JSON.stringify([
-              {
-                id: 1,
-                roll: "123",
-                status: "present",
-                timestamp: new Date().toISOString(),
-              },
-              {
-                id: 2,
-                roll: "124",
-                status: "absent",
-                timestamp: new Date().toISOString(),
-              },
-              {
-                id: 3,
-                roll: "125",
-                status: "present",
-                timestamp: new Date().toISOString(),
-              },
-            ])
-          );
+        const courses = [
+          { id: 1, name: "Mathematics", course_code: "MATH101" },
+          { id: 2, name: "Physics", course_code: "PHY101" },
+          { id: 3, name: "Chemistry", course_code: "CHEM101" },
+        ];
+
+        switch (data.command) {
+          case "get_courses":
+            ws.send(
+              JSON.stringify({
+                status: "ok",
+                command: "get_courses",
+                courses,
+              })
+            );
+            break;
+          case "send_attendance":
+            console.log(
+              `Attendance received from ${data.device_id}:`,
+              data.attendance
+            );
+            ws.send(
+              JSON.stringify({
+                status: "ok",
+                command: "send_attendance",
+                message: "Attendance received",
+              })
+            );
+            break;
+          case "status":
+            console.log(`Device ${data.device_id} is now ${data.status}`);
+            ws.send(
+              JSON.stringify({
+                status: "ok",
+                command: "status",
+                message: `Status ${data.status} received`,
+              })
+            );
+            break;
+          default:
+            ws.send(
+              JSON.stringify({ status: "error", message: "Unknown command" })
+            );
         }
+
+        // if (data.command === "get_courses" && data.device_id === "device123") {
+        //   ws.send(
+        //     JSON.stringify({
+        //       commmand: "courses_list",
+        //       device_id: "device123",
+        //       courses: [
+        //         { id: 1, name: "Mathematics", course_code: "MATH101" },
+        //         { id: 2, name: "Physics", course_code: "PHY101" },
+        //         { id: 3, name: "Chemistry", course_code: "CHEM101" },
+        //       ],
+        //     })
+        //   );
+        // } else if (
+        //   data.command === "send_attendance" &&
+        //   data.device_id === "device123"
+        // ) {
+        //   console.log("Attendance data received:", data.attendance);
+        //   ws.send(
+        //     JSON.stringify({
+        //       command: "attendance_acknowledged",
+        //       device_id: "device123",
+        //       status: "success",
+        //     })
+        //   );
+        // }
       } catch (error) {
         console.error("Error parsing message:", error);
+        ws.send(JSON.stringify({ status: "error", message: "Invalid JSON" }));
       }
     });
 
     ws.on("close", () => {
       console.log("Client disconnected from Attendance WebSocket");
     });
-
-    ws.send(
-      JSON.stringify({ message: "Welcome to the Attendance WebSocket server!" })
-    );
   });
 
   wss.on("error", (error) => {

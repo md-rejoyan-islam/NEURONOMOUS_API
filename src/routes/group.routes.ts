@@ -6,7 +6,9 @@ import {
   bulkChangeGroupDevicesMode,
   bulkChangeGroupDevicesNotice,
   cancelScheduledNoticeForDeviceInGroup,
+  deleteGroupById,
   getAllGroups,
+  getAllGroupsForCourse,
   getAllUsersInGroup,
   getGroupById,
   getGroupDevices,
@@ -34,6 +36,9 @@ groupRouter.use(isLoggedIn);
 // get all groups by superadmin
 groupRouter.get("/", authorize(["superadmin"]), getAllGroups); // COMPLETE
 
+// get all groups for create course
+groupRouter.get("/all-groups", getAllGroupsForCourse); // COMPLETE
+
 // get group by id
 groupRouter.get("/:groupId", authorize(["superadmin"]), getGroupById); // COMPLETE
 
@@ -44,6 +49,8 @@ groupRouter.patch(
   validate(updateGroupSchema),
   updateGroupById
 ); // COMPLETE
+
+groupRouter.delete("/:groupId", authorize(["superadmin"]), deleteGroupById); // COMPLETE
 
 // add device to group
 groupRouter.post(

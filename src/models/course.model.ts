@@ -43,6 +43,11 @@ const CourseSchema: Schema<ICourseSchema> = new mongoose.Schema<ICourseSchema>(
       type: String,
       required: [true, "Session is required"],
     },
+    department: {
+      type: Schema.Types.ObjectId,
+      ref: "Group",
+      required: [true, "Department is required"],
+    },
     instructor: {
       type: Schema.Types.ObjectId,
       ref: "User",

@@ -73,6 +73,16 @@ export const createAdminUserWithGroupSchema = z.object({
         })
         .min(10, "Group description must be at least 10 characters long")
         .optional(),
+      group_eiin: z.string({
+        error: (iss) => {
+          if (!iss.input) {
+            return "Group EIIN is required.";
+          } else if (typeof iss.input !== iss.expected) {
+            return "Group EIIN must be a string.";
+          }
+          return "Invalid group EIIN.";
+        },
+      }),
       role: z
         .enum(["admin", "user"], {
           error: (iss) => {
