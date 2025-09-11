@@ -5,6 +5,7 @@ const initAttendanceWSServer = (server: HttpServer) => {
   const wss = new WebSocketServer({
     server,
     path: "/ws/attendance",
+    noServer: false,
   });
 
   wss.on("connection", (ws: WebSocket) => {
