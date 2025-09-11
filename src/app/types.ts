@@ -82,7 +82,7 @@ export interface IStudentSchema {
   updatedAt: Date;
 }
 
-export interface IDeviceSchema {
+export interface IClockDeviceSchema {
   id: string;
   mac_id: string;
   status: "online" | "offline";
@@ -112,7 +112,7 @@ export interface IDeviceSchema {
   time_format: "12h" | "24h";
   timestamp: string;
 }
-export interface IDevice extends IDeviceSchema {
+export interface IDevice extends IClockDeviceSchema {
   _id: Types.ObjectId; // Mongoose ObjectId or string
 }
 

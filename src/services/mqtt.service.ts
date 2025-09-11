@@ -1,10 +1,10 @@
-import { DeviceModel } from "../models/device.model";
+import { ClockDeviceModel } from "../models/clock.model";
 import { emitDeviceFirmwareUpdate } from "../socket";
 import { logger } from "../utils/logger";
 import {
   createOrUpdateDeviceService,
   updateDeviceStatusAndHandlePendingNotice,
-} from "./device.service";
+} from "./clock.service";
 
 const STATUS_TOPIC = "esp32/status";
 const DATA_TOPIC_PREFIX = "esp32/data/ntp/";
@@ -142,7 +142,7 @@ export const handleMqttMessage = async (topic: string, message: Buffer) => {
 
       const device_mac_id = topic.split("/")[1];
 
-      const device = await DeviceModel.findOne({
+      const device = await ClockDeviceModel.findOne({
         mac_id: device_mac_id,
       }).lean();
 

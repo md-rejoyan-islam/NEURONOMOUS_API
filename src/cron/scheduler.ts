@@ -2,7 +2,7 @@ import cron, { ScheduledTask } from "node-cron";
 import {
   expireNoticeById,
   sendScheduledNotice,
-} from "../services/device.service";
+} from "../services/clock.service";
 
 // A map to store and manage cron jobs
 const scheduledJobs = new Map<string, ScheduledTask>();

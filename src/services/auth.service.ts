@@ -5,7 +5,7 @@ import secret from "../app/secret";
 import { IJwtPayload, IUser } from "../app/types";
 import forgotPasswordMail from "../mails/forgot-password-mail";
 import resetPasswordMail from "../mails/reset-password-mail";
-import { DeviceModel } from "../models/device.model";
+import { ClockDeviceModel } from "../models/clock.model";
 import { UserModel } from "../models/user.model";
 import { generateRandomPin } from "../utils/generate-random-pin";
 import generateToken, { verifyToken } from "../utils/generate-token";
@@ -234,11 +234,13 @@ export const getUserPermissionDevicesService = async (
   role: "admin" | "superadmin" | "user"
 ) => {
   if (role === "superadmin") {
-    const devices = await DeviceModel.find({}).select("_id name status").lean();
+    const devices = await ClockDeviceModel.find({})
+      .select("_id name status")
+      .lean();
     return devices || [];
   }
 
-  const devices = await DeviceModel.find({
+  const devices = await ClockDeviceModel.find({
     allowed_users: {
       $in: userId,
     },

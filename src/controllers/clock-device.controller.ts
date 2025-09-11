@@ -20,7 +20,7 @@ import {
   sendNoticeToAllDevicesService,
   sendNoticeToDeviceService,
   updateDeviceFirmwareService,
-} from "../services/device.service";
+} from "../services/clock.service";
 import { asyncHandler } from "../utils/async-handler";
 import { isValidMongoId } from "../utils/is-valid-mongo-id";
 import { successResponse } from "../utils/response-handler";

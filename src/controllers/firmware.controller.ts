@@ -15,12 +15,31 @@ import { successResponse } from "../utils/response-handler";
 // Get all firmware versions
 export const getAllFirmwares = asyncHandler(
   async (req: Request, res: Response) => {
-    const firmwares = await getAllFirmwaresService();
+    const {
+      page = 1,
+      limit = 10,
+      sortBy = "createdAt",
+      order = "desc",
+      device_type,
+      version,
+      status,
+    } = req.query;
+
+    const { pagination, firmwares } = await getAllFirmwaresService({
+      page: Number(page),
+      limit: Number(limit),
+      sortBy: String(sortBy),
+      order: String(order) === "asc" ? 1 : -1,
+      device_type: device_type ? String(device_type) : undefined,
+      version: version ? String(version) : undefined,
+      status: status ? String(status) : undefined,
+    });
 
     successResponse(res, {
       message: "Fetched all firmware versions",
       statusCode: 200,
       payload: {
+        pagination,
         data: firmwares,
       },
     });

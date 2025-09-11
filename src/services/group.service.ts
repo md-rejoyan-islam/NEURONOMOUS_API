@@ -2,14 +2,14 @@ import createError from "http-errors";
 import { Types } from "mongoose";
 import { IDevice, IGroup, IUser } from "../app/types";
 import { AttendanceDeviceModel } from "../models/attendance-device.model";
-import { DeviceModel } from "../models/device.model";
+import { ClockDeviceModel } from "../models/clock.model";
 import { GroupModel } from "../models/group.model";
 import { UserModel } from "../models/user.model";
 import { dateFormat, formatBytes, formatUptime } from "../utils/date-format";
 import {
   changeDeviceModeService,
   sendNoticeToDeviceService,
-} from "./device.service";
+} from "./clock.service";
 
 // get all groups service
 export const getAllGroupsService = async () => {
@@ -86,7 +86,7 @@ export const addUserToGroupService = async (
   // give access to devices
   payload.deviceIds.forEach(async (deviceId) => {
     if (payload.deviceType === "clock") {
-      DeviceModel.findByIdAndUpdate(
+      ClockDeviceModel.findByIdAndUpdate(
         deviceId,
         {
           $addToSet: { allowed_users: newUser._id },
@@ -152,7 +152,7 @@ export const deleteGroupByIdService = async (groupId: string) => {
   }
 
   // remove group reference from devices
-  await DeviceModel.updateMany(
+  await ClockDeviceModel.updateMany(
     { _id: { $in: group.devices } },
     {
       $set: {
@@ -210,7 +210,7 @@ export const addDeviceToGroupService = async (
   location: string
 ) => {
   // check device existence
-  const device = await DeviceModel.findOne({ id: deviceId });
+  const device = await ClockDeviceModel.findOne({ id: deviceId });
 
   if (!device) {
     throw createError(404, "Device not found");
@@ -332,7 +332,7 @@ export const removeDeviceFromGroupService = async (
   }
 
   // remove group reference from device
-  DeviceModel.findByIdAndUpdate(
+  ClockDeviceModel.findByIdAndUpdate(
     deviceId,
     {
       $set: { group: null, allowed_users: [] },
@@ -380,7 +380,7 @@ export const bulkChangeGroupDevicesModeService = async (
       changeDeviceModeService(device.id, payload.mode);
     }
   }
-  await DeviceModel.updateMany(
+  await ClockDeviceModel.updateMany(
     {
       status: "online",
     },
@@ -453,7 +453,7 @@ export const sendNoticeToAllDevicesServiceInGroup = async (
     .lean();
   if (!group) throw createError(404, "Group not found.");
 
-  const devices = await DeviceModel.find({
+  const devices = await ClockDeviceModel.find({
     _id: { $in: group.devices },
   }).lean();
 

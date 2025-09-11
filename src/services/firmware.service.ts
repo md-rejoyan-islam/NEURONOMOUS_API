@@ -1,6 +1,6 @@
 import createError from "http-errors";
 import { mqttClient } from "../config/mqtt";
-import { DeviceModel } from "../models/device.model";
+import { ClockDeviceModel } from "../models/clock.model";
 import { FirmwareModel } from "../models/firmware.model";
 import { logger } from "../utils/logger";
 
@@ -20,19 +20,65 @@ function formatFileSize(bytes: number): string {
 }
 
 // get all firmware versions
-export const getAllFirmwaresService = async () => {
-  const firmwares = await FirmwareModel.find();
+export const getAllFirmwaresService = async ({
+  page,
+  limit,
+  sortBy,
+  order,
+  device_type,
+  version,
+  status,
+}: {
+  page: number;
+  limit: number;
+  sortBy: string;
+  order: 1 | -1;
+  device_type?: string;
+  version?: string;
+  status?: string;
+}) => {
+  const query: {
+    device_type?: string;
+    version?: string;
+    status?: string;
+  } = {};
 
-  return firmwares.map((firmware) => ({
-    _id: firmware._id,
-    version: firmware.version,
-    size: formatFileSize(firmware.file.length), // Convert bytes to KB
-    status: firmware.status,
-    device_type: firmware.device_type,
-    description: firmware.description,
-    createdAt: firmware.createdAt,
-    updatedAt: firmware.updatedAt,
-  }));
+  if (device_type) {
+    query.device_type = device_type;
+  }
+  if (version) {
+    query.version = version;
+  }
+  if (status) {
+    query.status = status;
+  }
+
+  const firmwares = await FirmwareModel.find(query)
+    .sort({ [sortBy]: order })
+    .skip((page - 1) * limit)
+    .limit(limit);
+
+  const totalFirmwares = await FirmwareModel.countDocuments(query);
+
+  const pagination = {
+    items: totalFirmwares,
+    page: page,
+    limit: limit,
+    totalPages: Math.ceil(totalFirmwares / limit),
+  };
+  return {
+    pagination,
+    firmwares: firmwares.map((firmware) => ({
+      _id: firmware._id,
+      version: firmware.version,
+      size: formatFileSize(firmware.file.length), // Convert bytes to KB
+      status: firmware.status,
+      device_type: firmware.device_type,
+      description: firmware.description,
+      createdAt: firmware.createdAt,
+      updatedAt: firmware.updatedAt,
+    })),
+  };
 };
 
 // get firmware version by ID
@@ -54,7 +100,6 @@ export const createFirmwareService = async (firmwareData: {
   const existingFirmware = await FirmwareModel.findOne({
     device_type: firmwareData.device_type,
     version: firmwareData.version,
-    status: "inactive",
   });
 
   if (existingFirmware) {
@@ -92,7 +137,7 @@ export const updateFirmwareByIdService = async (
   id: string,
   version: string
 ) => {
-  const device = await DeviceModel.findById(id).lean();
+  const device = await ClockDeviceModel.findById(id).lean();
   if (!device) {
     throw createError(404, `Device with ID ${id} not found`);
   }

@@ -8,7 +8,7 @@ import {
   scheduleExpireJob,
   scheduleNoticeJob,
 } from "../cron/scheduler";
-import { DeviceModel } from "../models/device.model";
+import { ClockDeviceModel } from "../models/clock.model";
 import { FirmwareModel } from "../models/firmware.model";
 import { UserModel } from "../models/user.model";
 import { emitDeviceStatusUpdate } from "../socket";
@@ -57,7 +57,7 @@ export const updateDeviceStatusAndHandlePendingNotice = async (
     timestamp: string;
   }
 ) => {
-  const device = await DeviceModel.findOne({ id }).lean();
+  const device = await ClockDeviceModel.findOne({ id }).lean();
 
   if (device) {
     // if (device.status !== status || device.mode !== payload.mode) {
@@ -74,7 +74,7 @@ export const updateDeviceStatusAndHandlePendingNotice = async (
     ) {
       await publishToDevice(macId, "notice", device.notice!);
       await publishToDevice(macId, "mode", "1"); // Switch to notice mode
-      await DeviceModel.findByIdAndUpdate(device._id, {
+      await ClockDeviceModel.findByIdAndUpdate(device._id, {
         status: "online",
         pending_notice: false,
         last_seen: Date.now(),
@@ -86,7 +86,7 @@ export const updateDeviceStatusAndHandlePendingNotice = async (
       }
     } else {
       // Just update the status and other info
-      await DeviceModel.findByIdAndUpdate(device._id, {
+      await ClockDeviceModel.findByIdAndUpdate(device._id, {
         status,
         last_seen: Date.now(),
         ...payload,
@@ -100,7 +100,7 @@ export const updateDeviceStatusAndHandlePendingNotice = async (
 
 // restart a device by id service
 export const restartDeviceByIdService = async (id: string) => {
-  const device = await DeviceModel.findById(id);
+  const device = await ClockDeviceModel.findById(id);
   if (!device) throw createError(404, `Device ${id} not found.`);
   await publishToDevice(device.mac_id, "mode", "5");
 };
@@ -111,7 +111,7 @@ export const changeDeviceModeService = async (
   // userId: Types.ObjectId,
   mode: "clock" | "notice"
 ) => {
-  const device = await DeviceModel.findById(id);
+  const device = await ClockDeviceModel.findById(id);
   if (!device) throw createError(404, `Device ${id} not found.`);
 
   // Do not publish if already in the requested mode
@@ -121,7 +121,7 @@ export const changeDeviceModeService = async (
 
   await publishToDevice(device.mac_id, "mode", modeValue);
 
-  return DeviceModel.findByIdAndUpdate(
+  return ClockDeviceModel.findByIdAndUpdate(
     device._id,
     { mode, last_seen: Date.now() },
     { new: true }
@@ -133,7 +133,7 @@ export const changeAllDevicesModeService = async (
   mode: "clock" | "notice",
   deviceIds: string[]
 ) => {
-  const devices = await DeviceModel.find({
+  const devices = await ClockDeviceModel.find({
     _id: { $in: deviceIds },
   })
     .select("status")
@@ -152,7 +152,7 @@ export const changeAllDevicesModeService = async (
       changeDeviceModeService(device._id.toString(), mode);
     }
   }
-  // await DeviceModel.updateMany(
+  // await ClockDeviceModel.updateMany(
   //   {
   //     _id: { $in: devices },
   //     status: "online",
@@ -167,7 +167,7 @@ export const sendNoticeToDeviceService = async (
   notice: string,
   duration: number | null
 ) => {
-  const device = await DeviceModel.findById(id)
+  const device = await ClockDeviceModel.findById(id)
     .select("status mac_id _id")
     .exec();
   if (!device) throw createError(404, `Device ${id} not found.`);
@@ -193,7 +193,7 @@ export const sendNoticeToDeviceService = async (
   await publishToDevice(device.mac_id, "mode", "1"); // Switch to notice mode
 
   // Save to DB and schedule the job
-  await DeviceModel.findByIdAndUpdate(device._id, {
+  await ClockDeviceModel.findByIdAndUpdate(device._id, {
     notice,
     duration,
     mode: "notice",
@@ -214,7 +214,7 @@ export const sendNoticeToAllDevicesService = async (
   duration: number | null,
   deviceIds: string[]
 ) => {
-  const devices = await DeviceModel.find({
+  const devices = await ClockDeviceModel.find({
     _id: { $in: deviceIds },
   })
     .select("id")
@@ -232,7 +232,7 @@ export const updateDeviceFirmwareService = async (
   id: string,
   firmwareId: string
 ) => {
-  const device = await DeviceModel.findById(id).lean();
+  const device = await ClockDeviceModel.findById(id).lean();
   if (!device) {
     throw createError(404, `Device with ID ${id} not found`);
   }
@@ -282,7 +282,7 @@ export const scheduleNoticeService = async (
   startTime: number,
   endTime: number
 ) => {
-  const device = await DeviceModel.findById(id);
+  const device = await ClockDeviceModel.findById(id);
   if (!device) throw createError(404, `Device ${id} not found.`);
 
   // check if any sceduled notice overlaps
@@ -327,7 +327,7 @@ export const scheduleNoticeToAllDevicesService = async (
   endTime: number,
   deviceIds: string[]
 ) => {
-  const devices = await DeviceModel.find({
+  const devices = await ClockDeviceModel.find({
     _id: { $in: deviceIds },
   })
     .select("id")
@@ -347,12 +347,12 @@ export const scheduleNoticeToAllDevicesService = async (
 
 // Get all scheduled notices
 export const getAllScheduledNoticesService = async () => {
-  return DeviceModel.find({}).select("id name scheduled_notices").lean();
+  return ClockDeviceModel.find({}).select("id name scheduled_notices").lean();
 };
 
 // Get scheduled notices for a specific device
 export const getScheduledNoticesForDeviceService = async (id: string) => {
-  const device = await DeviceModel.findById(id).lean();
+  const device = await ClockDeviceModel.findById(id).lean();
   if (!device) throw createError(404, `Device ${id} not found.`);
   return device.scheduled_notices.map((notice) => ({
     ...notice,
@@ -368,7 +368,7 @@ export const cancelScheduledNoticeService = async (
   id: string,
   scheduledId: string
 ) => {
-  const device = await DeviceModel.findById(id);
+  const device = await ClockDeviceModel.findById(id);
   if (!device) throw createError(404, `Device ${id} not found.`);
   // Find the scheduled notice by ID
   const scheduledNoticeIndex = device.scheduled_notices.findIndex(
@@ -394,7 +394,7 @@ export const createOrUpdateDeviceService = async (
 ) => {
   const { id, ...updateData } = payload;
 
-  const device = await DeviceModel.findOneAndUpdate(
+  const device = await ClockDeviceModel.findOneAndUpdate(
     { id },
     {
       $set: {
@@ -413,7 +413,7 @@ export const createOrUpdateDeviceService = async (
 // Function to be called by the cron job to expire a notice
 export const expireNoticeById = async (id: string) => {
   try {
-    const device = await DeviceModel.findByIdAndUpdate(
+    const device = await ClockDeviceModel.findByIdAndUpdate(
       id,
       {
         mode: "clock",
@@ -441,7 +441,7 @@ export const expireNoticeById = async (id: string) => {
 // Function to be called by the cron job to send a scheduled notice
 export const sendScheduledNotice = async (id: string, scheduleId: string) => {
   try {
-    const device = await DeviceModel.findById(id).lean();
+    const device = await ClockDeviceModel.findById(id).lean();
 
     if (
       !device ||
@@ -463,7 +463,7 @@ export const sendScheduledNotice = async (id: string, scheduleId: string) => {
     const { notice, duration } = scheduledNotice;
 
     if (device.status === "offline") {
-      await DeviceModel.findByIdAndUpdate(device._id, {
+      await ClockDeviceModel.findByIdAndUpdate(device._id, {
         pending_notice: true,
         notice,
         duration,
@@ -483,7 +483,7 @@ export const sendScheduledNotice = async (id: string, scheduleId: string) => {
 
     // clear the scheduled notice from the device
 
-    await DeviceModel.findByIdAndUpdate(device._id, {
+    await ClockDeviceModel.findByIdAndUpdate(device._id, {
       $pull: { scheduled_notices: { id: scheduleId } },
     })
       .lean()
@@ -537,9 +537,9 @@ export const getAllDevicesService = async (
 
   // If the user is a superadmin, return all devices
   if (role === "superadmin") {
-    devices = await DeviceModel.find(filter).lean();
+    devices = await ClockDeviceModel.find(filter).lean();
   } else {
-    devices = await DeviceModel.find({
+    devices = await ClockDeviceModel.find({
       ...filter,
       allowed_users: {
         $in: _id,
@@ -557,7 +557,7 @@ export const getAllDevicesService = async (
 
 // Get a single device by ID
 export const getDeviceByIdService = async (id: string) => {
-  const device = await DeviceModel.findById(id).lean();
+  const device = await ClockDeviceModel.findById(id).lean();
 
   if (!device) throw createError(404, `Device ${id} not found.`);
 
@@ -583,7 +583,7 @@ export const getDeviceByIdService = async (id: string) => {
 
 // Get all allowed access usrs for a device
 export const getAllowedUsersForDeviceService = async (id: string) => {
-  const device = await DeviceModel.findById(id)
+  const device = await ClockDeviceModel.findById(id)
     .select("group")
     .populate<{ allowed_users: IUser[] }>({
       // .populate<{ group: IGroup; allowed_users: IUser[] }>({
@@ -641,7 +641,7 @@ export const giveDeviceAccessToUsersInGroupService = async (
 
   console.log(userIds);
 
-  const device = await DeviceModel.findByIdAndUpdate(
+  const device = await ClockDeviceModel.findByIdAndUpdate(
     deviceId,
     { $addToSet: { allowed_users: { $each: userIds } } },
     { new: true }
@@ -668,7 +668,7 @@ export const revokeDeviceAccessFromUserService = async (
   });
   if (!user) throw createError(404, `User ${userId} not found.`);
 
-  const device = await DeviceModel.findById(deviceId)
+  const device = await ClockDeviceModel.findById(deviceId)
     .select("allowed_users")
     .lean();
   if (!device) throw createError(404, `Device ${deviceId} not found.`);
@@ -682,7 +682,7 @@ export const revokeDeviceAccessFromUserService = async (
   }
 
   // Remove the device from the user's allowed devices
-  DeviceModel.updateOne(
+  ClockDeviceModel.updateOne(
     { _id: device._id },
     { $pull: { allowed_users: new mongoose.Types.ObjectId(userId) } }
   ).exec();
@@ -712,7 +712,7 @@ export const changeDeviceFontAndTimeFormatService = async (
   font?: string,
   timeFormat?: string
 ) => {
-  const device = await DeviceModel.findOne({ id });
+  const device = await ClockDeviceModel.findOne({ id });
   if (!device) throw createError(404, `Device ${id} not found.`);
   // Update the device with new font and time format
   console.log(font, timeFormat);

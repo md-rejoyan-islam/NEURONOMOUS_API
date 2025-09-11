@@ -2,7 +2,7 @@ import createError from "http-errors";
 import { Types } from "mongoose";
 import { IGroup, IUser } from "../app/types";
 import accountCreatedMail from "../mails/account-create-mail";
-import { DeviceModel } from "../models/device.model";
+import { ClockDeviceModel } from "../models/clock.model";
 import { GroupModel } from "../models/group.model";
 import { UserModel } from "../models/user.model";
 import { logger } from "../utils/logger";
@@ -308,7 +308,7 @@ export const deleteUserByIdService = async (userId: string) => {
     { $pull: { members: user._id } }
   );
   // remove user from devices if exists
-  await DeviceModel.updateMany(
+  await ClockDeviceModel.updateMany(
     { allowed_users: user._id },
     { $pull: { allowed_users: user._id } }
   );

@@ -18,7 +18,7 @@ import {
   sendNoticeInDevice,
   sendNoticeToAllDevices,
   updateDeviceFirmware,
-} from "../controllers/device.controller";
+} from "../controllers/clock-device.controller";
 import { authorize } from "../middlewares/authorized";
 import validate from "../middlewares/validate";
 import { isLoggedIn } from "../middlewares/verify";
@@ -33,92 +33,89 @@ import {
   sendScheduleNoticeToSelectedDeviceSchema,
 } from "../validator/device.validator";
 
-const deviceRouter = Router();
+const clockRouter = Router();
 
 // protect all routes
-deviceRouter.use(isLoggedIn);
+clockRouter.use(isLoggedIn);
 
 // get all devices
-deviceRouter.get("/", validate(getAllDevicesSchema), getAllDevices);
+clockRouter.get("/", validate(getAllDevicesSchema), getAllDevices);
 
 // change the mode of all devices
-deviceRouter.patch(
+clockRouter.patch(
   "/change-mode",
   validate(changeSelectedDeviceModeSchema),
   changeAllDevicesMode
 ); // COMPLETE
 
 // schedule a notice for all devices
-deviceRouter.patch(
+clockRouter.patch(
   "/scheduled-notice",
   validate(sendScheduleNoticeToSelectedDeviceSchema),
   scheduleNoticeForAllDevices
 ); // COMPLETE
 
 // send a notice to all devices
-deviceRouter.patch(
+clockRouter.patch(
   "/send-notice",
   validate(sendNoticeToSelectedDeviceSchema),
   sendNoticeToAllDevices
 );
 
 // get a specific device by ID
-deviceRouter.get("/:deviceId", getDeviceById);
+clockRouter.get("/:deviceId", getDeviceById);
 
 // restart a specific device
-deviceRouter.patch("/:deviceId/restart", restartDeviceById);
+clockRouter.patch("/:deviceId/restart", restartDeviceById);
 
 // update a specific device firmware
-deviceRouter.patch(
+clockRouter.patch(
   "/:deviceId/update-firmware",
   authorize(["superadmin", "admin"]),
   updateDeviceFirmware
 );
 
 // Get all allowed access usrs for a device
-deviceRouter.get("/:deviceId/allowed-users", getAllowedUsersForDevice);
+clockRouter.get("/:deviceId/allowed-users", getAllowedUsersForDevice);
 
 // send the notice of a specific device
-deviceRouter.patch(
+clockRouter.patch(
   "/:deviceId/send-notice",
   validate(sendNoticeToDeviceSchema),
   sendNoticeInDevice
 ); // COMPLETE
 
 // change the mode of a specific device
-deviceRouter.patch(
+clockRouter.patch(
   "/:deviceId/change-mode",
   validate(changeDeviceModeSchema),
   changeSingleDeviceMode
 ); // COMPLETE
 
 // schedule a notice for a specific device
-deviceRouter.patch(
+clockRouter.patch(
   "/:deviceId/scheduled-notice",
   validate(scheduleNoticeForDeviceSchema),
   scheduleNoticeForDevice
 ); // COMPLETE
 
 // get all scheduled notices for a specific device
-deviceRouter.get("/:deviceId/scheduled-notices", getScheduledNoticeInDevice); // COMPLETE
+clockRouter.get("/:deviceId/scheduled-notices", getScheduledNoticeInDevice); // COMPLETE
 
 // cancel a scheduled notice for a specific device
-deviceRouter.delete(
+clockRouter.delete(
   "/:deviceId/scheduled-notices/:scheduledId",
   cancelScheduledNoticeForDevice
 );
 
 // get all available fonts in a specific device
-deviceRouter.get("/:deviceId/fonts", getAvailableFontsInDevice);
+clockRouter.get("/:deviceId/fonts", getAvailableFontsInDevice);
 
 // change font and time format of a specific device
-deviceRouter.post(
-  "/:deviceId/change-font-time-format",
-  changeFontAndTimeFormat
-);
+clockRouter.post("/:deviceId/change-font-time-format", changeFontAndTimeFormat);
 
 // give device access to users
-deviceRouter.post(
+clockRouter.post(
   "/:deviceId/give-device-access",
   authorize(["admin", "superadmin"]),
   validate(giveDeviceAccessToUsersSchema),
@@ -126,10 +123,10 @@ deviceRouter.post(
 );
 
 // revolk device access from user
-deviceRouter.post(
+clockRouter.post(
   "/:deviceId/revoke-device-access/:userId",
   authorize(["admin", "superadmin"]),
   revokeDeviceAccessFromUser
 );
 
-export default deviceRouter;
+export default clockRouter;

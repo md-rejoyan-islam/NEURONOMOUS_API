@@ -4,8 +4,8 @@ import errorHandler from "../middlewares/error-handler";
 import { successResponse } from "../utils/response-handler";
 import attendanceRouter from "./attendance-device.routes";
 import authRouter from "./auth.routes";
+import clockRouter from "./clock-device.routes";
 import courseRouter from "./course.routes";
-import deviceRouter from "./device.routes";
 import firmwareRouter from "./firmware.routes";
 import groupRouter from "./group.routes";
 import logRouter from "./logs.routes";
@@ -31,7 +31,7 @@ router.get("/health", (_, res) => {
 });
 
 // device routes
-router.use("/api/v1/devices", deviceRouter);
+router.use("/api/v1/clock-devices", clockRouter);
 // auth routes
 router.use("/api/v1/auth", authRouter);
 // user routes

@@ -2,12 +2,12 @@ import { Response } from "express";
 import createError from "http-errors";
 import { Types } from "mongoose";
 import { IRequestWithUser } from "../app/types";
-import { DeviceModel } from "../models/device.model";
+import { ClockDeviceModel } from "../models/clock.model";
 import { GroupModel } from "../models/group.model";
 import {
   cancelScheduledNoticeService,
   scheduleNoticeService,
-} from "../services/device.service";
+} from "../services/clock.service";
 import {
   addAttendanceDeviceToGroupService,
   addDeviceToGroupService,
@@ -440,7 +440,7 @@ export const scheduleNoticeForAllDevicesInGroup = async (
     throw createError(404, "Group not found.");
   }
 
-  const devices = await DeviceModel.find({
+  const devices = await ClockDeviceModel.find({
     _id: { $in: group.devices },
   })
     .select("id")

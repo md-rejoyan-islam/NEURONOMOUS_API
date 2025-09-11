@@ -7,7 +7,6 @@ const FirmwareSchema: Schema<IFirmwareSchema> =
       version: {
         type: String,
         required: [true, "Firmware version is required"],
-        unique: true,
         validate: {
           // format ( e.g., "1.0.0" or "2.1.3")
           validator: (v: string) => /^\d+\.\d+\.\d+$/.test(v),
