@@ -16,8 +16,16 @@ const GroupSchema: Schema<IGroupSchema> = new mongoose.Schema<IGroupSchema>(
     },
     devices: [
       {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Device",
+        deviceType: {
+          type: String,
+          required: true,
+          enum: ["attendance", "clock"],
+        },
+        deviceId: {
+          type: mongoose.Schema.Types.ObjectId,
+          required: true,
+          refPath: "devices.deviceType",
+        },
       },
     ],
     members: [

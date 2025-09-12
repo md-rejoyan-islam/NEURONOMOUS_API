@@ -1,6 +1,6 @@
 import createError from "http-errors";
 import { mqttClient } from "../config/mqtt";
-import { ClockDeviceModel } from "../models/clock.model";
+import { ClockDeviceModel } from "../models/devices/clock.model";
 import { FirmwareModel } from "../models/firmware.model";
 import { logger } from "../utils/logger";
 
@@ -20,7 +20,7 @@ function formatFileSize(bytes: number): string {
 }
 
 // get all firmware versions
-export const getAllFirmwaresService = async ({
+const getAllFirmwares = async ({
   page,
   limit,
   sortBy,
@@ -82,7 +82,7 @@ export const getAllFirmwaresService = async ({
 };
 
 // get firmware version by ID
-export const getFirmwareByIdService = async (id: string) => {
+const getFirmwareById = async (id: string) => {
   const firmware = await FirmwareModel.findById(id).lean();
   if (!firmware) {
     throw new Error(`Firmware with ID ${id} not found`);
@@ -91,7 +91,7 @@ export const getFirmwareByIdService = async (id: string) => {
 };
 
 // create a new firmware version
-export const createFirmwareService = async (firmwareData: {
+const createFirmware = async (firmwareData: {
   version: number;
   description: string;
   device_type: "clock" | "attendance";
@@ -115,7 +115,7 @@ export const createFirmwareService = async (firmwareData: {
 };
 
 // delete a firmware version by ID
-export const deleteFirmwareByIdService = async (id: string) => {
+const deleteFirmwareById = async (id: string) => {
   const firmware = await FirmwareModel.findByIdAndDelete(id).exec();
   if (!firmware) {
     throw new Error(`Firmware with ID ${id} not found`);
@@ -123,7 +123,7 @@ export const deleteFirmwareByIdService = async (id: string) => {
 };
 
 // download firmware file by ID
-export const downloadFirmwareFileByIdService = async (id: string) => {
+const downloadFirmwareFileById = async (id: string) => {
   const firmware = await FirmwareModel.findById(id);
   if (!firmware) {
     throw new Error(`Firmware with ID ${id} not found`);
@@ -133,10 +133,7 @@ export const downloadFirmwareFileByIdService = async (id: string) => {
 };
 
 // update firmware version by ID
-export const updateFirmwareByIdService = async (
-  id: string,
-  version: string
-) => {
+const updateFirmwareById = async (id: string, version: string) => {
   const device = await ClockDeviceModel.findById(id).lean();
   if (!device) {
     throw createError(404, `Device with ID ${id} not found`);
@@ -175,7 +172,7 @@ export const updateFirmwareByIdService = async (
 };
 
 // update firmware status by ID
-export const updateFirmwareStatusByIdService = async (
+const updateFirmwareStatusById = async (
   id: string,
   status: "active" | "inactive"
 ) => {
@@ -187,3 +184,15 @@ export const updateFirmwareStatusByIdService = async (
   firmware.status = status;
   await firmware.save();
 };
+
+const firmwareService = {
+  getAllFirmwares,
+  getFirmwareById,
+  createFirmware,
+  deleteFirmwareById,
+  downloadFirmwareFileById,
+  updateFirmwareById,
+  updateFirmwareStatusById,
+};
+
+export default firmwareService;

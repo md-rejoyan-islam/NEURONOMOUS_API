@@ -2,13 +2,14 @@ import { Request, Response, Router } from "express";
 import createError from "http-errors";
 import errorHandler from "../middlewares/error-handler";
 import { successResponse } from "../utils/response-handler";
-import attendanceRouter from "./attendance-device.routes";
 import authRouter from "./auth.routes";
-import clockRouter from "./clock-device.routes";
 import courseRouter from "./course.routes";
+import attendanceRouter from "./devices/attendance.routes";
+import clockRouter from "./devices/clock.routes";
 import firmwareRouter from "./firmware.routes";
 import groupRouter from "./group.routes";
 import logRouter from "./logs.routes";
+import openAccessRouter from "./open-access.routes";
 import systemRouter from "./system.routes";
 import userRouter from "./user.routes";
 
@@ -48,6 +49,9 @@ router.use("/api/v1/logs", logRouter);
 router.use("/api/v1/attendance-devices", attendanceRouter);
 // course routes
 router.use("/api/v1/courses", courseRouter);
+
+// open access routes
+router.use("/api/v1/open", openAccessRouter);
 
 // 404 route
 router.use("", (req: Request, _res: Response) => {

@@ -1,7 +1,45 @@
 import { Types } from "mongoose";
-import z from "zod";
+import { z } from "zod";
 
-export const changeDeviceModeSchema = z.object({
+// add device to group validation schema
+const addClockToGroup = z.object({
+  body: z
+    .object({
+      deviceId: z.string({
+        error: (iss) => {
+          if (!iss.input) {
+            return "Device ID is required.";
+          } else if (typeof iss.input !== iss.expected) {
+            return "Device ID must be a string.";
+          }
+          return "Invalid device ID.";
+        },
+      }),
+      name: z.string({
+        error: (iss) => {
+          if (!iss.input) {
+            return "Device name is required.";
+          } else if (typeof iss.input !== iss.expected) {
+            return "Device name must be a string.";
+          }
+          return "Invalid device name.";
+        },
+      }),
+      location: z.string({
+        error: (iss) => {
+          if (!iss.input) {
+            return "Device location is required.";
+          } else if (typeof iss.input !== iss.expected) {
+            return "Device location must be a string.";
+          }
+          return "Invalid device location.";
+        },
+      }),
+    })
+    .strict(),
+});
+
+export const changeDeviceMode = z.object({
   body: z
     .object({
       mode: z.enum(["clock", "notice"], {
@@ -18,7 +56,7 @@ export const changeDeviceModeSchema = z.object({
     .strict(),
 });
 
-export const sendNoticeToDeviceSchema = z.object({
+export const sendNoticeToDevice = z.object({
   body: z
     .object({
       notice: z.string().min(1, "Notice must be a non-empty string."),
@@ -31,36 +69,34 @@ export const sendNoticeToDeviceSchema = z.object({
     .strict(),
 });
 
-export const sendNoticeToSelectedDeviceSchema = sendNoticeToDeviceSchema.extend(
-  {
-    body: z.object({
-      deviceIds: z
-        .array(z.string(), {
-          error: (iss) => {
-            if (!iss.input) {
-              return "Device IDs are required.";
-            } else if (!Array.isArray(iss.input)) {
-              return "Device IDs must be an array.";
-            }
-            return "Invalid Device IDs.";
-          },
-        })
-        .refine(
-          (ids) => {
-            if (ids.length === 0) {
-              return false;
-            }
-            return ids.every((id) => Types.ObjectId.isValid(id));
-          },
-          {
-            message: "Each Device ID must be a valid ObjectId string.",
+export const sendNoticeToSelectedDevice = sendNoticeToDevice.extend({
+  body: z.object({
+    deviceIds: z
+      .array(z.string(), {
+        error: (iss) => {
+          if (!iss.input) {
+            return "Device IDs are required.";
+          } else if (!Array.isArray(iss.input)) {
+            return "Device IDs must be an array.";
           }
-        ),
-    }),
-  }
-);
+          return "Invalid Device IDs.";
+        },
+      })
+      .refine(
+        (ids) => {
+          if (ids.length === 0) {
+            return false;
+          }
+          return ids.every((id) => Types.ObjectId.isValid(id));
+        },
+        {
+          message: "Each Device ID must be a valid ObjectId string.",
+        }
+      ),
+  }),
+});
 
-export const scheduleNoticeForDeviceSchema = z.object({
+export const scheduleNoticeForDevice = z.object({
   body: z
     .object({
       notice: z.string().min(1, "Notice must be a non-empty string."),
@@ -88,7 +124,7 @@ export const scheduleNoticeForDeviceSchema = z.object({
     .strict(),
 });
 
-export const giveDeviceAccessToUsersSchema = z.object({
+export const giveDeviceAccessToUsers = z.object({
   body: z
     .object({
       userIds: z
@@ -117,7 +153,7 @@ export const giveDeviceAccessToUsersSchema = z.object({
     .strict(),
 });
 
-export const changeSelectedDeviceModeSchema = z.object({
+export const changeSelectedDeviceMode = z.object({
   body: z
     .object({
       mode: z.enum(["clock", "notice"], {
@@ -156,7 +192,7 @@ export const changeSelectedDeviceModeSchema = z.object({
     .strict(),
 });
 
-export const getAllDevicesSchema = z.object({
+export const getAllDevices = z.object({
   query: z
     .object({
       mode: z
@@ -195,8 +231,8 @@ export const getAllDevicesSchema = z.object({
     .strict(),
 });
 
-export const sendScheduleNoticeToSelectedDeviceSchema =
-  scheduleNoticeForDeviceSchema.extend({
+export const sendScheduleNoticeToSelectedDevice =
+  scheduleNoticeForDevice.extend({
     body: z.object({
       deviceIds: z
         .array(z.string(), {
@@ -222,3 +258,17 @@ export const sendScheduleNoticeToSelectedDeviceSchema =
         ),
     }),
   });
+
+const clockValidator = {
+  addClockToGroup,
+  changeDeviceMode,
+  sendNoticeToDevice,
+  sendNoticeToSelectedDevice,
+  scheduleNoticeForDevice,
+  giveDeviceAccessToUsers,
+  changeSelectedDeviceMode,
+  getAllDevices,
+  sendScheduleNoticeToSelectedDevice,
+};
+
+export default clockValidator;

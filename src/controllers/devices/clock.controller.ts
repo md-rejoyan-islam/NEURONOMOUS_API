@@ -1,47 +1,34 @@
 import { Request, Response } from "express";
 import createError from "http-errors";
 import { Types } from "mongoose";
-import { IRequestWithUser } from "../app/types";
-import {
-  cancelScheduledNoticeService,
-  changeAllDevicesModeService,
-  changeDeviceFontAndTimeFormatService,
-  changeDeviceModeService,
-  getAllDevicesService,
-  getAllowedUsersForDeviceService,
-  getAllScheduledNoticesService,
-  getDeviceByIdService,
-  getScheduledNoticesForDeviceService,
-  giveDeviceAccessToUsersInGroupService,
-  restartDeviceByIdService,
-  revokeDeviceAccessFromUserService,
-  scheduleNoticeService,
-  scheduleNoticeToAllDevicesService,
-  sendNoticeToAllDevicesService,
-  sendNoticeToDeviceService,
-  updateDeviceFirmwareService,
-} from "../services/clock.service";
-import { asyncHandler } from "../utils/async-handler";
-import { isValidMongoId } from "../utils/is-valid-mongo-id";
-import { successResponse } from "../utils/response-handler";
+import { IRequestWithUser } from "../../app/types";
+
+import clockService from "../../services/devices/clock.service";
+import { asyncHandler } from "../../utils/async-handler";
+import { isValidMongoId } from "../../utils/is-valid-mongo-id";
+import { successResponse } from "../../utils/response-handler";
 
 /**
  * @description Get all devices from the database.
  * @method GET
  * @route /api/v1/devices
  */
-export const getAllDevices = asyncHandler(
+const getAllDevices = asyncHandler(
   async (req: IRequestWithUser, res: Response) => {
     const { role, _id } = req.user!;
 
     const { mode, status, search, type } = req.query;
 
-    const result = await getAllDevicesService(_id as Types.ObjectId, role, {
-      mode: mode as string,
-      status: status as string,
-      search: search as string,
-      type: type as string,
-    });
+    const result = await clockService.getAllDevices(
+      _id as Types.ObjectId,
+      role,
+      {
+        mode: mode as string,
+        status: status as string,
+        search: search as string,
+        type: type as string,
+      }
+    );
 
     successResponse(res, {
       message: "Devices fetched successfully",
@@ -59,25 +46,23 @@ export const getAllDevices = asyncHandler(
  * @route /api/v1/devices/:deviceId
  */
 
-export const getDeviceById = asyncHandler(
-  async (req: Request, res: Response) => {
-    const { deviceId } = req.params;
+const getDeviceById = asyncHandler(async (req: Request, res: Response) => {
+  const { deviceId } = req.params;
 
-    if (!Types.ObjectId.isValid(deviceId)) {
-      throw createError(400, "Invalid device ID format.");
-    }
-
-    const device = await getDeviceByIdService(deviceId);
-
-    successResponse(res, {
-      message: `Device ${deviceId} fetched successfully`,
-      statusCode: 200,
-      payload: {
-        data: device,
-      },
-    });
+  if (!Types.ObjectId.isValid(deviceId)) {
+    throw createError(400, "Invalid device ID format.");
   }
-);
+
+  const device = await clockService.getDeviceById(deviceId);
+
+  successResponse(res, {
+    message: `Device ${deviceId} fetched successfully`,
+    statusCode: 200,
+    payload: {
+      data: device,
+    },
+  });
+});
 
 // Get all allowed access usrs for a device
 
@@ -86,7 +71,7 @@ export const getDeviceById = asyncHandler(
  * @method GET
  * @route /api/v1/devices/:deviceId/access-users
  */
-export const getAllowedUsersForDevice = asyncHandler(
+const getAllowedUsersForDevice = asyncHandler(
   async (req: Request, res: Response) => {
     const { deviceId } = req.params;
 
@@ -95,7 +80,7 @@ export const getAllowedUsersForDevice = asyncHandler(
     }
 
     // Assuming a service to get available fonts exists
-    const fonts = await getAllowedUsersForDeviceService(deviceId);
+    const fonts = await clockService.getAllowedUsersForDevice(deviceId);
 
     successResponse(res, {
       message: `Available fonts for device ${deviceId} fetched successfully`,
@@ -113,7 +98,7 @@ export const getAllowedUsersForDevice = asyncHandler(
  * @route /api/v1/devices/:deviceId/change-mode
  */
 
-export const changeSingleDeviceMode = asyncHandler(
+const changeSingleDeviceMode = asyncHandler(
   async (req: IRequestWithUser, res: Response) => {
     const { deviceId } = req.params;
     const { mode } = req.body;
@@ -128,7 +113,7 @@ export const changeSingleDeviceMode = asyncHandler(
       return res.status(400).json({ error: "Invalid mode." });
     }
 
-    await changeDeviceModeService(deviceId, mode);
+    await clockService.changeDeviceMode(deviceId, mode);
 
     successResponse(res, {
       message: `Device ${deviceId} mode changed to ${mode}`,
@@ -142,7 +127,7 @@ export const changeSingleDeviceMode = asyncHandler(
  * @method POST
  * @route /api/v1/devices/change-mode
  */
-export const changeAllDevicesMode = asyncHandler(
+const changeAllDevicesMode = asyncHandler(
   async (req: Request, res: Response) => {
     const { mode, deviceIds } = req.body;
 
@@ -151,7 +136,7 @@ export const changeAllDevicesMode = asyncHandler(
     }
 
     // Assuming a service to change all devices mode exists
-    await changeAllDevicesModeService(mode, deviceIds);
+    await clockService.changeAllDevicesMode(mode, deviceIds);
 
     successResponse(res, {
       message: `All devices changed to ${mode} mode`,
@@ -165,21 +150,19 @@ export const changeAllDevicesMode = asyncHandler(
  * @method POST
  * @route /api/v1/devices/:deviceId/send-notice
  */
-export const sendNoticeInDevice = asyncHandler(
-  async (req: Request, res: Response) => {
-    const { deviceId } = req.params;
-    const { notice, duration } = req.body;
+const sendNoticeInDevice = asyncHandler(async (req: Request, res: Response) => {
+  const { deviceId } = req.params;
+  const { notice, duration } = req.body;
 
-    await sendNoticeToDeviceService(deviceId, notice, duration);
+  await clockService.sendNoticeToDevice(deviceId, notice, duration);
 
-    successResponse(res, {
-      message: `Notice sent to device ${deviceId}`,
-      statusCode: 200,
-    });
-  }
-);
+  successResponse(res, {
+    message: `Notice sent to device ${deviceId}`,
+    statusCode: 200,
+  });
+});
 
-export const updateDeviceFirmware = asyncHandler(
+const updateDeviceFirmware = asyncHandler(
   async (req: Request, res: Response) => {
     const { deviceId } = req.params;
 
@@ -188,7 +171,7 @@ export const updateDeviceFirmware = asyncHandler(
       throw createError(400, "Firmware ID is required.");
     }
 
-    await updateDeviceFirmwareService(deviceId, firmwareId);
+    await clockService.updateDeviceFirmware(deviceId, firmwareId);
 
     successResponse(res, {
       message: `Firmware update for device ${deviceId} initiated`,
@@ -198,34 +181,32 @@ export const updateDeviceFirmware = asyncHandler(
 );
 
 // restart Device
-export const restartDeviceById = asyncHandler(
-  async (req: Request, res: Response) => {
-    const { deviceId } = req.params;
+const restartDeviceById = asyncHandler(async (req: Request, res: Response) => {
+  const { deviceId } = req.params;
 
-    if (!isValidMongoId(deviceId)) {
-      throw createError(400, "Invalid device ID format.");
-    }
-
-    await restartDeviceByIdService(deviceId);
-
-    successResponse(res, {
-      message: `Device ${deviceId} restart command sent successfully`,
-      statusCode: 200,
-    });
+  if (!isValidMongoId(deviceId)) {
+    throw createError(400, "Invalid device ID format.");
   }
-);
+
+  await clockService.restartDeviceById(deviceId);
+
+  successResponse(res, {
+    message: `Device ${deviceId} restart command sent successfully`,
+    statusCode: 200,
+  });
+});
 
 /**
  * @description Send notice to all devices by superadmin
  * @method POST
  * @route /api/v1/devices/send-notice
  */
-export const sendNoticeToAllDevices = asyncHandler(
+const sendNoticeToAllDevices = asyncHandler(
   async (req: Request, res: Response) => {
     const { notice, duration, deviceIds } = req.body;
 
     // Assuming a service to send notice to all devices exists
-    await sendNoticeToAllDevicesService(notice, duration, deviceIds);
+    await clockService.sendNoticeToAllDevices(notice, duration, deviceIds);
 
     successResponse(res, {
       message: "Notice sent to all devices successfully",
@@ -240,12 +221,12 @@ export const sendNoticeToAllDevices = asyncHandler(
  * @route /api/v1/devices/:deviceId/schedule-notice
  */
 
-export const scheduleNoticeForDevice = asyncHandler(
+const scheduleNoticeForDevice = asyncHandler(
   async (req: Request, res: Response) => {
     const { deviceId } = req.params;
     const { notice, startTime, endTime } = req.body;
 
-    await scheduleNoticeService(deviceId, notice, startTime, endTime);
+    await clockService.scheduleNotice(deviceId, notice, startTime, endTime);
 
     successResponse(res, {
       message: `Notice scheduled for device ${deviceId}`,
@@ -259,12 +240,12 @@ export const scheduleNoticeForDevice = asyncHandler(
  * @method POST
  * @route /api/v1/devices/schedule-notice
  */
-export const scheduleNoticeForAllDevices = asyncHandler(
+const scheduleNoticeForAllDevices = asyncHandler(
   async (req: Request, res: Response) => {
     const { notice, startTime, endTime, deviceIds } = req.body;
 
     // Assuming a service to schedule notice for all devices exists
-    await scheduleNoticeToAllDevicesService(
+    await clockService.scheduleNoticeToAllDevices(
       notice,
       startTime,
       endTime,
@@ -283,9 +264,9 @@ export const scheduleNoticeForAllDevices = asyncHandler(
  * @method GET
  * @route /api/v1/devices/scheduled-notices
  */
-export const getScheduledNoticesInDevices = asyncHandler(
+const getScheduledNoticesInDevices = asyncHandler(
   async (req: Request, res: Response) => {
-    const scheduledNotices = await getAllScheduledNoticesService();
+    const scheduledNotices = await clockService.getAllScheduledNotices();
     successResponse(res, {
       message: `All scheduled notices  fetched successfully`,
       payload: {
@@ -300,12 +281,12 @@ export const getScheduledNoticesInDevices = asyncHandler(
  * @method GET
  * @route /api/v1/devices/:deviceId/scheduled-notices
  */
-export const getScheduledNoticeInDevice = asyncHandler(
+const getScheduledNoticeInDevice = asyncHandler(
   async (req: Request, res: Response) => {
     const { deviceId } = req.params;
 
     const scheduledNotices =
-      await getScheduledNoticesForDeviceService(deviceId);
+      await clockService.getScheduledNoticesForDevice(deviceId);
     successResponse(res, {
       message: `Scheduled notices for device ${deviceId} fetched successfully`,
       payload: {
@@ -321,10 +302,10 @@ export const getScheduledNoticeInDevice = asyncHandler(
  * @method DELETE
  * @route /api/v1/devices/:deviceId/scheduled-notices/:id
  */
-export const cancelScheduledNoticeForDevice = asyncHandler(
+const cancelScheduledNoticeForDevice = asyncHandler(
   async (req: Request, res: Response) => {
     const { deviceId, scheduledId } = req.params;
-    await cancelScheduledNoticeService(deviceId, scheduledId);
+    await clockService.cancelScheduledNotice(deviceId, scheduledId);
     successResponse(res, {
       message: `Scheduled notice with ID ${scheduledId} for device ${deviceId} cancelled successfully`,
       statusCode: 200,
@@ -338,12 +319,16 @@ export const cancelScheduledNoticeForDevice = asyncHandler(
  * @route /api/v1/devices/:deviceId/change-font-time-format
  */
 
-export const changeFontAndTimeFormat = asyncHandler(
+const changeFontAndTimeFormat = asyncHandler(
   async (req: Request, res: Response) => {
     const { deviceId } = req.params;
     const { font, time_format } = req.body;
 
-    await changeDeviceFontAndTimeFormatService(deviceId, font, time_format);
+    await clockService.changeDeviceFontAndTimeFormat(
+      deviceId,
+      font,
+      time_format
+    );
 
     successResponse(res, {
       message: `Device ${deviceId} font and time format updated successfully`,
@@ -359,13 +344,13 @@ export const changeFontAndTimeFormat = asyncHandler(
  * @route /api/v1/devices/:deviceId/give-device-access
  */
 
-export const giveDeviceAccessToUsersInGroup = asyncHandler(
+const giveDeviceAccessToUsersInGroup = asyncHandler(
   async (req: IRequestWithUser, res: Response) => {
     const { deviceId } = req.params;
     const { userIds } = req.body;
 
     // Assuming a service to give device access to users exists
-    await giveDeviceAccessToUsersInGroupService(deviceId, userIds);
+    await clockService.giveDeviceAccessToUsersInGroup(deviceId, userIds);
 
     successResponse(res, {
       message: `Device access granted to users for device ${deviceId}`,
@@ -380,12 +365,12 @@ export const giveDeviceAccessToUsersInGroup = asyncHandler(
  * @method POST
  * @route /api/v1/devices/:deviceId/revoke-device-access/:userId
  */
-export const revokeDeviceAccessFromUser = asyncHandler(
+const revokeDeviceAccessFromUser = asyncHandler(
   async (req: IRequestWithUser, res: Response) => {
     const { deviceId, userId } = req.params;
 
     // Assuming a service to revoke device access from a user exists
-    await revokeDeviceAccessFromUserService(deviceId, userId);
+    await clockService.revokeDeviceAccessFromUser(deviceId, userId);
     successResponse(res, {
       message: `Device access revoked from user ${userId} for device ${deviceId}`,
       statusCode: 200,
@@ -399,7 +384,7 @@ export const revokeDeviceAccessFromUser = asyncHandler(
  * @route /api/v1/devices/:deviceId/fonts
  */
 
-export const getAvailableFontsInDevice = asyncHandler(
+const getAvailableFontsInDevice = asyncHandler(
   async (_req: Request, res: Response) => {
     // Assuming a service to get available fonts exists
     const fonts = ["Arial", "Times New Roman", "Courier New", "Verdana"];
@@ -413,3 +398,62 @@ export const getAvailableFontsInDevice = asyncHandler(
     });
   }
 );
+
+/**
+ * @description Add device to group controller
+ * @method POST
+ * @route /api/v1/groups/:groupId/add-device
+ * @access Private
+ * @param {string} groupId - The ID of the group to which the device will be added
+ * @body {string} deviceId - The ID of the device to be added
+ * @returns {IGroup} Updated group with new devices
+ */
+
+const addClockToGroup = asyncHandler(
+  async (req: IRequestWithUser, res: Response) => {
+    const { groupId } = req.params;
+    const { deviceId, name, location } = req.body;
+
+    if (!isValidMongoId(groupId)) {
+      throw createError(400, "Invalid group ID.");
+    }
+
+    const group = await clockService.addClockToGroup(
+      groupId,
+      deviceId,
+      name,
+      location
+    );
+
+    successResponse(res, {
+      message: "Device added to group successfully",
+      payload: {
+        data: group,
+      },
+    });
+  }
+);
+
+const clockController = {
+  addClockToGroup,
+  getAllDevices,
+  getDeviceById,
+  changeSingleDeviceMode,
+  changeAllDevicesMode,
+  sendNoticeInDevice,
+  sendNoticeToAllDevices,
+  scheduleNoticeForDevice,
+  scheduleNoticeForAllDevices,
+  getScheduledNoticesInDevices,
+  getScheduledNoticeInDevice,
+  cancelScheduledNoticeForDevice,
+  changeFontAndTimeFormat,
+  getAvailableFontsInDevice,
+  getAllowedUsersForDevice,
+  giveDeviceAccessToUsersInGroup,
+  revokeDeviceAccessFromUser,
+  updateDeviceFirmware,
+  restartDeviceById,
+};
+
+export default clockController;

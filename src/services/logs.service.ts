@@ -1,6 +1,6 @@
 import { Log } from "../models/logs.model";
 
-export const getAllLogService = async (query: {
+const getAllLog = async (query: {
   level?: string;
   search?: { $regex: string; $options: string };
   timestamp?: { $gte?: Date; $lte?: Date };
@@ -38,3 +38,9 @@ export const getAllLogService = async (query: {
 
   return { logs, pagination };
 };
+
+const logService = {
+  getAllLog,
+};
+
+export default logService;

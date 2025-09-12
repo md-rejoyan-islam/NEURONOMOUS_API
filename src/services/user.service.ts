@@ -2,20 +2,20 @@ import createError from "http-errors";
 import { Types } from "mongoose";
 import { IGroup, IUser } from "../app/types";
 import accountCreatedMail from "../mails/account-create-mail";
-import { ClockDeviceModel } from "../models/clock.model";
+import { ClockDeviceModel } from "../models/devices/clock.model";
 import { GroupModel } from "../models/group.model";
 import { UserModel } from "../models/user.model";
 import { logger } from "../utils/logger";
 
 // get all users service
-export const getAllUsersService = async (): Promise<IUser[]> => {
+const getAllUsers = async (): Promise<IUser[]> => {
   const users = await UserModel.find().select("-password -__v");
 
   return users;
 };
 
 // get user by ID service
-export const getUserByIdService = async (userId: string): Promise<IUser> => {
+const getUserById = async (userId: string): Promise<IUser> => {
   const user = await UserModel.findById(userId);
   if (!user) {
     throw createError(404, "User not found");
@@ -24,7 +24,7 @@ export const getUserByIdService = async (userId: string): Promise<IUser> => {
 };
 
 // change user password service
-export const changeUserPasswordService = async (
+const changeUserPassword = async (
   userId: string,
   role: string,
   newPassword: string
@@ -54,7 +54,7 @@ export const changeUserPasswordService = async (
 };
 
 // ban user by id service
-export const banUserByIdService = async (
+const banUserById = async (
   userId: string,
   role: "admin" | "superadmin" | "user",
   _id: Types.ObjectId
@@ -86,7 +86,7 @@ export const banUserByIdService = async (
 };
 
 // unban user by id service
-export const unbanUserByIdService = async (
+const unbanUserById = async (
   userId: string,
   role: "admin" | "superadmin" | "user",
   _id: Types.ObjectId
@@ -109,7 +109,7 @@ export const unbanUserByIdService = async (
 };
 
 // update user profile service
-export const updateUserProfileService = async (
+const updateUserProfile = async (
   userId: string,
   payload: Partial<IUser>
 ): Promise<IUser> => {
@@ -135,13 +135,15 @@ export const updateUserProfileService = async (
 };
 
 // give device access to user service in group
-export const giveDeviceAccessToUserInGroupService = async (
+const giveDeviceAccessToUserInGroup = async (
   userId: string,
   groupId: string,
   deviceIds: string[]
 ): Promise<IUser> => {
   // group check
-  const group = await GroupModel.findById(groupId).populate("devices").lean();
+  const group = await GroupModel.findById(groupId)
+    .populate("devices.deviceId")
+    .lean();
 
   if (!group) {
     throw createError(404, "Group not found");
@@ -150,7 +152,9 @@ export const giveDeviceAccessToUserInGroupService = async (
   // check devices existence in group
   const devicesNotInGroup = deviceIds.filter(
     (deviceId) =>
-      !group.devices.some((device) => device._id.toString() === deviceId)
+      !group.devices.some(
+        (device) => device.deviceId._id.toString() === deviceId
+      )
   );
 
   if (devicesNotInGroup.length > 0) {
@@ -175,13 +179,15 @@ export const giveDeviceAccessToUserInGroupService = async (
 };
 
 // revoke device access from user service in group
-export const revokeDeviceAccessToUserInGroupService = async (
+const revokeDeviceAccessToUserInGroup = async (
   userId: string,
   groupId: string,
   deviceIds: string[]
 ): Promise<IUser> => {
   // group check
-  const group = await GroupModel.findById(groupId).populate("devices").lean();
+  const group = await GroupModel.findById(groupId)
+    .populate("devices.deviceId")
+    .lean();
 
   if (!group) {
     throw createError(404, "Group not found.");
@@ -190,7 +196,9 @@ export const revokeDeviceAccessToUserInGroupService = async (
   // check devices existence in group
   const devicesNotInGroup = deviceIds.filter(
     (deviceId) =>
-      !group.devices.some((device) => device._id.toString() === deviceId)
+      !group.devices.some(
+        (device) => device.deviceId._id.toString() === deviceId
+      )
   );
 
   if (devicesNotInGroup.length > 0) {
@@ -217,7 +225,7 @@ export const revokeDeviceAccessToUserInGroupService = async (
 };
 
 // create a admin user + group service
-export const createAdminUserWithGroupService = async (payload: {
+const createAdminUserWithGroup = async (payload: {
   email: string;
   password: string;
   first_name: string;
@@ -288,7 +296,7 @@ export const createAdminUserWithGroupService = async (payload: {
 };
 
 // delete user by id service
-export const deleteUserByIdService = async (userId: string) => {
+const deleteUserById = async (userId: string) => {
   // Find user by ID and delete
   const user = await UserModel.findById(userId).select("role _id status");
   if (!user) {
@@ -313,3 +321,18 @@ export const deleteUserByIdService = async (userId: string) => {
     { $pull: { allowed_users: user._id } }
   );
 };
+
+const userService = {
+  getAllUsers,
+  getUserById,
+  changeUserPassword,
+  banUserById,
+  unbanUserById,
+  updateUserProfile,
+  giveDeviceAccessToUserInGroup,
+  revokeDeviceAccessToUserInGroup,
+  createAdminUserWithGroup,
+  deleteUserById,
+};
+
+export default userService;

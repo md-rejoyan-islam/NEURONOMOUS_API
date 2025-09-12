@@ -1,111 +1,96 @@
 import { Request, Response } from "express";
-import {
-  createFirmwareService,
-  deleteFirmwareByIdService,
-  downloadFirmwareFileByIdService,
-  getAllFirmwaresService,
-  getFirmwareByIdService,
-  updateFirmwareByIdService,
-  updateFirmwareStatusByIdService,
-} from "../services/firmware.service";
+
+import firmwareService from "../services/firmware.service";
 import { asyncHandler } from "../utils/async-handler";
 import { isValidMongoId } from "../utils/is-valid-mongo-id";
 import { successResponse } from "../utils/response-handler";
 
 // Get all firmware versions
-export const getAllFirmwares = asyncHandler(
-  async (req: Request, res: Response) => {
-    const {
-      page = 1,
-      limit = 10,
-      sortBy = "createdAt",
-      order = "desc",
-      device_type,
-      version,
-      status,
-    } = req.query;
+const getAllFirmwares = asyncHandler(async (req: Request, res: Response) => {
+  const {
+    page = 1,
+    limit = 10,
+    sortBy = "createdAt",
+    order = "desc",
+    device_type,
+    version,
+    status,
+  } = req.query;
 
-    const { pagination, firmwares } = await getAllFirmwaresService({
-      page: Number(page),
-      limit: Number(limit),
-      sortBy: String(sortBy),
-      order: String(order) === "asc" ? 1 : -1,
-      device_type: device_type ? String(device_type) : undefined,
-      version: version ? String(version) : undefined,
-      status: status ? String(status) : undefined,
-    });
+  const { pagination, firmwares } = await firmwareService.getAllFirmwares({
+    page: Number(page),
+    limit: Number(limit),
+    sortBy: String(sortBy),
+    order: String(order) === "asc" ? 1 : -1,
+    device_type: device_type ? String(device_type) : undefined,
+    version: version ? String(version) : undefined,
+    status: status ? String(status) : undefined,
+  });
 
-    successResponse(res, {
-      message: "Fetched all firmware versions",
-      statusCode: 200,
-      payload: {
-        pagination,
-        data: firmwares,
-      },
-    });
-  }
-);
+  successResponse(res, {
+    message: "Fetched all firmware versions",
+    statusCode: 200,
+    payload: {
+      pagination,
+      data: firmwares,
+    },
+  });
+});
 
 // Get firmware version by ID
-export const getFirmwareById = asyncHandler(
-  async (req: Request, res: Response) => {
-    const { id } = req.params;
+const getFirmwareById = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
 
-    const firmware = await getFirmwareByIdService(id);
+  const firmware = await firmwareService.getFirmwareById(id);
 
-    successResponse(res, {
-      message: `Fetched firmware version with ID ${id}`,
-      statusCode: 200,
-      payload: {
-        data: firmware,
-      },
-    });
-  }
-);
+  successResponse(res, {
+    message: `Fetched firmware version with ID ${id}`,
+    statusCode: 200,
+    payload: {
+      data: firmware,
+    },
+  });
+});
 
 // Create a new firmware version
-export const createFirmware = asyncHandler(
-  async (req: Request, res: Response) => {
-    const { version, description, device_type } = req.body;
+const createFirmware = asyncHandler(async (req: Request, res: Response) => {
+  const { version, description, device_type } = req.body;
 
-    if (!req.file || !("buffer" in req.file)) {
-      throw new Error("Firmware file is missing or invalid");
-    }
-
-    const firmware = await createFirmwareService({
-      version: version,
-      description,
-      device_type,
-      file: req.file.buffer as Buffer,
-    });
-
-    successResponse(res, {
-      message: "Firmware version created successfully",
-      statusCode: 201,
-      payload: {
-        data: firmware,
-      },
-    });
+  if (!req.file || !("buffer" in req.file)) {
+    throw new Error("Firmware file is missing or invalid");
   }
-);
+
+  const firmware = await firmwareService.createFirmware({
+    version: version,
+    description,
+    device_type,
+    file: req.file.buffer as Buffer,
+  });
+
+  successResponse(res, {
+    message: "Firmware version created successfully",
+    statusCode: 201,
+    payload: {
+      data: firmware,
+    },
+  });
+});
 
 // Delete a firmware version by ID
-export const deleteFirmwareById = asyncHandler(
-  async (req: Request, res: Response) => {
-    const { id } = req.params;
+const deleteFirmwareById = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
 
-    await deleteFirmwareByIdService(id);
+  await firmwareService.deleteFirmwareById(id);
 
-    successResponse(res, {
-      message: `Firmware version with ID ${id} deleted successfully`,
-      statusCode: 200,
-      payload: {},
-    });
-  }
-);
+  successResponse(res, {
+    message: `Firmware version with ID ${id} deleted successfully`,
+    statusCode: 200,
+    payload: {},
+  });
+});
 
 // Download firmware file
-export const downloadFirmwareFileById = asyncHandler(
+const downloadFirmwareFileById = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
 
@@ -113,7 +98,7 @@ export const downloadFirmwareFileById = asyncHandler(
       throw new Error("Invalid firmware ID");
     }
 
-    const firmware = await downloadFirmwareFileByIdService(id);
+    const firmware = await firmwareService.downloadFirmwareFileById(id);
 
     res.setHeader(
       "Content-Disposition",
@@ -125,30 +110,28 @@ export const downloadFirmwareFileById = asyncHandler(
 );
 
 // updateFirmwareById
-export const updateFirmwareById = asyncHandler(
-  async (req: Request, res: Response) => {
-    const { id } = req.params;
+const updateFirmwareById = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
 
-    const { version } = req.body;
+  const { version } = req.body;
 
-    await updateFirmwareByIdService(id, version);
+  await firmwareService.updateFirmwareById(id, version);
 
-    successResponse(res, {
-      message: `Firmware version with ID ${id} updated successfully`,
-      statusCode: 200,
-      payload: {},
-    });
-  }
-);
+  successResponse(res, {
+    message: `Firmware version with ID ${id} updated successfully`,
+    statusCode: 200,
+    payload: {},
+  });
+});
 
 // firmware status change
-export const updateFirmwareStatusById = asyncHandler(
+const updateFirmwareStatusById = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
 
     const { status } = req.body;
 
-    await updateFirmwareStatusByIdService(id, status);
+    await firmwareService.updateFirmwareStatusById(id, status);
 
     successResponse(res, {
       message: `Firmware status with ID ${id} updated successfully`,
@@ -157,3 +140,15 @@ export const updateFirmwareStatusById = asyncHandler(
     });
   }
 );
+
+const firmwareController = {
+  getAllFirmwares,
+  getFirmwareById,
+  createFirmware,
+  deleteFirmwareById,
+  downloadFirmwareFileById,
+  updateFirmwareById,
+  updateFirmwareStatusById,
+};
+
+export default firmwareController;

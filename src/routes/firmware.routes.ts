@@ -1,13 +1,5 @@
 import { Router } from "express";
-import {
-  createFirmware,
-  deleteFirmwareById,
-  downloadFirmwareFileById,
-  getAllFirmwares,
-  getFirmwareById,
-  updateFirmwareById,
-  updateFirmwareStatusById,
-} from "../controllers/firmware.controller";
+import firmwareController from "../controllers/firmware.controller";
 import { authorize } from "../middlewares/authorized";
 import validate from "../middlewares/validate";
 import { isLoggedIn } from "../middlewares/verify";
@@ -21,7 +13,12 @@ import {
 const firmwareRouter = Router();
 
 // Get all firmware versions
-firmwareRouter.get("/", isLoggedIn, authorize(["superadmin"]), getAllFirmwares);
+firmwareRouter.get(
+  "/",
+  isLoggedIn,
+  authorize(["superadmin"]),
+  firmwareController.getAllFirmwares
+);
 
 // Create a new firmware version
 firmwareRouter.post(
@@ -30,7 +27,7 @@ firmwareRouter.post(
   authorize(["superadmin"]),
   upload.single("file"),
   validate(createFirmwareSchema),
-  createFirmware
+  firmwareController.createFirmware
 );
 
 // Get firmware version by ID
@@ -38,7 +35,7 @@ firmwareRouter.get(
   "/:id",
   isLoggedIn,
   authorize(["superadmin"]),
-  getFirmwareById
+  firmwareController.getFirmwareById
 );
 
 // update firmware version by ID
@@ -46,7 +43,7 @@ firmwareRouter.patch(
   "/:id",
   authorize(["superadmin", "admin"]),
   validate(updateDeviceFirmwareSchema),
-  updateFirmwareById
+  firmwareController.updateFirmwareById
 );
 
 // Delete a firmware version by ID
@@ -54,14 +51,14 @@ firmwareRouter.delete(
   "/:id",
   isLoggedIn,
   authorize(["superadmin"]),
-  deleteFirmwareById
+  firmwareController.deleteFirmwareById
 );
 
 // Download firmware file by ID
 firmwareRouter.get(
   "/:id/download",
   // authorize(["superadmin"]),
-  downloadFirmwareFileById
+  firmwareController.downloadFirmwareFileById
 );
 
 // firmware status change route
@@ -70,7 +67,7 @@ firmwareRouter.patch(
   isLoggedIn,
   authorize(["superadmin"]),
   validate(updateFirmwareStatusSchema),
-  updateFirmwareStatusById
+  firmwareController.updateFirmwareStatusById
 );
 
 export default firmwareRouter;

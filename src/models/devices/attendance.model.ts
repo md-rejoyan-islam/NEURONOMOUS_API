@@ -1,5 +1,5 @@
 import mongoose, { Schema, Types } from "mongoose";
-import { IAttendanceDeviceSchema } from "../app/types";
+import { IAttendanceDeviceSchema } from "../../app/types";
 
 const AttendanceDeviceSchema: Schema<IAttendanceDeviceSchema> =
   new mongoose.Schema<IAttendanceDeviceSchema>(
@@ -28,17 +28,6 @@ const AttendanceDeviceSchema: Schema<IAttendanceDeviceSchema> =
         type: String,
         required: [true, "Firmware version is required"],
       },
-      // name: {
-      //   type: String,
-      //   minlength: [2, "Device name must be at least 2 characters long"],
-      //   maxlength: [100, "Device name must be at most 100 characters long"],
-      //   default: null,
-      // },
-      // location: {
-      //   type: String,
-      //   maxlength: [200, "Location must be at most 200 characters long"],
-      //   default: null,
-      // },
       group: {
         type: Types.ObjectId,
         ref: "Group",
@@ -63,6 +52,6 @@ const AttendanceDeviceSchema: Schema<IAttendanceDeviceSchema> =
   );
 
 export const AttendanceDeviceModel = mongoose.model<IAttendanceDeviceSchema>(
-  "AttendanceDevice",
+  "attendance",
   AttendanceDeviceSchema
 );

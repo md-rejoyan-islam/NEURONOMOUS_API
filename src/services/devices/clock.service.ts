@@ -1,19 +1,20 @@
 import createError from "http-errors";
 import mongoose, { Types } from "mongoose";
-import secret from "../app/secret";
-import { IDevice, IUser } from "../app/types";
-import { mqttClient } from "../config/mqtt";
+import secret from "../../app/secret";
+import { IDevice, IUser } from "../../app/types";
+import { mqttClient } from "../../config/mqtt";
 import {
   cancelScheduledNoticeJob,
   scheduleExpireJob,
   scheduleNoticeJob,
-} from "../cron/scheduler";
-import { ClockDeviceModel } from "../models/clock.model";
-import { FirmwareModel } from "../models/firmware.model";
-import { UserModel } from "../models/user.model";
-import { emitDeviceStatusUpdate } from "../socket";
-import { dateFormat, formatBytes, formatUptime } from "../utils/date-format";
-import { logger } from "../utils/logger";
+} from "../../cron/scheduler";
+import { ClockDeviceModel } from "../../models/devices/clock.model";
+import { FirmwareModel } from "../../models/firmware.model";
+import { GroupModel } from "../../models/group.model";
+import { UserModel } from "../../models/user.model";
+import { emitDeviceStatusUpdate } from "../../socket";
+import { dateFormat, formatBytes, formatUptime } from "../../utils/date-format";
+import { logger } from "../../utils/logger";
 
 // Utility to publish messages to a device
 const publishToDevice = async (
@@ -45,7 +46,7 @@ const publishToDevice = async (
 };
 
 // Update device status, handle pending notices
-export const updateDeviceStatusAndHandlePendingNotice = async (
+const updateDeviceStatusAndHandlePendingNotice = async (
   id: string,
   status: "online" | "offline",
   payload: {
@@ -94,19 +95,19 @@ export const updateDeviceStatusAndHandlePendingNotice = async (
     }
   } else {
     // If device doesn't exist, create it
-    await createOrUpdateDeviceService({ id, status, ...payload });
+    await createOrUpdateDevice({ id, status, ...payload });
   }
 };
 
 // restart a device by id service
-export const restartDeviceByIdService = async (id: string) => {
+const restartDeviceById = async (id: string) => {
   const device = await ClockDeviceModel.findById(id);
   if (!device) throw createError(404, `Device ${id} not found.`);
   await publishToDevice(device.mac_id, "mode", "5");
 };
 
 // Change a single device's mode
-export const changeDeviceModeService = async (
+const changeDeviceMode = async (
   id: string,
   // userId: Types.ObjectId,
   mode: "clock" | "notice"
@@ -129,7 +130,7 @@ export const changeDeviceModeService = async (
 };
 
 // Change mode for all devices
-export const changeAllDevicesModeService = async (
+const changeAllDevicesMode = async (
   mode: "clock" | "notice",
   deviceIds: string[]
 ) => {
@@ -149,7 +150,7 @@ export const changeAllDevicesModeService = async (
 
   for (const device of devices) {
     if (device.status === "online") {
-      changeDeviceModeService(device._id.toString(), mode);
+      changeDeviceMode(device._id.toString(), mode);
     }
   }
   // await ClockDeviceModel.updateMany(
@@ -162,7 +163,7 @@ export const changeAllDevicesModeService = async (
 };
 
 // Send a notice to a single device (with duration)
-export const sendNoticeToDeviceService = async (
+const sendNoticeToDevice = async (
   id: string,
   notice: string,
   duration: number | null
@@ -209,7 +210,7 @@ export const sendNoticeToDeviceService = async (
   return device;
 };
 // Show notice on all devices
-export const sendNoticeToAllDevicesService = async (
+const sendNoticeToAllDevices = async (
   notice: string,
   duration: number | null,
   deviceIds: string[]
@@ -221,17 +222,14 @@ export const sendNoticeToAllDevicesService = async (
     .lean();
   for (const device of devices) {
     // if (device.status === "online") {
-    sendNoticeToDeviceService(device._id.toString(), notice, duration);
+    sendNoticeToDevice(device._id.toString(), notice, duration);
     // }
   }
   return { message: `Notice sent to all online devices.` };
 };
 
 // update device firmware
-export const updateDeviceFirmwareService = async (
-  id: string,
-  firmwareId: string
-) => {
+const updateDeviceFirmware = async (id: string, firmwareId: string) => {
   const device = await ClockDeviceModel.findById(id).lean();
   if (!device) {
     throw createError(404, `Device with ID ${id} not found`);
@@ -276,7 +274,7 @@ export const updateDeviceFirmwareService = async (
 };
 
 // Send a scheduled notice to a single device
-export const scheduleNoticeService = async (
+const scheduleNotice = async (
   id: string,
   notice: string,
   startTime: number,
@@ -321,7 +319,7 @@ export const scheduleNoticeService = async (
 };
 
 // Send a scheduled notice to all devices
-export const scheduleNoticeToAllDevicesService = async (
+const scheduleNoticeToAllDevices = async (
   notice: string,
   startTime: number,
   endTime: number,
@@ -335,23 +333,18 @@ export const scheduleNoticeToAllDevicesService = async (
 
   for (const device of devices) {
     // Schedule the notice for each device
-    await scheduleNoticeService(
-      device._id.toString(),
-      notice,
-      startTime,
-      endTime
-    );
+    await scheduleNotice(device._id.toString(), notice, startTime, endTime);
   }
   return { message: `Scheduled notice sent to all devices.` };
 };
 
 // Get all scheduled notices
-export const getAllScheduledNoticesService = async () => {
+const getAllScheduledNotices = async () => {
   return ClockDeviceModel.find({}).select("id name scheduled_notices").lean();
 };
 
 // Get scheduled notices for a specific device
-export const getScheduledNoticesForDeviceService = async (id: string) => {
+const getScheduledNoticesForDevice = async (id: string) => {
   const device = await ClockDeviceModel.findById(id).lean();
   if (!device) throw createError(404, `Device ${id} not found.`);
   return device.scheduled_notices.map((notice) => ({
@@ -364,10 +357,7 @@ export const getScheduledNoticesForDeviceService = async (id: string) => {
 };
 
 // Cancel a scheduled notice for a single device with scheduled id
-export const cancelScheduledNoticeService = async (
-  id: string,
-  scheduledId: string
-) => {
+const cancelScheduledNotice = async (id: string, scheduledId: string) => {
   const device = await ClockDeviceModel.findById(id);
   if (!device) throw createError(404, `Device ${id} not found.`);
   // Find the scheduled notice by ID
@@ -389,9 +379,7 @@ export const cancelScheduledNoticeService = async (
 };
 
 // A helper function for the MQTT handler to create/update
-export const createOrUpdateDeviceService = async (
-  payload: Partial<IDevice>
-) => {
+const createOrUpdateDevice = async (payload: Partial<IDevice>) => {
   const { id, ...updateData } = payload;
 
   const device = await ClockDeviceModel.findOneAndUpdate(
@@ -411,7 +399,7 @@ export const createOrUpdateDeviceService = async (
 };
 
 // Function to be called by the cron job to expire a notice
-export const expireNoticeById = async (id: string) => {
+const expireNoticeById = async (id: string) => {
   try {
     const device = await ClockDeviceModel.findByIdAndUpdate(
       id,
@@ -439,7 +427,7 @@ export const expireNoticeById = async (id: string) => {
 };
 
 // Function to be called by the cron job to send a scheduled notice
-export const sendScheduledNotice = async (id: string, scheduleId: string) => {
+const sendScheduledNotice = async (id: string, scheduleId: string) => {
   try {
     const device = await ClockDeviceModel.findById(id).lean();
 
@@ -499,7 +487,7 @@ export const sendScheduledNotice = async (id: string, scheduleId: string) => {
 };
 
 // Get all devices from the database
-export const getAllDevicesService = async (
+const getAllDevices = async (
   _id: Types.ObjectId,
   role: string,
   query: { mode?: string; status?: string; search?: string; type?: string }
@@ -556,7 +544,7 @@ export const getAllDevicesService = async (
 };
 
 // Get a single device by ID
-export const getDeviceByIdService = async (id: string) => {
+const getDeviceById = async (id: string) => {
   const device = await ClockDeviceModel.findById(id).lean();
 
   if (!device) throw createError(404, `Device ${id} not found.`);
@@ -582,7 +570,7 @@ export const getDeviceByIdService = async (id: string) => {
 };
 
 // Get all allowed access usrs for a device
-export const getAllowedUsersForDeviceService = async (id: string) => {
+const getAllowedUsersForDevice = async (id: string) => {
   const device = await ClockDeviceModel.findById(id)
     .select("group")
     .populate<{ allowed_users: IUser[] }>({
@@ -622,7 +610,7 @@ export const getAllowedUsersForDeviceService = async (id: string) => {
 };
 
 // give device access to users in a group
-export const giveDeviceAccessToUsersInGroupService = async (
+const giveDeviceAccessToUsersInGroup = async (
   deviceId: string,
   userIds: string[]
 ) => {
@@ -659,10 +647,7 @@ export const giveDeviceAccessToUsersInGroupService = async (
 };
 
 // revokeDeviceAccessFromUser
-export const revokeDeviceAccessFromUserService = async (
-  deviceId: string,
-  userId: string
-) => {
+const revokeDeviceAccessFromUser = async (deviceId: string, userId: string) => {
   const user = await UserModel.exists({
     _id: new mongoose.Types.ObjectId(userId),
   });
@@ -707,7 +692,7 @@ export const revokeDeviceAccessFromUserService = async (
 };
 
 // Change font and time format for a device
-export const changeDeviceFontAndTimeFormatService = async (
+const changeDeviceFontAndTimeFormat = async (
   id: string,
   font?: string,
   timeFormat?: string
@@ -719,3 +704,92 @@ export const changeDeviceFontAndTimeFormatService = async (
 
   return device;
 };
+
+// add device to group service
+const addClockToGroup = async (
+  groupId: string,
+  deviceId: string,
+  name: string,
+  location: string
+) => {
+  // check device existence
+  const device = await ClockDeviceModel.findOne({ id: deviceId });
+
+  if (!device) {
+    throw createError(404, "Device not found");
+  }
+
+  // check device already in another group
+  const existingGroup = await GroupModel.exists({
+    devices: {
+      $in: [device._id],
+    },
+  });
+  if (existingGroup) {
+    throw createError(400, "Device already connected to group");
+  }
+
+  // Find the group and update its devices
+  const group = await GroupModel.findByIdAndUpdate(
+    groupId,
+    {
+      $addToSet: {
+        devices: {
+          deviceId: device._id,
+          deviceType: "clock",
+        },
+      },
+    },
+    {
+      new: true,
+      runValidators: true,
+    }
+  )
+    .populate<{ members: IUser[] }>("members", "role _id email")
+    .select("-__v -createdAt -updatedAt");
+  // .populate("members", "-password -__v");
+
+  if (!group) {
+    throw createError(404, "Group not found");
+  }
+
+  const adminId = group.members.find((member) => member.role === "admin")?._id;
+  // name and location update
+  device.name = name;
+  device.location = location;
+  device.last_seen = Date.now();
+  device.group = new Types.ObjectId(groupId);
+
+  device.allowed_users = adminId ? [adminId] : [];
+
+  await device.save();
+
+  return group;
+};
+
+const clockService = {
+  addClockToGroup,
+  updateDeviceStatusAndHandlePendingNotice,
+  restartDeviceById,
+  changeDeviceMode,
+  changeAllDevicesMode,
+  sendNoticeToDevice,
+  sendNoticeToAllDevices,
+  updateDeviceFirmware,
+  scheduleNotice,
+  scheduleNoticeToAllDevices,
+  getAllScheduledNotices,
+  getScheduledNoticesForDevice,
+  cancelScheduledNotice,
+  createOrUpdateDevice,
+  expireNoticeById,
+  sendScheduledNotice,
+  getAllDevices,
+  getDeviceById,
+  getAllowedUsersForDevice,
+  giveDeviceAccessToUsersInGroup,
+  revokeDeviceAccessFromUser,
+  changeDeviceFontAndTimeFormat,
+};
+
+export default clockService;

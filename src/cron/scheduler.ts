@@ -1,8 +1,5 @@
 import cron, { ScheduledTask } from "node-cron";
-import {
-  expireNoticeById,
-  sendScheduledNotice,
-} from "../services/clock.service";
+import clockService from "../services/devices/clock.service";
 
 // A map to store and manage cron jobs
 const scheduledJobs = new Map<string, ScheduledTask>();
@@ -18,7 +15,7 @@ export const scheduleExpireJob = (
     );
 
     const job = cron.schedule(`*/${durationInMinutes} * * * *`, () => {
-      expireNoticeById(deviceId);
+      clockService.expireNoticeById(deviceId);
       // Unschedule the job after it runs once
       job.destroy();
       scheduledJobs.delete(deviceId);
@@ -47,7 +44,7 @@ export const scheduleNoticeJob = (
   console.log("all jobs", scheduledJobs);
 
   const job = cron.schedule(cronExpr, () => {
-    sendScheduledNotice(deviceId, scheduleId);
+    clockService.sendScheduledNotice(deviceId, scheduleId);
     // Unschedule this job and schedule the expire job
     job.destroy();
     scheduledJobs.delete(deviceId);

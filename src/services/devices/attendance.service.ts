@@ -1,9 +1,11 @@
+import createError from "http-errors";
 import { Types } from "mongoose";
-import { IGroup } from "../app/types";
-import { AttendanceDeviceModel } from "../models/attendance-device.model";
-import { CourseModel } from "../models/course.model";
+import { IGroup, IUser } from "../../app/types";
+import { CourseModel } from "../../models/course.model";
+import { AttendanceDeviceModel } from "../../models/devices/attendance.model";
+import { GroupModel } from "../../models/group.model";
 
-export const getAllAttendanceDevicesService = async () => {
+const getAllAttendanceDevices = async () => {
   const devices = await AttendanceDeviceModel.find()
     .select("-__v -createdAt -updatedAt")
     .populate<{
@@ -53,7 +55,7 @@ export const getAllAttendanceDevicesService = async () => {
   }));
 };
 
-export const getAttendanceDeviceByIdService = async (deviceId: string) => {
+const getAttendanceDeviceById = async (deviceId: string) => {
   const device = await AttendanceDeviceModel.findById(deviceId)
     .select("-__v -createdAt -updatedAt")
     .populate<{
@@ -94,3 +96,72 @@ export const getAttendanceDeviceByIdService = async (deviceId: string) => {
     })),
   };
 };
+
+const addAttendanceDeviceToGroup = async (
+  groupId: string,
+  deviceId: string
+) => {
+  // check device existence
+  const device = await AttendanceDeviceModel.findOne({ id: deviceId });
+
+  if (!device) {
+    throw createError(404, "Device not found");
+  }
+
+  // check device already in another group
+  const existingGroup = await GroupModel.exists({
+    devices: {
+      $in: [device._id],
+    },
+  });
+  if (existingGroup) {
+    throw createError(400, "Device already connected to group");
+  }
+
+  // Find the group and update its devices
+  const group = await GroupModel.findByIdAndUpdate(
+    groupId,
+    {
+      $addToSet: {
+        devices: {
+          deviceId: device._id,
+          deviceType: "attendance",
+        },
+      },
+    },
+    {
+      new: true,
+      runValidators: true,
+    }
+  )
+    .populate<{ members: IUser[] }>("members", "role _id email")
+    .select("-__v -createdAt -updatedAt");
+  // .populate("members", "-password -__v");
+
+  if (!group) {
+    throw createError(404, "Group not found");
+  }
+  // console.log(group);
+
+  const adminId = group.members.find((member) => member.role === "admin")?._id;
+
+  // // name and location update
+  // device.name = name;
+  // device.location = location;
+  device.last_seen = Date.now();
+  device.group = new Types.ObjectId(groupId);
+
+  device.allowed_users = adminId ? [adminId] : [];
+
+  await device.save();
+
+  return group;
+};
+
+const attendanceDeviceService = {
+  getAllAttendanceDevices,
+  getAttendanceDeviceById,
+  addAttendanceDeviceToGroup,
+};
+
+export default attendanceDeviceService;

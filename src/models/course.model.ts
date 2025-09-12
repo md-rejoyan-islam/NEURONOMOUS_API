@@ -57,8 +57,12 @@ const CourseSchema: Schema<ICourseSchema> = new mongoose.Schema<ICourseSchema>(
       type: String,
       required: [true, "Enroll link is required"],
     },
-    enrolled_students: [{ type: Schema.Types.ObjectId, ref: "User" }],
+    enrolled_students: [{ type: Schema.Types.ObjectId, ref: "Student" }],
     records: [RecordSchema],
+    is_active: {
+      type: Boolean,
+      default: true,
+    },
   },
   {
     timestamps: true,

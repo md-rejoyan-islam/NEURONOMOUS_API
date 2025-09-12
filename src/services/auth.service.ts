@@ -5,7 +5,7 @@ import secret from "../app/secret";
 import { IJwtPayload, IUser } from "../app/types";
 import forgotPasswordMail from "../mails/forgot-password-mail";
 import resetPasswordMail from "../mails/reset-password-mail";
-import { ClockDeviceModel } from "../models/clock.model";
+import { ClockDeviceModel } from "../models/devices/clock.model";
 import { UserModel } from "../models/user.model";
 import { generateRandomPin } from "../utils/generate-random-pin";
 import generateToken, { verifyToken } from "../utils/generate-token";
@@ -13,7 +13,7 @@ import { logger } from "../utils/logger";
 import { comparePassword } from "../utils/password";
 
 // auth login service
-export const authLoginService = async (email: string, password: string) => {
+const authLogin = async (email: string, password: string) => {
   // Find user by email
   const user = await UserModel.findOne({
     email: email.toLowerCase(),
@@ -80,7 +80,7 @@ export const authLoginService = async (email: string, password: string) => {
 };
 
 // forgot password service
-export const forgotPasswordService = async (email: string) => {
+const forgotPassword = async (email: string) => {
   // Find user by email
   const user = await UserModel.findOne({ email: email.toLowerCase() });
   if (!user) throw createError(404, "User not found.");
@@ -123,7 +123,7 @@ export const forgotPasswordService = async (email: string) => {
 };
 
 // reset password service
-export const resetPasswordService = async (
+const resetPassword = async (
   email: string,
   resetCode: string,
   newPassword: string
@@ -174,7 +174,7 @@ export const resetPasswordService = async (
 };
 
 // change password service
-export const changePasswordService = async (
+const changePassword = async (
   userId: Types.ObjectId,
   currentPassword: string,
   newPassword: string
@@ -198,10 +198,7 @@ export const changePasswordService = async (
 };
 
 // auth profile service
-export const authProfileService = async (
-  userId: Types.ObjectId,
-  fields?: string
-) => {
+const authProfile = async (userId: Types.ObjectId, fields?: string) => {
   // Find user by ID
   const user = await UserModel.findById(userId)
     .select(fields ? fields.split(",").join(" ") : "-__v -updatedAt")
@@ -212,7 +209,7 @@ export const authProfileService = async (
 };
 
 // logout service
-export const authLogoutService = async (userId: Types.ObjectId) => {
+const authLogout = async (userId: Types.ObjectId) => {
   // Find user by ID
   UserModel.findByIdAndUpdate(
     userId,
@@ -229,7 +226,7 @@ export const authLogoutService = async (userId: Types.ObjectId) => {
 };
 
 // getUserPermissionDevicesService
-export const getUserPermissionDevicesService = async (
+const getUserPermissionDevices = async (
   userId: Types.ObjectId,
   role: "admin" | "superadmin" | "user"
 ) => {
@@ -252,10 +249,7 @@ export const getUserPermissionDevicesService = async (
 };
 
 // update auth profile service
-export const updateAuthProfileService = async (
-  userId: Types.ObjectId,
-  payload: IUser
-) => {
+const updateAuthProfile = async (userId: Types.ObjectId, payload: IUser) => {
   // Not allowed fields
   const notAllowedFields = [
     "role",
@@ -289,7 +283,7 @@ export const updateAuthProfileService = async (
 };
 
 // refresh token service
-export const refreshTokenService = async (refreshToken: string) => {
+const refreshToken = async (refreshToken: string) => {
   console.log(refreshToken);
 
   // Verify the refresh token
@@ -332,7 +326,7 @@ export const refreshTokenService = async (refreshToken: string) => {
 };
 
 // create a new user service
-export const createUserService = async (userData: IUser) => {
+const createUser = async (userData: IUser) => {
   // Check if user already exists
   const existingUser = await UserModel.findOne({
     email: userData.email.toLowerCase(),
@@ -352,3 +346,18 @@ export const createUserService = async (userData: IUser) => {
 
   return user;
 };
+
+const authService = {
+  authLogin,
+  forgotPassword,
+  resetPassword,
+  changePassword,
+  authProfile,
+  authLogout,
+  getUserPermissionDevices,
+  updateAuthProfile,
+  refreshToken,
+  createUser,
+};
+
+export default authService;

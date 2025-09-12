@@ -1,5 +1,5 @@
 import mongoose, { Schema, Types } from "mongoose";
-import { IClockDeviceSchema } from "../app/types";
+import { IClockDeviceSchema } from "../../app/types";
 
 const ClockDeviceSchema: Schema<IClockDeviceSchema> =
   new mongoose.Schema<IClockDeviceSchema>(
@@ -44,12 +44,6 @@ const ClockDeviceSchema: Schema<IClockDeviceSchema> =
       firmware_version: {
         type: String,
         required: [true, "Firmware version is required"],
-        // validate: {
-        //   // format ( e.g., "1.0.0" or "2.1.3")
-        //   validator: (v: string) => /^\d+\.\d+\.\d+$/.test(v),
-        //   message: (props: { value: string }) =>
-        //     `${props.value} is not a valid firmware version format. It should be in the format "x.y.z" where x, y, and z are integers.`,
-        // },
       },
       notice: { type: String, default: null },
       uptime: {
@@ -143,6 +137,6 @@ const ClockDeviceSchema: Schema<IClockDeviceSchema> =
   );
 
 export const ClockDeviceModel = mongoose.model<IClockDeviceSchema>(
-  "Clock",
+  "clock",
   ClockDeviceSchema
 );

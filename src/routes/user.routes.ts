@@ -1,16 +1,5 @@
 import { Router } from "express";
-import {
-  banUserById,
-  changeUserPassword,
-  createAdminUserWithGroup,
-  deleteUserById,
-  getAllUsers,
-  getUserById,
-  giveDevicesAccessToUserInGroup,
-  revokeDeviceAccessToUserInGroup,
-  unbanUserById,
-  updateUserProfile,
-} from "../controllers/user.controller";
+import userController from "../controllers/user.controller";
 import { authorize } from "../middlewares/authorized";
 import validate from "../middlewares/validate";
 import { isLoggedIn } from "../middlewares/verify";
@@ -26,24 +15,28 @@ const userRouter = Router();
 userRouter.use(isLoggedIn);
 
 // get all users for superadmin
-userRouter.get("/", authorize(["superadmin"]), getAllUsers); // COMPLETE
+userRouter.get("/", authorize(["superadmin"]), userController.getAllUsers); // COMPLETE
 
 // create admin user with group by superadmin
 userRouter.post(
   "/create-admin",
   authorize(["superadmin"]),
   validate(createAdminUserWithGroupSchema),
-  createAdminUserWithGroup
+  userController.createAdminUserWithGroup
 ); // COMPLETE
 
 // get user by superadmin/admin
-userRouter.get("/:userId", authorize(["admin", "superadmin"]), getUserById); // COMPLETE
+userRouter.get(
+  "/:userId",
+  authorize(["admin", "superadmin"]),
+  userController.getUserById
+); // COMPLETE
 
 // delete user by superadmin/admin
 userRouter.delete(
   "/:userId",
   authorize(["admin", "superadmin"]),
-  deleteUserById
+  userController.deleteUserById
 ); // COMPLETE
 
 // update user profile by superadmin/admin
@@ -51,7 +44,7 @@ userRouter.patch(
   "/:userId",
   authorize(["admin", "superadmin"]),
   validate(updateUserProfileSchema),
-  updateUserProfile
+  userController.updateUserProfile
 );
 
 // change user password by superadmin/admin
@@ -59,33 +52,33 @@ userRouter.patch(
   "/:userId/change-password",
   authorize(["admin", "superadmin"]),
   validate(changeUserPasswordSchema),
-  changeUserPassword
+  userController.changeUserPassword
 ); // COMPLETE
 
 // ban a user by superadmin/admin
 userRouter.patch(
   "/:userId/ban",
   authorize(["admin", "superadmin"]),
-  banUserById
+  userController.banUserById
 ); // COMPLETE
 // unban a user by superadmin/admin
 userRouter.patch(
   "/:userId/unban",
   authorize(["admin", "superadmin"]),
-  unbanUserById
+  userController.unbanUserById
 ); // COMPLETE
 
 // give device access to user by superadmin/admin
 userRouter.patch(
   "/:userId/give-device-access",
   authorize(["admin", "superadmin"]),
-  giveDevicesAccessToUserInGroup
+  userController.giveDevicesAccessToUserInGroup
 );
 // remove device access from user by superadmin/admin
 userRouter.patch(
   "/:userId/revoke-device-access",
   authorize(["admin", "superadmin"]),
-  revokeDeviceAccessToUserInGroup
+  userController.revokeDeviceAccessToUserInGroup
 );
 
 // create user with devices acccess by superadmin/admin

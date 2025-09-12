@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { getAllLogService } from "../services/logs.service";
+import logService from "../services/logs.service";
 import { asyncHandler } from "../utils/async-handler";
 import { successResponse } from "../utils/response-handler";
 
@@ -53,7 +53,7 @@ export const getAllLogs = asyncHandler(async (req: Request, res: Response) => {
     query.limit = parseInt(limit as string, 10);
   }
 
-  const { logs, pagination } = await getAllLogService(query);
+  const { logs, pagination } = await logService.getAllLog(query);
 
   successResponse(res, {
     message: "Logs fetched successfully",

@@ -2,28 +2,11 @@ import { Response } from "express";
 import createError from "http-errors";
 import { Types } from "mongoose";
 import { IRequestWithUser } from "../app/types";
-import { ClockDeviceModel } from "../models/clock.model";
+import { ClockDeviceModel } from "../models/devices/clock.model";
 import { GroupModel } from "../models/group.model";
-import {
-  cancelScheduledNoticeService,
-  scheduleNoticeService,
-} from "../services/clock.service";
-import {
-  addAttendanceDeviceToGroupService,
-  addDeviceToGroupService,
-  addUserToGroupService,
-  bulkChangeGroupDevicesModeService,
-  bulkChangeGroupDevicesNoticeService,
-  deleteGroupByIdService,
-  getAllDevicesInGroupService,
-  getAllGroupsForCourseService,
-  getAllGroupsService,
-  getAllUsersInGroupService,
-  getGroupByIdService,
-  removeDeviceFromGroupService,
-  sendNoticeToAllDevicesServiceInGroup,
-  updateGroupByIdService,
-} from "../services/group.service";
+import clockService from "../services/devices/clock.service";
+
+import groupService from "../services/group.service";
 import { asyncHandler } from "../utils/async-handler";
 import { isValidMongoId } from "../utils/is-valid-mongo-id";
 import { successResponse } from "../utils/response-handler";
@@ -35,22 +18,41 @@ import { successResponse } from "../utils/response-handler";
  * @access Private
  * @returns {Array<IGroup>} List of groups
  */
-export const getAllGroups = asyncHandler(
+const getAllGroups = asyncHandler(
   async (req: IRequestWithUser, res: Response) => {
-    const groups = await getAllGroupsService();
+    const {
+      name,
+      eiin,
+      search = "",
+      limit = 10,
+      page = 1,
+      sortBy = "createdAt",
+      order = "desc",
+    } = req.query;
+
+    const { pagination, groups } = await groupService.getAllGroups({
+      name: name as string,
+      eiin: eiin as string,
+      page: Number(page),
+      limit: Number(limit),
+      sortBy: String(sortBy),
+      search: String(search),
+      order: String(order) === "asc" ? 1 : -1,
+    });
 
     successResponse(res, {
       message: "Groups retrieved successfully",
       payload: {
+        pagination,
         data: groups,
       },
     });
   }
 );
 
-export const getAllGroupsForCourse = asyncHandler(
+const getAllGroupsForCourse = asyncHandler(
   async (req: IRequestWithUser, res: Response) => {
-    const groups = await getAllGroupsForCourseService();
+    const groups = await groupService.getAllGroupsForCourse();
     console.log(groups);
 
     successResponse(res, {
@@ -72,7 +74,7 @@ export const getAllGroupsForCourse = asyncHandler(
  * @returns {IGroup} Updated group with new members
  */
 
-export const addUserToGroupWithDevicesPermission = asyncHandler(
+const addUserToGroupWithDevicesPermission = asyncHandler(
   async (req: IRequestWithUser, res: Response) => {
     const { groupId } = req.params;
     const {
@@ -92,7 +94,7 @@ export const addUserToGroupWithDevicesPermission = asyncHandler(
 
     const { _id: userId, role } = req.user!;
 
-    const group = await addUserToGroupService(groupId, userId, role, {
+    const group = await groupService.addUserToGroup(groupId, userId, role, {
       email,
       password,
       first_name,
@@ -118,7 +120,7 @@ export const addUserToGroupWithDevicesPermission = asyncHandler(
  * @route /api/v1/groups/:groupId
  * @access Private
  */
-export const updateGroupById = asyncHandler(
+const updateGroupById = asyncHandler(
   async (req: IRequestWithUser, res: Response) => {
     const { groupId } = req.params;
     const { name, description, eiin } = req.body;
@@ -126,7 +128,7 @@ export const updateGroupById = asyncHandler(
     if (!isValidMongoId(groupId)) {
       throw createError(400, "Invalid group ID.");
     }
-    const group = await updateGroupByIdService(groupId, {
+    const group = await groupService.updateGroupById(groupId, {
       name,
       description,
       eiin,
@@ -140,14 +142,14 @@ export const updateGroupById = asyncHandler(
   }
 );
 
-export const deleteGroupById = asyncHandler(
+const deleteGroupById = asyncHandler(
   async (req: IRequestWithUser, res: Response) => {
     const { groupId } = req.params;
 
     if (!isValidMongoId(groupId)) {
       throw createError(400, "Invalid group ID.");
     }
-    await deleteGroupByIdService(groupId);
+    await groupService.deleteGroupById(groupId);
     successResponse(res, {
       message: "Group updated successfully",
       payload: {},
@@ -161,7 +163,7 @@ export const deleteGroupById = asyncHandler(
  * @route /api/v1/groups/:groupId
  * @access Private
  */
-export const getGroupById = asyncHandler(
+const getGroupById = asyncHandler(
   async (req: IRequestWithUser, res: Response) => {
     const { groupId } = req.params;
 
@@ -169,7 +171,7 @@ export const getGroupById = asyncHandler(
       throw createError(400, "Invalid group ID.");
     }
 
-    const group = await getGroupByIdService(groupId);
+    const group = await groupService.getGroupById(groupId);
 
     successResponse(res, {
       message: "Group retrieved successfully",
@@ -190,7 +192,7 @@ export const getGroupById = asyncHandler(
  * @returns {IGroup} Updated group with new devices
  */
 
-export const addDeviceToGroup = asyncHandler(
+const addDeviceToGroup = asyncHandler(
   async (req: IRequestWithUser, res: Response) => {
     const { groupId } = req.params;
     const { deviceId, name, location } = req.body;
@@ -199,7 +201,7 @@ export const addDeviceToGroup = asyncHandler(
       throw createError(400, "Invalid group ID.");
     }
 
-    const group = await addDeviceToGroupService(
+    const group = await groupService.addDeviceToGroup(
       groupId,
       deviceId,
       name,
@@ -215,7 +217,7 @@ export const addDeviceToGroup = asyncHandler(
   }
 );
 
-export const addAttendanceDeviceToGroup = asyncHandler(
+const addAttendanceDeviceToGroup = asyncHandler(
   async (req: IRequestWithUser, res: Response) => {
     const { groupId } = req.params;
     const { deviceId } = req.body;
@@ -224,7 +226,10 @@ export const addAttendanceDeviceToGroup = asyncHandler(
       throw createError(400, "Invalid group ID.");
     }
 
-    const group = await addAttendanceDeviceToGroupService(groupId, deviceId);
+    const group = await groupService.addAttendanceDeviceToGroup(
+      groupId,
+      deviceId
+    );
 
     successResponse(res, {
       message: "Device added to group successfully",
@@ -242,14 +247,14 @@ export const addAttendanceDeviceToGroup = asyncHandler(
  * @access Private
  */
 
-export const removeDeviceFromGroup = asyncHandler(
+const removeDeviceFromGroup = asyncHandler(
   async (req: IRequestWithUser, res: Response) => {
     const { groupId, deviceId } = req.params;
 
     if (!isValidMongoId(groupId)) {
       throw createError(400, "Invalid group ID.");
     }
-    const group = await removeDeviceFromGroupService(groupId, deviceId);
+    const group = await groupService.removeDeviceFromGroup(groupId, deviceId);
 
     successResponse(res, {
       message: "Device removed from group successfully",
@@ -270,12 +275,12 @@ export const removeDeviceFromGroup = asyncHandler(
  * @returns {IGroup} Updated group with devices in the new mode
  */
 
-export const bulkChangeGroupDevicesMode = asyncHandler(
+const bulkChangeGroupDevicesMode = asyncHandler(
   async (req: IRequestWithUser, res: Response) => {
     const { groupId } = req.params;
     const { mode, deviceIds = [] } = req.body;
 
-    const group = await bulkChangeGroupDevicesModeService(groupId, {
+    const group = await groupService.bulkChangeGroupDevicesMode(groupId, {
       mode,
       deviceIds,
     });
@@ -299,12 +304,12 @@ export const bulkChangeGroupDevicesMode = asyncHandler(
  * @returns {IGroup} Updated group with devices in the new notice
  */
 
-export const bulkChangeGroupDevicesNotice = asyncHandler(
+const bulkChangeGroupDevicesNotice = asyncHandler(
   async (req: IRequestWithUser, res: Response) => {
     const { groupId } = req.params;
     const { notice, deviceIds = [] } = req.body;
 
-    const group = await bulkChangeGroupDevicesNoticeService(groupId, {
+    const group = await groupService.bulkChangeGroupDevicesNotice(groupId, {
       notice,
       deviceIds,
     });
@@ -327,7 +332,7 @@ export const bulkChangeGroupDevicesNotice = asyncHandler(
  * @returns {Array<IUser>} List of users in the group
  */
 
-export const getAllUsersInGroup = asyncHandler(
+const getAllUsersInGroup = asyncHandler(
   async (req: IRequestWithUser, res: Response) => {
     const { groupId } = req.params;
 
@@ -336,7 +341,7 @@ export const getAllUsersInGroup = asyncHandler(
     }
 
     // Find the group and populate its members
-    const group = await getAllUsersInGroupService(groupId);
+    const group = await groupService.getAllUsersInGroup(groupId);
 
     successResponse(res, {
       message: "Users in group retrieved successfully",
@@ -348,14 +353,14 @@ export const getAllUsersInGroup = asyncHandler(
 );
 
 // Get all groups devices
-export const getGroupDevices = asyncHandler(
+const getGroupDevices = asyncHandler(
   async (req: IRequestWithUser, res: Response) => {
     const { groupId } = req.params;
     if (!isValidMongoId(groupId)) {
       throw createError(400, "Invalid group ID.");
     }
 
-    const devices = await getAllDevicesInGroupService(groupId);
+    const devices = await groupService.getAllDevicesInGroup(groupId);
 
     successResponse(res, {
       message: "Devices in group retrieved successfully",
@@ -371,7 +376,7 @@ export const getGroupDevices = asyncHandler(
  * @method POST
  * @route /api/v1/groups/:groupId/send-notice
  */
-export const sendNoticeToAllDevicesInGroup = async (
+const sendNoticeToAllDevicesInGroup = async (
   req: IRequestWithUser,
   res: Response
 ) => {
@@ -379,7 +384,11 @@ export const sendNoticeToAllDevicesInGroup = async (
   const { notice, duration } = req.body;
 
   // Assuming a service to send notice to all devices exists
-  await sendNoticeToAllDevicesServiceInGroup(groupId, notice, duration);
+  await groupService.sendNoticeToAllDevicesServiceInGroup(
+    groupId,
+    notice,
+    duration
+  );
 
   successResponse(res, {
     message: "Notice sent to all devices successfully",
@@ -393,7 +402,7 @@ export const sendNoticeToAllDevicesInGroup = async (
  * @route /api/v1/groups/:groupId/schedule-notices/:deviceId
  */
 
-export const scheduleNoticeForDeviceInGroup = async (
+const scheduleNoticeForDeviceInGroup = async (
   req: IRequestWithUser,
   res: Response
 ) => {
@@ -407,11 +416,22 @@ export const scheduleNoticeForDeviceInGroup = async (
     throw createError(404, "Group not found.");
   }
 
-  if (!group.devices.includes(new Types.ObjectId(deviceId))) {
+  if (
+    !group.devices.some(
+      () => ({
+        deviceId: new Types.ObjectId(deviceId),
+        deviceType: "clock",
+      })
+      // !group.devices.includes({
+      //   deviceId: new Types.ObjectId(deviceId),
+      //   deviceType: "clock",
+      // })
+    )
+  ) {
     throw createError(404, "Device not found in this group.");
   }
 
-  await scheduleNoticeService(deviceId, notice, startTime, endTime);
+  await clockService.scheduleNotice(deviceId, notice, startTime, endTime);
 
   successResponse(res, {
     message: `Notice scheduled for device ${deviceId}`,
@@ -424,7 +444,7 @@ export const scheduleNoticeForDeviceInGroup = async (
  * @method POST
  * @route /api/v1/groups/:groupId/schedule-notices
  */
-export const scheduleNoticeForAllDevicesInGroup = async (
+const scheduleNoticeForAllDevicesInGroup = async (
   req: IRequestWithUser,
   res: Response
 ) => {
@@ -447,7 +467,7 @@ export const scheduleNoticeForAllDevicesInGroup = async (
     .lean();
 
   for (const device of devices) {
-    await scheduleNoticeService(device.id, notice, startTime, endTime);
+    await clockService.scheduleNotice(device.id, notice, startTime, endTime);
   }
 
   successResponse(res, {
@@ -461,7 +481,7 @@ export const scheduleNoticeForAllDevicesInGroup = async (
  * @method DELETE
  * @route /api/v1/groups/:groupId/scheduled-notices/:deviceId
  */
-export const cancelScheduledNoticeForDeviceInGroup = async (
+const cancelScheduledNoticeForDeviceInGroup = async (
   req: IRequestWithUser,
   res: Response
 ) => {
@@ -475,13 +495,95 @@ export const cancelScheduledNoticeForDeviceInGroup = async (
     throw createError(404, "Group not found.");
   }
 
-  if (!group.devices.includes(new Types.ObjectId(deviceId))) {
+  if (
+    !group.devices.some(() => ({
+      deviceId: new Types.ObjectId(deviceId),
+      deviceType: "clock",
+    }))
+    // !group.devices.includes({
+    //   deviceId: new Types.ObjectId(deviceId),
+    //   deviceType: "clock",
+    // })
+  ) {
     throw createError(404, "Device not found in this group.");
   }
 
-  await cancelScheduledNoticeService(deviceId, scheduledId);
+  await clockService.cancelScheduledNotice(deviceId, scheduledId);
   successResponse(res, {
     message: `Scheduled notice with ID ${scheduledId} for device ${deviceId} cancelled successfully`,
     statusCode: 200,
   });
 };
+
+const getGroupByIdWithClocks = asyncHandler(
+  async (req: IRequestWithUser, res: Response) => {
+    const { groupId } = req.params;
+
+    if (!isValidMongoId(groupId)) {
+      throw createError(400, "Invalid group ID.");
+    }
+
+    const { search = "" } = req.query;
+
+    const group = await groupService.getGroupByIdWithClocks(groupId, {
+      search: String(search),
+    });
+
+    successResponse(res, {
+      message: "Group retrieved successfully",
+      payload: {
+        data: group,
+      },
+    });
+  }
+);
+
+const getGroupByIdWithAttendanceDevices = asyncHandler(
+  async (req: IRequestWithUser, res: Response) => {
+    const { groupId } = req.params;
+
+    if (!isValidMongoId(groupId)) {
+      throw createError(400, "Invalid group ID.");
+    }
+
+    const { search = "" } = req.query;
+
+    const group = await groupService.getGroupByIdWithAttendanceDevices(
+      groupId,
+      {
+        search: String(search),
+      }
+    );
+
+    successResponse(res, {
+      message: "Group retrieved successfully",
+      payload: {
+        data: group,
+      },
+    });
+  }
+);
+
+const groupController = {
+  getGroupByIdWithAttendanceDevices,
+  getGroupByIdWithClocks,
+  getAllGroups,
+  getAllGroupsForCourse,
+  addUserToGroupWithDevicesPermission,
+  updateGroupById,
+  deleteGroupById,
+  getGroupById,
+  addDeviceToGroup,
+  addAttendanceDeviceToGroup,
+  removeDeviceFromGroup,
+  bulkChangeGroupDevicesMode,
+  bulkChangeGroupDevicesNotice,
+  getAllUsersInGroup,
+  getGroupDevices,
+  sendNoticeToAllDevicesInGroup,
+  scheduleNoticeForDeviceInGroup,
+  scheduleNoticeForAllDevicesInGroup,
+  cancelScheduledNoticeForDeviceInGroup,
+};
+
+export default groupController;

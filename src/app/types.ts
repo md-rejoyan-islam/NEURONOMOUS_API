@@ -55,15 +55,18 @@ export interface ICourseSchema {
   code: string;
   name: string;
   session: string;
-  instructor: Types.ObjectId;
   department: Types.ObjectId;
+  instructor: Types.ObjectId;
   enroll_link: string;
   enrolled_students: Types.ObjectId[];
   createdAt: Date;
   updatedAt: Date;
+  is_active: boolean;
   records: {
+    recordId: Types.ObjectId;
     date: string;
     present_students: {
+      presentId: Types.ObjectId;
       student: Types.ObjectId;
       createdAt: Date;
       updatedAt: Date;
@@ -77,6 +80,7 @@ export interface IStudentSchema {
   name: string;
   email: string;
   session: string;
+  registration_number: string;
   rfid: string;
   createdAt: Date;
   updatedAt: Date;
@@ -134,14 +138,33 @@ export interface IGroupSchema {
   name: string;
   description: string;
   eiin: string;
-  devices: Types.ObjectId[];
+  devices: {
+    deviceType: "attendance" | "clock";
+    deviceId: Types.ObjectId;
+  }[];
   members: Types.ObjectId[];
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface IGroup extends Pick<IGroupSchema, "name" | "description"> {
   _id: Types.ObjectId;
-  devices: Types.ObjectId[] | IDevice[];
-  members: Types.ObjectId[] | IUser[];
+  // devices: Types.ObjectId[] | IDevice[];
+  members: (Types.ObjectId | IUser)[];
+  devices: (
+    | {
+        deviceType: "attendance" | "clock";
+        deviceId: Types.ObjectId;
+      }
+    | {
+        deviceType: "attendance";
+        deviceId: IAttendanceDevice;
+      }
+    | {
+        deviceType: "clock";
+        deviceId: IDevice;
+      }
+  )[];
 }
 
 export interface IRequestWithUser extends Request {

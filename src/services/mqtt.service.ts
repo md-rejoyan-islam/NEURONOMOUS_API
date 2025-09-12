@@ -1,10 +1,7 @@
-import { ClockDeviceModel } from "../models/clock.model";
+import { ClockDeviceModel } from "../models/devices/clock.model";
 import { emitDeviceFirmwareUpdate } from "../socket";
 import { logger } from "../utils/logger";
-import {
-  createOrUpdateDeviceService,
-  updateDeviceStatusAndHandlePendingNotice,
-} from "./clock.service";
+import clockService from "./devices/clock.service";
 
 const STATUS_TOPIC = "esp32/status";
 const DATA_TOPIC_PREFIX = "esp32/data/ntp/";
@@ -34,17 +31,21 @@ export const handleMqttMessage = async (topic: string, message: Buffer) => {
       } = payload;
 
       if ((macIds.has(macId) && status === "online") || status === "offline") {
-        await updateDeviceStatusAndHandlePendingNotice(id, status, {
-          uptime,
-          mode,
-          free_heap,
-          notice,
-          timestamp,
-          firmware_version: firmware,
-        });
+        await clockService.updateDeviceStatusAndHandlePendingNotice(
+          id,
+          status,
+          {
+            uptime,
+            mode,
+            free_heap,
+            notice,
+            timestamp,
+            firmware_version: firmware,
+          }
+        );
       } else {
         // Create or update device with the new status
-        await createOrUpdateDeviceService({
+        await clockService.createOrUpdateDevice({
           id,
           mac_id: macId,
           status,

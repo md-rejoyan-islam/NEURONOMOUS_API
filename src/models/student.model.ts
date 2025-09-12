@@ -20,6 +20,12 @@ const StudentSchema = new Schema<IStudentSchema>(
         message: `{VALUE} is not a valid email address!`,
       },
     },
+    registration_number: {
+      type: String,
+      required: [true, "Registration number is required"],
+      unique: [true, "Registration number must be unique"],
+      trim: true,
+    },
     session: {
       type: String,
       required: [true, "Session is required"],

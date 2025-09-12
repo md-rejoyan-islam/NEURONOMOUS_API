@@ -1,34 +1,101 @@
 import createError from "http-errors";
 import { Types } from "mongoose";
-import { IDevice, IGroup, IUser } from "../app/types";
-import { AttendanceDeviceModel } from "../models/attendance-device.model";
-import { ClockDeviceModel } from "../models/clock.model";
+import { IAttendanceDevice, IDevice, IGroup, IUser } from "../app/types";
+import { AttendanceDeviceModel } from "../models/devices/attendance.model";
+import { ClockDeviceModel } from "../models/devices/clock.model";
 import { GroupModel } from "../models/group.model";
 import { UserModel } from "../models/user.model";
 import { dateFormat, formatBytes, formatUptime } from "../utils/date-format";
-import {
-  changeDeviceModeService,
-  sendNoticeToDeviceService,
-} from "./clock.service";
+import clockService from "./devices/clock.service";
 
 // get all groups service
-export const getAllGroupsService = async () => {
-  const groups = await GroupModel.find()
-    .populate<{ devices: IDevice[] }>("devices", "-__v")
+const getAllGroups = async ({
+  name,
+  eiin,
+  page,
+  limit,
+  sortBy,
+  search,
+  order,
+}: {
+  name?: string;
+  eiin?: string;
+  search?: string;
+  page: number;
+  limit: number;
+  sortBy: string;
+  order: 1 | -1;
+}) => {
+  const query: {
+    name?: { $regex: string; $options: string };
+    eiin?: string;
+    $or?: (
+      | { name: { $regex: string; $options: string } }
+      | { eiin: { $regex: string; $options: string } }
+    )[];
+  } = {};
+
+  if (name) {
+    query.name = { $regex: name, $options: "i" };
+  }
+  if (eiin) {
+    query.eiin = eiin;
+  }
+  if (search) {
+    query.$or = [
+      { name: { $regex: search, $options: "i" } },
+      { eiin: { $regex: search, $options: "i" } },
+    ];
+  }
+
+  const groups = await GroupModel.find(query)
+    .sort({ [sortBy]: order })
+    .skip((page - 1) * limit)
+    .limit(limit)
+    .populate<{
+      devices: {
+        deviceId: IDevice | IAttendanceDevice;
+        deviceType: "clock" | "attendance";
+      }[];
+    }>("devices.deviceId", "-__v")
     .populate("members", "-password -__v")
     .lean();
 
-  return groups;
+  const total = await GroupModel.countDocuments(query);
+
+  const pagination = {
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+  };
+
+  return {
+    groups: groups.map((group) => ({
+      name: group.name,
+      _id: group._id,
+      eiin: group.eiin,
+      description: group.description,
+      createdAt: group.createdAt,
+      clock: group?.devices?.filter((device) => device.deviceType === "clock")
+        .length,
+      attendance: group?.devices?.filter(
+        (device) => device.deviceType === "attendance"
+      ).length,
+      users: group?.members.length,
+    })),
+    pagination,
+  };
 };
 // get all groups service for courser
-export const getAllGroupsForCourseService = async () => {
+const getAllGroupsForCourse = async () => {
   const groups = await GroupModel.find().select("name eiin").lean();
 
   return groups;
 };
 
 // add user to group service
-export const addUserToGroupService = async (
+const addUserToGroup = async (
   groupId: string,
   userId: Types.ObjectId,
   role: "admin" | "superadmin" | "user",
@@ -70,7 +137,16 @@ export const addUserToGroupService = async (
 
   // device ids check
   payload.deviceIds.forEach((deviceId) => {
-    if (!group.devices.includes(deviceId)) {
+    if (
+      !group.devices.some((device) => ({
+        deviceId: device.deviceId,
+        deviceType: payload.deviceType === "clock" ? "clock" : "attendance",
+      }))
+      // !group.devices.includes({
+      //   deviceId,
+      //   deviceType: payload.deviceType === "clock" ? "clock" : "attendance",
+      // })
+    ) {
       throw createError(404, `Device with ID ${deviceId} not found in group`);
     }
   });
@@ -125,27 +201,55 @@ export const addUserToGroupService = async (
 };
 
 // get group by id service
-export const getGroupByIdService = async (groupId: string) => {
+const getGroupById = async (groupId: string) => {
   const group = await GroupModel.findById(groupId)
-    .populate<{ devices: IDevice[] }>("devices", "-__v")
+    .populate<{
+      devices: {
+        deviceId: IDevice;
+        deviceType: "clock" | "attendance";
+      }[];
+    }>("devices.deviceId", "-__v")
     .populate("members", "-password -__v")
     .lean();
   if (!group) {
     throw createError(404, "Group not found.");
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const clocks = group.devices.reduce<any[]>(
+    (acc, { deviceType, deviceId }) => {
+      if (deviceType === "clock") {
+        acc.push({
+          ...deviceId,
+          last_seen: dateFormat(deviceId.last_seen),
+          uptime: formatUptime(deviceId.uptime),
+          free_heap: formatBytes(deviceId.free_heap),
+        });
+      }
+      return acc;
+    },
+    []
+  );
+
+  const attendance = group.devices.filter(
+    (device) => device.deviceType === "attendance"
+  );
+
+  // delete devices
+
   return {
-    ...group,
-    devices: group?.devices?.map((device) => ({
-      ...device,
-      last_seen: dateFormat(device.last_seen),
-      uptime: formatUptime(device.uptime),
-      free_heap: formatBytes(device.free_heap),
-    })),
+    name: group.name,
+    _id: group._id,
+    eiin: group.eiin,
+    description: group.description,
+    createdAt: dateFormat(group.createdAt),
+    members: group.members,
+    clock: clocks,
+    attendance,
   };
 };
 
-export const deleteGroupByIdService = async (groupId: string) => {
+const deleteGroupById = async (groupId: string) => {
   const group = await GroupModel.findByIdAndDelete(groupId).lean();
   if (!group) {
     throw createError(404, "Group not found.");
@@ -179,7 +283,7 @@ export const deleteGroupByIdService = async (groupId: string) => {
 };
 
 // update group by id service
-export const updateGroupByIdService = async (
+const updateGroupById = async (
   groupId: string,
   payload: { name: string; description: string; eiin: string }
 ) => {
@@ -203,7 +307,7 @@ export const updateGroupByIdService = async (
 };
 
 // add device to group service
-export const addDeviceToGroupService = async (
+const addDeviceToGroup = async (
   groupId: string,
   deviceId: string,
   name: string,
@@ -230,7 +334,12 @@ export const addDeviceToGroupService = async (
   const group = await GroupModel.findByIdAndUpdate(
     groupId,
     {
-      $addToSet: { devices: device._id },
+      $addToSet: {
+        devices: {
+          deviceId: device._id,
+          deviceType: "clock",
+        },
+      },
     },
     {
       new: true,
@@ -259,7 +368,7 @@ export const addDeviceToGroupService = async (
   return group;
 };
 // add attendance device to group service
-export const addAttendanceDeviceToGroupService = async (
+const addAttendanceDeviceToGroup = async (
   groupId: string,
   deviceId: string
 ) => {
@@ -316,14 +425,20 @@ export const addAttendanceDeviceToGroupService = async (
 };
 
 // remove device from group service
-export const removeDeviceFromGroupService = async (
+const removeDeviceFromGroup = async (
   groupId: string,
   deviceId: string
 ): Promise<IGroup> => {
   // remove from group
   const group = await GroupModel.findByIdAndUpdate(
     groupId,
-    { $pull: { devices: deviceId } },
+    {
+      $pull: {
+        devices: {
+          deviceId: new Types.ObjectId(deviceId),
+        },
+      },
+    },
     { new: true }
   ).lean();
 
@@ -344,7 +459,7 @@ export const removeDeviceFromGroupService = async (
 };
 
 // bulk change group devices mode service
-export const bulkChangeGroupDevicesModeService = async (
+const bulkChangeGroupDevicesMode = async (
   groupId: string,
   payload: {
     mode: "clock" | "notice";
@@ -352,7 +467,12 @@ export const bulkChangeGroupDevicesModeService = async (
   }
 ): Promise<IGroup> => {
   const group = await GroupModel.findById(groupId)
-    .populate<{ devices: IDevice[] }>("devices", "-__v")
+    .populate<{
+      devices: {
+        deviceId: IDevice;
+        deviceType: "clock";
+      }[];
+    }>("devices.deviceId", "-__v")
     .lean();
 
   if (!group) throw createError(404, "Group not found.");
@@ -361,7 +481,7 @@ export const bulkChangeGroupDevicesModeService = async (
   const devicesNotInGroup = payload.deviceIds.filter(
     (deviceId) =>
       !group.devices.some(
-        (device) => device._id.toString() === deviceId.toString()
+        (device) => device.deviceId._id.toString() === deviceId.toString()
       )
   );
   if (devicesNotInGroup.length > 0) {
@@ -376,8 +496,8 @@ export const bulkChangeGroupDevicesModeService = async (
   // }).lean();
 
   for (const device of group.devices) {
-    if (device.status === "online") {
-      changeDeviceModeService(device.id, payload.mode);
+    if (device.deviceId.status === "online") {
+      clockService.changeDeviceMode(device.deviceId.id, payload.mode);
     }
   }
   await ClockDeviceModel.updateMany(
@@ -391,7 +511,7 @@ export const bulkChangeGroupDevicesModeService = async (
 };
 
 // bulk change group devices notice service
-export const bulkChangeGroupDevicesNoticeService = async (
+const bulkChangeGroupDevicesNotice = async (
   groupId: string,
   payload: {
     notice: string;
@@ -413,9 +533,7 @@ export const bulkChangeGroupDevicesNoticeService = async (
 };
 
 // get all users in group service
-export const getAllUsersInGroupService = async (
-  groupId: string
-): Promise<IGroup> => {
+const getAllUsersInGroup = async (groupId: string): Promise<IGroup> => {
   // Find the group and populate its members
   const group = await GroupModel.findById(groupId)
     .populate("members", "-password -__v")
@@ -429,9 +547,7 @@ export const getAllUsersInGroupService = async (
 };
 
 // get all devices in group service
-export const getAllDevicesInGroupService = async (
-  groupId: string
-): Promise<IDevice[]> => {
+const getAllDevicesInGroup = async (groupId: string): Promise<IDevice[]> => {
   // Find the group and populate its devices
   const group = await GroupModel.findById(groupId)
     .populate<{ devices: IDevice[] }>("devices", "-__v")
@@ -443,7 +559,7 @@ export const getAllDevicesInGroupService = async (
 };
 
 // Show notice on all devices In a group
-export const sendNoticeToAllDevicesServiceInGroup = async (
+const sendNoticeToAllDevicesServiceInGroup = async (
   groupId: string,
   notice: string,
   duration: number | null
@@ -459,8 +575,129 @@ export const sendNoticeToAllDevicesServiceInGroup = async (
 
   for (const device of devices) {
     // if (device.status === "online") {
-    sendNoticeToDeviceService(device.id, notice, duration);
+    clockService.sendNoticeToDevice(device.id, notice, duration);
     // }
   }
   return { message: `Notice sent to all online devices.` };
 };
+
+const getGroupByIdWithClocks = async (
+  groupId: string,
+  {
+    search,
+  }: {
+    search?: string;
+  }
+) => {
+  const group = await ClockDeviceModel.find({
+    group: groupId,
+    ...(search
+      ? {
+          $or: [
+            { name: { $regex: search, $options: "i" } },
+            { location: { $regex: search, $options: "i" } },
+            { id: { $regex: search, $options: "i" } },
+          ],
+        }
+      : {}),
+  })
+    .select("-__v -createdAt -updatedAt")
+    .lean();
+
+  console.log("Clock Devices:", group);
+
+  if (!group) {
+    throw createError(404, "Group not found.");
+  }
+
+  return group;
+};
+
+const getGroupByIdWithAttendanceDevices = async (
+  groupId: string,
+  { search }: { search?: string }
+) => {
+  const devices = await AttendanceDeviceModel.find({
+    group: groupId,
+    ...(search
+      ? {
+          $or: [
+            // { name: { $regex: search, $options: "i" } },
+            // { location: { $regex: search, $options: "i" } },
+            { id: { $regex: search, $options: "i" } },
+          ],
+        }
+      : {}),
+  })
+    .populate<{
+      group: {
+        _id: Types.ObjectId;
+        name: string;
+        members: {
+          email: string;
+          role: string;
+          first_name: string;
+          last_name: string;
+        }[];
+      } | null;
+    }>({
+      path: "group",
+      select: "name location",
+      populate: {
+        path: "members",
+        select: "email role first_name last_name",
+      },
+    })
+    .populate<{
+      allowed_users: {
+        _id: Types.ObjectId;
+        first_name: string;
+        last_name: string;
+        email: string;
+        role: string;
+      }[];
+    }>("allowed_users", "first_name last_name email role")
+    .lean();
+
+  if (!devices.length) {
+    throw createError(404, "Group not found.");
+  }
+
+  return devices?.map((device) => ({
+    ...device,
+    allowed_users: device?.allowed_users?.filter(
+      (user) => user.role !== "admin"
+    ),
+    group: device.group
+      ? {
+          _id: device.group._id,
+          name: device.group.name,
+          admin: device.group.members.find((member) => member.role === "admin"),
+          members: device.group.members.filter(
+            (member) => member.role !== "admin"
+          ),
+        }
+      : null,
+  }));
+};
+
+const groupService = {
+  getGroupByIdWithAttendanceDevices,
+  getGroupByIdWithClocks,
+  getAllGroups,
+  addUserToGroup,
+  getGroupById,
+  deleteGroupById,
+  updateGroupById,
+  addDeviceToGroup,
+  removeDeviceFromGroup,
+  bulkChangeGroupDevicesMode,
+  bulkChangeGroupDevicesNotice,
+  getAllUsersInGroup,
+  getAllDevicesInGroup,
+  sendNoticeToAllDevicesServiceInGroup,
+  addAttendanceDeviceToGroup,
+  getAllGroupsForCourse,
+};
+
+export default groupService;

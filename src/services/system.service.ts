@@ -1,7 +1,7 @@
 import os from "os";
 import si from "systeminformation";
 
-export const getMemoryDetailsService = () => {
+const getMemoryDetails = () => {
   const total = os.totalmem();
   const free = os.freemem();
   const used = total - free;
@@ -15,7 +15,7 @@ export const getMemoryDetailsService = () => {
   };
 };
 
-export const getCpuDetailsService = async () => {
+const getCpuDetails = async () => {
   const cpu = await si.currentLoad(); // CPU load info
 
   const cores = os.cpus().length;
@@ -25,3 +25,10 @@ export const getCpuDetailsService = async () => {
     cpuUsagePercent: cpuUsagePercent.toFixed(2),
   };
 };
+
+const systemService = {
+  getMemoryDetails,
+  getCpuDetails,
+};
+
+export default systemService;

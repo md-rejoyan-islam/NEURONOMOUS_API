@@ -1,18 +1,8 @@
 import { Request, Response } from "express";
 import { Types } from "mongoose";
 import { IRequestWithUser } from "../app/types";
-import {
-  authLoginService,
-  authLogoutService,
-  authProfileService,
-  changePasswordService,
-  createUserService,
-  forgotPasswordService,
-  getUserPermissionDevicesService,
-  refreshTokenService,
-  resetPasswordService,
-  updateAuthProfileService,
-} from "../services/auth.service";
+
+import authService from "../services/auth.service";
 import { asyncHandler } from "../utils/async-handler";
 import { successResponse } from "../utils/response-handler";
 
@@ -23,10 +13,10 @@ import { successResponse } from "../utils/response-handler";
  * @access Public
  * @body {email: string, password: string}
  */
-export const authLogin = asyncHandler(async (req: Request, res: Response) => {
+const authLogin = asyncHandler(async (req: Request, res: Response) => {
   const { email, password } = req.body;
 
-  const { accessToken, refreshToken, user } = await authLoginService(
+  const { accessToken, refreshToken, user } = await authService.authLogin(
     email,
     password
   );
@@ -52,21 +42,19 @@ export const authLogin = asyncHandler(async (req: Request, res: Response) => {
  * @body {email: string}
  */
 
-export const forgotPassword = asyncHandler(
-  async (req: Request, res: Response) => {
-    const { email } = req.body;
+const forgotPassword = asyncHandler(async (req: Request, res: Response) => {
+  const { email } = req.body;
 
-    await forgotPasswordService(email);
+  await authService.forgotPassword(email);
 
-    successResponse(res, {
-      message: "Check your email for the reset code",
-      statusCode: 200,
-      payload: {
-        data: {},
-      },
-    });
-  }
-);
+  successResponse(res, {
+    message: "Check your email for the reset code",
+    statusCode: 200,
+    payload: {
+      data: {},
+    },
+  });
+});
 
 /**
  * @description Reset password controller
@@ -75,19 +63,17 @@ export const forgotPassword = asyncHandler(
  * @access Public
  * @body {email: string, resetCode: string, newPassword: string}
  */
-export const resetPassword = asyncHandler(
-  async (req: Request, res: Response) => {
-    const { email, resetCode, newPassword } = req.body;
+const resetPassword = asyncHandler(async (req: Request, res: Response) => {
+  const { email, resetCode, newPassword } = req.body;
 
-    await resetPasswordService(email, resetCode, newPassword);
+  await authService.resetPassword(email, resetCode, newPassword);
 
-    successResponse(res, {
-      message: "Password has been reset successfully.",
-      statusCode: 200,
-      payload: {},
-    });
-  }
-);
+  successResponse(res, {
+    message: "Password has been reset successfully.",
+    statusCode: 200,
+    payload: {},
+  });
+});
 
 /**
  * @description Get user profile controller
@@ -96,11 +82,11 @@ export const resetPassword = asyncHandler(
  * @access Private
  */
 
-export const authProfile = asyncHandler(
+const authProfile = asyncHandler(
   async (req: IRequestWithUser, res: Response) => {
     const { fields } = req.query as { fields?: string };
 
-    const user = await authProfileService(
+    const user = await authService.authProfile(
       req.user?._id as Types.ObjectId,
       fields
     );
@@ -116,9 +102,9 @@ export const authProfile = asyncHandler(
 
 // getUserDevices
 
-export const getUserPermissionDevices = asyncHandler(
+const getUserPermissionDevices = asyncHandler(
   async (req: IRequestWithUser, res: Response) => {
-    const devices = await getUserPermissionDevicesService(
+    const devices = await authService.getUserPermissionDevices(
       req.user?._id as Types.ObjectId,
       req.user?.role as "admin" | "superadmin" | "user"
     );
@@ -139,9 +125,9 @@ export const getUserPermissionDevices = asyncHandler(
  * @access Private
  */
 
-export const authLogout = asyncHandler(
+const authLogout = asyncHandler(
   async (req: IRequestWithUser, res: Response) => {
-    await authLogoutService(req.user?._id as Types.ObjectId);
+    await authService.authLogout(req.user?._id as Types.ObjectId);
 
     successResponse(res, {
       message: "User logged out successfully",
@@ -158,11 +144,11 @@ export const authLogout = asyncHandler(
  * @body {currentPassword: string, newPassword: string}
  */
 
-export const changePassword = asyncHandler(
+const changePassword = asyncHandler(
   async (req: IRequestWithUser, res: Response) => {
     const { currentPassword, newPassword } = req.body;
 
-    await changePasswordService(
+    await authService.changePassword(
       req.user?._id as Types.ObjectId,
       currentPassword,
       newPassword
@@ -183,9 +169,9 @@ export const changePassword = asyncHandler(
  * @body {name?: string, email?: string}
  */
 
-export const updateAuthProfile = asyncHandler(
+const updateAuthProfile = asyncHandler(
   async (req: IRequestWithUser, res: Response) => {
-    const user = await updateAuthProfileService(
+    const user = await authService.updateAuthProfile(
       req.user?._id as Types.ObjectId,
       req.body
     );
@@ -207,11 +193,13 @@ export const updateAuthProfile = asyncHandler(
  * @body {refreshToken: string}
  */
 
-export const refreshToken = asyncHandler(
+const refreshToken = asyncHandler(
   async (req: IRequestWithUser, res: Response) => {
     console.log("Refreshing token...", req.body.refreshToken);
 
-    const { accessToken } = await refreshTokenService(req.body.refreshToken);
+    const { accessToken } = await authService.refreshToken(
+      req.body.refreshToken
+    );
 
     successResponse(res, {
       message: "Token refreshed successfully",
@@ -231,8 +219,8 @@ export const refreshToken = asyncHandler(
  * @access Public
  */
 
-export const createUser = asyncHandler(async (req: Request, res: Response) => {
-  const user = await createUserService(req.body);
+const createUser = asyncHandler(async (req: Request, res: Response) => {
+  const user = await authService.createUser(req.body);
 
   successResponse(res, {
     message: "User created successfully",
@@ -241,3 +229,18 @@ export const createUser = asyncHandler(async (req: Request, res: Response) => {
     },
   });
 });
+
+const authController = {
+  authLogin,
+  forgotPassword,
+  resetPassword,
+  authProfile,
+  authLogout,
+  changePassword,
+  updateAuthProfile,
+  refreshToken,
+  createUser,
+  getUserPermissionDevices,
+};
+
+export default authController;
