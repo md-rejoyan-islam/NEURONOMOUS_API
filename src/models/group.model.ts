@@ -38,6 +38,20 @@ const GroupSchema: Schema<IGroupSchema> = new mongoose.Schema<IGroupSchema>(
       type: String,
       required: [true, "EIIN is required"],
     },
+    courses: [
+      {
+        name: {
+          type: String,
+          required: [true, "Course name is required"],
+          unique: [true, "Course name must be unique"],
+        },
+        code: {
+          type: String,
+          required: [true, "Course code is required"],
+          unique: [true, "Course code must be unique"],
+        },
+      },
+    ],
   },
   {
     timestamps: true,

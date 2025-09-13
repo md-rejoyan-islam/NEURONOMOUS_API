@@ -2,13 +2,13 @@ import { Router } from "express";
 
 import courseController from "../controllers/course.controller";
 import validate from "../middlewares/validate";
-import { createCourseSchema } from "../validator/course.validator";
+import courseValidator from "../validator/course.validator";
 
 const courseRouter = Router();
 
 courseRouter.post(
   "/",
-  validate(createCourseSchema),
+  validate(courseValidator.createCourseSchema),
   courseController.createNewCourse
 );
 courseRouter.get("/", courseController.getAllCourses);

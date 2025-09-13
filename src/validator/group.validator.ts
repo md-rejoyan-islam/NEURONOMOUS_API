@@ -182,3 +182,36 @@ export const updateGroupSchema = z.object({
     })
     .strict(),
 });
+
+const createCourseForDepartmentSchema = z.object({
+  body: z
+    .object({
+      code: z.string({
+        error: (iss) => {
+          if (!iss.input) {
+            return "Course code is required.";
+          } else if (typeof iss.input !== iss.expected) {
+            return "Course code must be a string.";
+          }
+          return "Invalid course code.";
+        },
+      }),
+      name: z.string({
+        error: (iss) => {
+          if (!iss.input) {
+            return "Course name is required.";
+          } else if (typeof iss.input !== iss.expected) {
+            return "Course name must be a string.";
+          }
+          return "Invalid course name.";
+        },
+      }),
+    })
+    .strict(),
+});
+
+const groupValidator = {
+  createCourseForDepartmentSchema,
+};
+
+export default groupValidator;

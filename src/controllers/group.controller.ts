@@ -564,7 +564,83 @@ const getGroupByIdWithAttendanceDevices = asyncHandler(
   }
 );
 
+const createCourseForDepartment = asyncHandler(
+  async (req: IRequestWithUser, res: Response) => {
+    const { groupId } = req.params;
+
+    if (!isValidMongoId(groupId)) {
+      throw createError.BadRequest("Invalid group ID.");
+    }
+
+    const course = await groupService.createCourseForDepartment({
+      code: req.body.code,
+      name: req.body.name,
+      groupId,
+    });
+
+    successResponse(res, {
+      message: "Successfully created a new course",
+      statusCode: 200,
+      payload: {
+        data: course,
+      },
+    });
+  }
+);
+const removeCourseFormDepartment = asyncHandler(
+  async (req: IRequestWithUser, res: Response) => {
+    const { groupId } = req.params;
+
+    if (!isValidMongoId(groupId)) {
+      throw createError.BadRequest("Invalid group ID.");
+    }
+
+    if (!req.body.code) {
+      throw createError.BadRequest("Course code is required.");
+    }
+
+    const course = await groupService.removeCourseFromDepartment(
+      groupId,
+      req.body.code
+    );
+
+    successResponse(res, {
+      message: "Successfully created a new course",
+      statusCode: 200,
+      payload: {
+        data: course,
+      },
+    });
+  }
+);
+
+const getDepartmentCourses = asyncHandler(
+  async (req: IRequestWithUser, res: Response) => {
+    const { groupId } = req.params;
+    const { search = "" } = req.query;
+
+    if (!isValidMongoId(groupId)) {
+      throw createError.BadRequest("Invalid group ID.");
+    }
+
+    const courses = await groupService.getDepartmentCourses({
+      groupId,
+      search: String(search),
+    });
+
+    successResponse(res, {
+      message: "Courses retrieved successfully",
+      statusCode: 200,
+      payload: {
+        data: courses,
+      },
+    });
+  }
+);
+
 const groupController = {
+  removeCourseFormDepartment,
+  createCourseForDepartment,
   getGroupByIdWithAttendanceDevices,
   getGroupByIdWithClocks,
   getAllGroups,
@@ -584,6 +660,7 @@ const groupController = {
   scheduleNoticeForDeviceInGroup,
   scheduleNoticeForAllDevicesInGroup,
   cancelScheduledNoticeForDeviceInGroup,
+  getDepartmentCourses,
 };
 
 export default groupController;

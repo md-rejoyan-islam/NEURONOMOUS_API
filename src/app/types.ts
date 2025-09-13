@@ -143,6 +143,10 @@ export interface IGroupSchema {
     deviceId: Types.ObjectId;
   }[];
   members: Types.ObjectId[];
+  courses: {
+    name: string;
+    code: string;
+  }[];
   createdAt: Date;
   updatedAt: Date;
 }

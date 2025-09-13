@@ -142,10 +142,6 @@ const addUserToGroup = async (
         deviceId: device.deviceId,
         deviceType: payload.deviceType === "clock" ? "clock" : "attendance",
       }))
-      // !group.devices.includes({
-      //   deviceId,
-      //   deviceType: payload.deviceType === "clock" ? "clock" : "attendance",
-      // })
     ) {
       throw createError(404, `Device with ID ${deviceId} not found in group`);
     }
@@ -681,7 +677,109 @@ const getGroupByIdWithAttendanceDevices = async (
   }));
 };
 
+const createCourseForDepartment = async ({
+  code,
+  name,
+  groupId,
+}: {
+  code: string;
+  name: string;
+  groupId: string;
+}) => {
+  // check if department with the given eiin exists
+  const departmentExists = await GroupModel.exists({
+    _id: groupId,
+  });
+  if (!departmentExists) {
+    throw new Error("Department with the given EIIN not found.");
+  }
+
+  await GroupModel.findByIdAndUpdate(groupId, {
+    $push: {
+      courses: {
+        name,
+        code,
+      },
+    },
+  });
+
+  // To be implemented
+  return {};
+};
+
+const removeCourseFromDepartment = async (
+  groupId: string,
+  courseCode: string
+) => {
+  // check if department with the given eiin exists
+  const departmentExists = await GroupModel.exists({
+    _id: groupId,
+  });
+  if (!departmentExists) {
+    throw new Error("Department with found");
+  }
+
+  // check if course with the given code exists in the department
+  const courseExists = await GroupModel.exists({
+    _id: groupId,
+    "courses.code": courseCode,
+  });
+
+  if (!courseExists) {
+    throw new Error("Course with the given code not found in the department.");
+  }
+
+  await GroupModel.findByIdAndUpdate(groupId, {
+    $pull: {
+      courses: {
+        code: courseCode,
+      },
+    },
+  });
+
+  // To be implemented
+  return {};
+};
+
+const getDepartmentCourses = async ({
+  groupId,
+  search,
+}: {
+  groupId: string;
+  search?: string;
+}) => {
+  const group = await GroupModel.findOne(
+    {
+      _id: groupId,
+      ...(search ? { "courses.name": { $regex: search, $options: "i" } } : {}),
+    },
+    {
+      courses: search
+        ? { $elemMatch: { name: { $regex: search, $options: "i" } } }
+        : 1,
+    }
+  )
+    .select("name eiin description createdAt courses")
+    .lean();
+
+  if (!group) {
+    throw createError(404, "Group not found.");
+  }
+
+  return {
+    name: group.name,
+    _id: group._id,
+    eiin: group.eiin,
+    description: group.description,
+    createdAt: group.createdAt,
+    courses: group.courses || [],
+  };
+};
+
 const groupService = {
+  getDepartmentCourses,
+  removeCourseFromDepartment,
+  createCourseForDepartment,
   getGroupByIdWithAttendanceDevices,
   getGroupByIdWithClocks,
   getAllGroups,

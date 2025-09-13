@@ -4,7 +4,7 @@ import groupController from "../controllers/group.controller";
 import { authorize } from "../middlewares/authorized";
 import validate from "../middlewares/validate";
 import { isLoggedIn } from "../middlewares/verify";
-import {
+import groupValidator, {
   addUserToGroupWithDevicesPermissionSchema,
   updateGroupSchema,
 } from "../validator/group.validator";
@@ -64,6 +64,17 @@ groupRouter.post(
   validate(addUserToGroupWithDevicesPermissionSchema),
   groupController.addUserToGroupWithDevicesPermission
 ); // COMPLETE
+
+groupRouter.get("/:groupId/courses", groupController.getDepartmentCourses);
+groupRouter.post(
+  "/:groupId/courses",
+  validate(groupValidator.createCourseForDepartmentSchema),
+  groupController.createCourseForDepartment
+);
+groupRouter.delete(
+  "/:groupId/courses",
+  groupController.removeCourseFormDepartment
+);
 
 // get group by id with clocks
 groupRouter.get(
