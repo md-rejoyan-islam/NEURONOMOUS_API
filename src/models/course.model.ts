@@ -36,14 +36,10 @@ const RecordSchema = new Schema(
 
 const CourseSchema: Schema<ICourseSchema> = new mongoose.Schema<ICourseSchema>(
   {
-    code: {
-      type: String,
-      required: [true, "Course code is required"],
-      unique: [true, "Course code must be unique"],
-    },
-    name: {
-      type: String,
-      required: [true, "Course name is required"],
+    course: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "DepartmentCourse",
+      required: true,
     },
     session: {
       type: String,

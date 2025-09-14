@@ -52,8 +52,7 @@ export interface IUser extends IUserSchema {
 }
 
 export interface ICourseSchema {
-  code: string;
-  name: string;
+  course: Types.ObjectId;
   session: string;
   department: Types.ObjectId;
   instructor: Types.ObjectId;
@@ -84,6 +83,13 @@ export interface IStudentSchema {
   rfid: string;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface IPagination {
+  items: number;
+  limit: number;
+  page: number;
+  totalPages: number;
 }
 
 export interface IClockDeviceSchema {
@@ -134,6 +140,12 @@ export interface IAttendanceDevice extends IAttendanceDeviceSchema {
   _id: Types.ObjectId; // Mongoose ObjectId or string
 }
 
+export interface IDepartmentCourseSchema {
+  name: string;
+  code: string;
+  department: Types.ObjectId;
+}
+
 export interface IGroupSchema {
   name: string;
   description: string;
@@ -143,10 +155,11 @@ export interface IGroupSchema {
     deviceId: Types.ObjectId;
   }[];
   members: Types.ObjectId[];
-  courses: {
-    name: string;
-    code: string;
-  }[];
+  // courses: {
+  //   _id: Types.ObjectId;
+  //   name: string;
+  //   code: string;
+  // }[];
   // courses_with_instructor: {
   //   course: Types.ObjectId;
   //   enroll_link: string;

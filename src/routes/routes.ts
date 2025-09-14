@@ -10,6 +10,7 @@ import firmwareRouter from "./firmware.routes";
 import groupRouter from "./group.routes";
 import logRouter from "./logs.routes";
 import openAccessRouter from "./open-access.routes";
+import studentRouter from "./student.routes";
 import systemRouter from "./system.routes";
 import userRouter from "./user.routes";
 
@@ -52,6 +53,8 @@ router.use("/api/v1/courses", courseRouter);
 
 // open access routes
 router.use("/api/v1/open", openAccessRouter);
+// student routes
+router.use("/api/v1/students", studentRouter);
 
 // 404 route
 router.use("", (req: Request, _res: Response) => {

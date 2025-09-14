@@ -1,6 +1,13 @@
 import createError from "http-errors";
 import { Types } from "mongoose";
-import { IAttendanceDevice, IDevice, IGroup, IUser } from "../app/types";
+import {
+  IAttendanceDevice,
+  IDevice,
+  IGroup,
+  IPagination,
+  IUser,
+} from "../app/types";
+import { DepartmentCourseModel } from "../models/department-course.model";
 import { AttendanceDeviceModel } from "../models/devices/attendance.model";
 import { ClockDeviceModel } from "../models/devices/clock.model";
 import { GroupModel } from "../models/group.model";
@@ -64,8 +71,8 @@ const getAllGroups = async ({
 
   const total = await GroupModel.countDocuments(query);
 
-  const pagination = {
-    total,
+  const pagination: IPagination = {
+    items: total,
     page,
     limit,
     totalPages: Math.ceil(total / limit),
@@ -264,6 +271,95 @@ const addUserToGroupWithDevices = async (
   return group;
 };
 
+// add user to group service
+const giveDevicesPermissionToUser = async (
+  groupId: string,
+  _id: Types.ObjectId,
+  role: "admin" | "superadmin" | "user",
+  payload: {
+    userId: Types.ObjectId;
+    deviceIds: Types.ObjectId[];
+    deviceType: "clock" | "attendance";
+  }
+) => {
+  // check user existence
+  const user = await UserModel.exists({
+    _id: payload.userId,
+  });
+
+  if (!user) {
+    throw createError(400, "User not found.");
+  }
+
+  // group check
+  const group = await GroupModel.findById(groupId)
+    .select("devices")
+    .populate("members", "-password -__v");
+
+  if (!group) {
+    throw createError(404, "Group not found.");
+  }
+
+  if (
+    role !== "superadmin" &&
+    !group.members.some((member) => member._id !== _id)
+  ) {
+    throw createError.Unauthorized("You can't add user in another group.");
+  }
+
+  // device ids check
+  payload.deviceIds.forEach((deviceId) => {
+    if (
+      !group.devices.some((device) => ({
+        deviceId: device.deviceId,
+        deviceType: payload.deviceType === "clock" ? "clock" : "attendance",
+      }))
+    ) {
+      throw createError(404, `Device with ID ${deviceId} not found in group`);
+    }
+  });
+
+  // give access to devices
+  payload.deviceIds.forEach(async (deviceId) => {
+    if (payload.deviceType === "clock") {
+      ClockDeviceModel.findByIdAndUpdate(
+        deviceId,
+        {
+          $addToSet: { allowed_users: payload.userId },
+        },
+        { new: true }
+      ).exec();
+    } else if (payload.deviceType === "attendance") {
+      AttendanceDeviceModel.findByIdAndUpdate(
+        deviceId,
+        {
+          $addToSet: { allowed_users: payload.userId },
+        },
+        { new: true }
+      ).exec();
+    }
+  });
+
+  // Find the group and update its members
+  await group
+    .updateOne(
+      {
+        $addToSet: { members: payload.userId },
+      },
+      {
+        new: true,
+        runValidators: true,
+      }
+    )
+    .populate("members", "-password -__v");
+
+  await group.save();
+
+  //TODO: send email to user
+
+  return group;
+};
+
 // get group by id service
 const getGroupById = async (groupId: string) => {
   const group = await GroupModel.findById(groupId)
@@ -295,11 +391,15 @@ const getGroupById = async (groupId: string) => {
     []
   );
 
+  const students = await StudentModel.countDocuments({ department: groupId });
+  const courses = await DepartmentCourseModel.countDocuments({
+    department: groupId,
+  });
+
   const attendance = group.devices.filter(
     (device) => device.deviceType === "attendance"
   );
-
-  // delete devices
+  const devices = group.devices.length || 0;
 
   return {
     name: group.name,
@@ -308,6 +408,9 @@ const getGroupById = async (groupId: string) => {
     description: group.description,
     createdAt: dateFormat(group.createdAt),
     members: group.members,
+    devices,
+    courses,
+    students,
     clock: clocks,
     attendance,
   };
@@ -759,13 +862,14 @@ const createCourseForDepartment = async ({
     _id: groupId,
   });
   if (!departmentExists) {
-    throw new Error("Department with the given EIIN not found.");
+    throw new Error("Department with the given ID not found.");
   }
 
   // check if course with the given code already exists in the department
-  const courseExists = await GroupModel.exists({
-    _id: groupId,
-    "courses.code": code,
+
+  const courseExists = await DepartmentCourseModel.exists({
+    department: groupId,
+    code,
   });
 
   if (courseExists) {
@@ -774,13 +878,10 @@ const createCourseForDepartment = async ({
     );
   }
 
-  await GroupModel.findByIdAndUpdate(groupId, {
-    $push: {
-      courses: {
-        name,
-        code,
-      },
-    },
+  await DepartmentCourseModel.create({
+    name,
+    code,
+    department: new Types.ObjectId(groupId),
   });
 
   // To be implemented
@@ -798,21 +899,24 @@ const editCourseInDepartment = async ({
   name: string;
   code: string;
 }) => {
-  const group = await GroupModel.exists({
+  const group = await GroupModel.findOne({
     _id: groupId,
-    "courses._id": courseId,
   });
   if (!group) {
-    throw new Error("Department or Course with the given ID not found.");
+    throw new Error("Department with the given ID not found.");
   }
-  await GroupModel.updateOne(
-    { _id: groupId, "courses._id": courseId },
-    {
-      $set: {
-        "courses.$.name": name,
-        "courses.$.code": code,
-      },
-    }
+
+  const courseExists = await DepartmentCourseModel.exists({
+    department: groupId,
+    _id: courseId,
+  });
+
+  if (!courseExists) {
+    throw new Error("Course with the given ID not found in the department.");
+  }
+  await DepartmentCourseModel.updateOne(
+    { department: groupId, _id: courseId },
+    { name, code }
   );
 
   return {};
@@ -825,17 +929,19 @@ const removeCourseFromDepartment = async (
   // check if department with the given eiin exists
   const departmentExists = await GroupModel.exists({
     _id: groupId,
-    "courses._id": courseId,
   });
   if (!departmentExists) {
-    throw new Error("Department or Course with the given ID not found.");
+    throw new Error("Department with the given ID not found.");
   }
 
-  await GroupModel.findByIdAndUpdate(groupId, {
-    $pull: {
-      courses: { _id: courseId },
-    },
+  const course = await DepartmentCourseModel.findOneAndDelete({
+    department: groupId,
+    _id: courseId,
   });
+
+  if (!course) {
+    throw new Error("Course with the given ID not found in the department.");
+  }
 
   // To be implemented
   return {};
@@ -845,21 +951,17 @@ const removeCourseFromDepartment = async (
 const getDepartmentCourses = async ({
   groupId,
   search,
+  page,
+  limit,
 }: {
   groupId: string;
   search?: string;
+  page: number;
+  limit: number;
 }) => {
-  const group = await GroupModel.findOne(
-    {
-      _id: groupId,
-      ...(search ? { "courses.name": { $regex: search, $options: "i" } } : {}),
-    },
-    {
-      courses: search
-        ? { $elemMatch: { name: { $regex: search, $options: "i" } } }
-        : 1,
-    }
-  )
+  const skip = (page - 1) * limit;
+
+  const group = await GroupModel.findById(groupId)
     .select("name eiin description createdAt courses")
     .lean();
 
@@ -867,13 +969,78 @@ const getDepartmentCourses = async ({
     throw createError(404, "Group not found.");
   }
 
+  // const pipeline: mongoose.PipelineStage[] = [
+  //   { $match: { _id: new mongoose.Types.ObjectId(groupId) } },
+  //   {
+  //     $project: { courses: 1 },
+  //   },
+  //   { $unwind: "$courses" },
+  //   ...(search
+  //     ? [
+  //         {
+  //           $match: {
+  //             $or: [
+  //               { "courses.name": { $regex: search, $options: "i" } },
+  //               { "courses.code": { $regex: search, $options: "i" } },
+  //             ],
+  //           },
+  //         },
+  //       ]
+  //     : []),
+  //   { $skip: skip },
+  //   { $limit: limit },
+  //   {
+  //     $group: {
+  //       _id: "$_id",
+  //       courses: { $push: "$courses" },
+  //     },
+  //   },
+  // ];
+
+  // const groups = await GroupModel.aggregate(pipeline).exec();
+
+  const courses = await DepartmentCourseModel.find({
+    department: groupId,
+    ...(search
+      ? {
+          $or: [
+            { name: { $regex: search, $options: "i" } },
+            { code: { $regex: search, $options: "i" } },
+          ],
+        }
+      : {}),
+  })
+    .skip(skip)
+    .limit(limit)
+    .lean();
+
+  const total = await DepartmentCourseModel.countDocuments({
+    department: groupId,
+    ...(search
+      ? {
+          $or: [
+            { name: { $regex: search, $options: "i" } },
+            { code: { $regex: search, $options: "i" } },
+          ],
+        }
+      : {}),
+  });
+
+  const pagination: IPagination = {
+    items: total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+  };
+
   return {
     name: group.name,
     _id: group._id,
     eiin: group.eiin,
     description: group.description,
     createdAt: group.createdAt,
-    courses: group.courses || [],
+    pagination,
+    courses: courses,
   };
 };
 
@@ -1123,8 +1290,8 @@ const getAllStudentsInDepartment = async ({
 
   // const total = group?.totalStudents || 0;
 
-  const pagination = {
-    total,
+  const pagination: IPagination = {
+    items: total,
     page,
     limit,
     totalPages: Math.ceil(total / limit),
@@ -1142,6 +1309,7 @@ const getAllStudentsInDepartment = async ({
 };
 
 const groupService = {
+  giveDevicesPermissionToUser,
   getDepartmentCourses,
   removeCourseFromDepartment,
   createCourseForDepartment,

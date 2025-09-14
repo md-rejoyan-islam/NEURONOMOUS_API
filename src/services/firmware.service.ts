@@ -1,4 +1,5 @@
 import createError from "http-errors";
+import { IPagination } from "../app/types";
 import { mqttClient } from "../config/mqtt";
 import { ClockDeviceModel } from "../models/devices/clock.model";
 import { FirmwareModel } from "../models/firmware.model";
@@ -60,8 +61,8 @@ const getAllFirmwares = async ({
 
   const totalFirmwares = await FirmwareModel.countDocuments(query);
 
-  const pagination = {
-    total: totalFirmwares,
+  const pagination: IPagination = {
+    items: totalFirmwares,
     page: page,
     limit: limit,
     totalPages: Math.ceil(totalFirmwares / limit),

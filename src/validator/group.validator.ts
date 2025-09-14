@@ -88,6 +88,61 @@ export const addUserToGroupWithDevicesPermissionSchema = z.object({
     })
     .strict(),
 });
+// add user to group with devices permission validation schema
+export const giveDevicesPermissionToUserSchema = z.object({
+  body: z
+    .object({
+      userId: z
+        .string({
+          error: (iss) => {
+            if (!iss.input) {
+              return "User ID is required.";
+            } else if (typeof iss.input !== iss.expected) {
+              return "User ID must be a string.";
+            }
+            return "Invalid user ID.";
+          },
+        })
+        .refine((id) => Types.ObjectId.isValid(id), {
+          message: "User ID must be a valid ObjectId string.",
+        }),
+      deviceType: z.enum(["clock", "attendance"], {
+        error: (iss) => {
+          if (!iss.input) {
+            return "Device type is required.";
+          } else if (typeof iss.input !== iss.expected) {
+            return "Device type must be a string.";
+          }
+          return "Invalid device type.";
+        },
+      }),
+      deviceIds: z
+        .array(string(), {
+          error: (iss) => {
+            if (!iss.input) {
+              return "Device IDs are required.";
+            } else if (!Array.isArray(iss.input)) {
+              return "Device IDs must be an array.";
+            }
+            return "Invalid device IDs.";
+          },
+        })
+        .refine(
+          (ids) => {
+            if (ids.length === 0) {
+              return false;
+            }
+            return ids.every((id) => Types.ObjectId.isValid(id));
+          },
+          {
+            message: "Each device ID must be a valid ObjectId string.",
+          }
+        ),
+      phone: z.string().optional(),
+      notes: z.string().optional(),
+    })
+    .strict(),
+});
 
 const addUserToGroupSchema = z.object({
   body: z

@@ -7,6 +7,7 @@ import { isLoggedIn } from "../middlewares/verify";
 import { studentFileUpload } from "../utils/multer";
 import groupValidator, {
   addUserToGroupWithDevicesPermissionSchema,
+  giveDevicesPermissionToUserSchema,
   updateGroupSchema,
 } from "../validator/group.validator";
 
@@ -58,13 +59,6 @@ groupRouter.delete(
 //   addAttendanceDeviceToGroup
 // ); // COMPLETE
 
-// add user to group and give device access
-groupRouter.post(
-  "/:groupId/add-user",
-  authorize(["admin", "superadmin"]),
-  validate(addUserToGroupWithDevicesPermissionSchema),
-  groupController.addUserToGroupWithDevicesPermission
-); // COMPLETE
 groupRouter.post(
   "/:groupId/users",
   authorize(["admin", "superadmin"]),
@@ -84,6 +78,23 @@ groupRouter.get(
   authorize(["admin", "superadmin"]),
   groupController.getAllStudentsInDepartment
 );
+
+// give device permission to existing user in group
+groupRouter.post(
+  "/:groupId/users/add-devices",
+  authorize(["admin", "superadmin"]),
+  validate(giveDevicesPermissionToUserSchema),
+  groupController.giveDevicesPermissionToUser
+); // COMPLETE
+
+// add user to group and give device access
+groupRouter.post(
+  "/:groupId/users/add-and-device-permissions",
+  authorize(["admin", "superadmin"]),
+  validate(addUserToGroupWithDevicesPermissionSchema),
+  groupController.addUserToGroupWithDevicesPermission
+); // COMPLETE
+
 groupRouter.patch(
   "/:groupId/students/:studentId",
   authorize(["admin", "superadmin"]),

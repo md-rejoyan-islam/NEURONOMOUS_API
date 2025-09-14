@@ -52,8 +52,8 @@ const getAllCourses = asyncHandler(async (req: Request, res: Response) => {
 
   // to be implemented
   successResponse(res, {
-    message: "Not implemented yet",
-    statusCode: 501,
+    message: "Courses fetched successfully",
+    statusCode: 200,
     payload: {
       data: courses,
     },
@@ -287,9 +287,31 @@ const getCourseAttendanceRecordByDate = asyncHandler(
   }
 );
 
+const deleteAttendanceRecordByDate = asyncHandler(
+  async (req: IRequestWithUser, res: Response) => {
+    if (!isValidMongoId(req.params.courseId)) {
+      throw createError.BadRequest("Invalid course ID.");
+    }
+
+    if (!req.params.date || typeof req.params.date !== "string") {
+      throw createError.BadRequest("Date is required and must be a string.");
+    }
+
+    await courseService.deleteAttendanceRecordByDate({
+      courseId: req.params.courseId,
+      date: req.params.date,
+    });
+    successResponse(res, {
+      statusCode: 200,
+      message: "Attendance record deleted successfully",
+      payload: {},
+    });
+  }
+);
+
 const courseController = {
   getCourseAttendanceRecordByDate,
-
+  deleteAttendanceRecordByDate,
   createNewCourse,
   getEnrolledStudentsByCourseId,
   getCourseById,

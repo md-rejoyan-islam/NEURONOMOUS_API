@@ -40,6 +40,11 @@ courseRouter.patch(
   "/:courseId/manually-toggle-attendance",
   courseController.manuallyToggleAttendanceRecord
 );
+// delete attendance record by date
+courseRouter.delete(
+  "/:courseId/records/:date",
+  courseController.deleteAttendanceRecordByDate
+);
 
 // get all courses in a group/department
 

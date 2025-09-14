@@ -78,14 +78,22 @@ const getAttendanceDeviceById = async (deviceId: string) => {
 
   const courses = await CourseModel.find({
     instructor: instructorId,
-  }).lean();
+  })
+    .populate<{
+      course: {
+        _id: Types.ObjectId;
+        name: string;
+        code: string;
+      };
+    }>("course", "name code department")
+    .lean();
 
   return {
     ...device,
     courses: courses.map((course) => ({
       _id: course._id,
-      code: course.code,
-      name: course.name,
+      code: course.course.code,
+      name: course.course.name,
       session: course.session,
       department: course.department,
       instructor: course.instructor,

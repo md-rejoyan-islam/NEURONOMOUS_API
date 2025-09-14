@@ -118,6 +118,37 @@ const addUserToGroupWithDevicesPermission = asyncHandler(
     });
   }
 );
+
+const giveDevicesPermissionToUser = asyncHandler(
+  async (req: IRequestWithUser, res: Response) => {
+    const { groupId } = req.params;
+    const { userId, deviceType, deviceIds = [] } = req.body;
+
+    if (!isValidMongoId(groupId)) {
+      throw createError(400, "Invalid group ID.");
+    }
+
+    const { _id, role } = req.user!;
+
+    const group = await groupService.giveDevicesPermissionToUser(
+      groupId,
+      _id,
+      role,
+      {
+        userId,
+        deviceIds,
+        deviceType,
+      }
+    );
+
+    successResponse(res, {
+      message: "Users added to group successfully",
+      payload: {
+        data: group,
+      },
+    });
+  }
+);
 const addUserToGroup = asyncHandler(
   async (req: IRequestWithUser, res: Response) => {
     const { groupId } = req.params;
@@ -683,9 +714,13 @@ const getDepartmentCourses = asyncHandler(
       throw createError.BadRequest("Invalid group ID.");
     }
 
+    const { page, limit } = req.query;
+
     const courses = await groupService.getDepartmentCourses({
       groupId,
       search: String(search),
+      page: Number(page) || 1,
+      limit: Number(limit) || 10,
     });
 
     successResponse(res, {
@@ -871,6 +906,7 @@ const groupController = {
   getDepartmentCourses,
   addUserToGroup,
   createStudentsForDepartment,
+  giveDevicesPermissionToUser,
 };
 
 export default groupController;

@@ -1,3 +1,4 @@
+import { IPagination } from "../app/types";
 import { Log } from "../models/logs.model";
 
 const getAllLog = async (query: {
@@ -29,11 +30,11 @@ const getAllLog = async (query: {
     ...(query.timestamp ? { timestamp: query.timestamp } : {}),
   });
 
-  const pagination = {
-    total,
+  const pagination: IPagination = {
+    items: total,
     page: query.page,
     limit: query.limit,
-    pages: Math.ceil(total / query.limit),
+    totalPages: Math.ceil(total / query.limit),
   };
 
   return { logs, pagination };

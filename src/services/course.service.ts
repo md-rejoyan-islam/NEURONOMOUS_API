@@ -1,7 +1,8 @@
 import mongoose, { Types } from "mongoose";
 import secret from "../app/secret";
+import { IPagination } from "../app/types";
 import { CourseModel } from "../models/course.model";
-import { GroupModel } from "../models/group.model";
+import { DepartmentCourseModel } from "../models/department-course.model";
 import StudentModel from "../models/student.model";
 import { UserModel } from "../models/user.model";
 
@@ -16,59 +17,40 @@ const createNewCourse = async ({
   department: string;
   instructor: string;
 }) => {
-  const departCourse = await GroupModel.findById(department).populate<{
-    courses: {
-      _id: string;
-      code: string;
-      name: string;
-    }[];
-  }>("courses", "code name");
+  const course = await DepartmentCourseModel.findOne({
+    _id: courseId,
+    department: department,
+  }).lean();
 
-  if (!departCourse) {
-    throw new Error("Department not found.");
-  }
-
-  const courseInDepartment = departCourse.courses.find(
-    (course) => course._id.toString() === courseId
-  );
-
-  if (!courseInDepartment) {
+  if (!course) {
     throw new Error("Course not found in the specified department.");
   }
 
   const existingCourse = await CourseModel.findOne({
-    code: courseInDepartment.code,
+    course: courseId,
     session,
   });
   if (existingCourse) {
     throw new Error("A course with the same code and session already exists.");
   }
-
   // instrcutor and department id check
   const courseInstructor = await UserModel.exists({
     _id: instructor,
   });
+
   if (!courseInstructor) {
     throw new Error("Instructor not found.");
   }
 
-  const departmentExists = await GroupModel.exists({
-    _id: department,
-  });
-  if (!departmentExists) {
-    throw new Error("Department not found.");
-  }
-
-  const course = new CourseModel({
-    code: courseInDepartment.code,
-    name: courseInDepartment.name,
+  const newCourse = new CourseModel({
+    course: courseId,
     session,
     department,
     instructor,
   });
-  course.enroll_link = secret.client_url + "/course-enroll/" + course._id;
+  newCourse.enroll_link = secret.client_url + "/course-enroll/" + newCourse._id;
 
-  await course.save();
+  await newCourse.save();
 
   // To be implemented
   return course;
@@ -122,7 +104,7 @@ const getAllCourses = async (filter: {
   }
 
   const courses = await CourseModel.find(query)
-    .select("-__v -createdAt -updatedAt")
+    .select("-__v")
     .populate<{
       instructor: {
         _id: string;
@@ -134,6 +116,13 @@ const getAllCourses = async (filter: {
     .populate<{
       department: { _id: string; name: string; eiin: string };
     }>("department", "name eiin")
+    .populate<{
+      course: {
+        _id: string;
+        name: string;
+        code: string;
+      };
+    }>("course", "name code")
     .sort({ [sortBy]: sortOrder === "asc" ? 1 : -1 })
     .skip((page - 1) * limit)
     .limit(limit)
@@ -144,16 +133,41 @@ const getAllCourses = async (filter: {
   const totalPages = Math.ceil(totalCourses / limit);
 
   // return with pagination info
-  const pagination = {
-    totalItems: totalCourses,
+  const pagination: IPagination = {
+    items: totalCourses,
     totalPages,
-    currentPage: page,
-    pageSize: limit,
+    page,
+    limit,
   };
 
   return {
     pagination,
-    courses,
+    courses: courses.map((course) => ({
+      _id: course._id,
+      code: course.course.code,
+      name: course.course.name,
+      session: course.session,
+      department: course.department.name,
+      instructor:
+        course.instructor.first_name + " " + course.instructor.last_name,
+      instructor_email: course.instructor.email,
+      studentsEnrolled: course.enrolled_students.length || 0,
+      completedClasses: course.records.length || 0,
+      createdAt: course.createdAt,
+      updatedAt: course.updatedAt,
+      attendanceRate:
+        course.records.length > 0
+          ? (
+              (course.records.reduce(
+                (acc, record) => acc + record.present_students.length,
+                0
+              ) /
+                (course.records.length *
+                  (course.enrolled_students.length || 1))) *
+              100
+            ).toFixed(2) + "%"
+          : "N/A",
+    })),
   };
 };
 
@@ -166,6 +180,14 @@ const getCourseEnrollmentDataByCourseId = async (courseId: string) => {
     .populate<{
       instructor: { _id: string; first_name: string; last_name: string };
     }>("instructor", "first_name last_name")
+    .populate<{
+      course: {
+        _id: string;
+        name: string;
+        code: string;
+        session: string;
+      };
+    }>("course", "name code session")
     .lean();
 
   if (!course) {
@@ -174,9 +196,10 @@ const getCourseEnrollmentDataByCourseId = async (courseId: string) => {
 
   return {
     _id: course._id,
-    code: course.code,
-    name: course.name,
+    code: course.course.code,
+    name: course.course.name,
     department: course.department.name,
+    session: course.session,
     instructor:
       course.instructor.first_name + " " + course.instructor.last_name,
   };
@@ -231,6 +254,13 @@ const getCourseById = async (courseId: string) => {
     .populate<{
       department: { _id: string; name: string; eiin: string };
     }>("department", "name eiin")
+    .populate<{
+      course: {
+        _id: string;
+        name: string;
+        code: string;
+      };
+    }>("course", "name code")
     .lean();
 
   if (!course) {
@@ -239,8 +269,8 @@ const getCourseById = async (courseId: string) => {
 
   return {
     _id: course._id,
-    code: course.code,
-    name: course.name,
+    code: course.course.code,
+    name: course.course.name,
     session: course.session,
     enroll_link: course.enroll_link,
     department: course.department.name,
@@ -308,6 +338,13 @@ const getEnrolledStudentsByCourseId = async ({
       select: "name email session registration_number",
       match: searchQuery,
     })
+    .populate<{
+      course: {
+        _id: string;
+        name: string;
+        code: string;
+      };
+    }>("course", "name code")
     .lean();
 
   if (!course) {
@@ -316,8 +353,8 @@ const getEnrolledStudentsByCourseId = async ({
 
   return {
     _id: course._id,
-    code: course.code,
-    name: course.name,
+    code: course.course.code,
+    name: course.course.name,
     session: course.session,
     students: course.enrolled_students,
     department: course.department.name,
@@ -486,6 +523,13 @@ const getCourseAttendanceRecordByDate = async (
       "records.present_students.student",
       "name email session registration_number"
     )
+    .populate<{
+      course: {
+        _id: string;
+        name: string;
+        code: string;
+      };
+    }>("course", "name code")
     .lean();
 
   if (!course) {
@@ -498,15 +542,38 @@ const getCourseAttendanceRecordByDate = async (
 
   return {
     _id: course._id,
-    code: course.code,
-    name: course.name,
+    code: course.course.code,
+    name: course.course.name,
     date: record.date,
     present_students: record.present_students,
     enrolled_students: course.enrolled_students,
   };
 };
 
+const deleteAttendanceRecordByDate = async ({
+  courseId,
+  date,
+}: {
+  courseId: string;
+  date: string;
+}) => {
+  const course = await CourseModel.findById(courseId);
+
+  if (!course) {
+    throw new Error("Course not found.");
+  }
+
+  const recordIndex = course.records.findIndex((r) => r.date === date);
+  if (recordIndex === -1) {
+    throw new Error("Attendance record not found for the given date.");
+  }
+
+  course.records.splice(recordIndex, 1);
+  await course.save();
+};
+
 const courseService = {
+  deleteAttendanceRecordByDate,
   getEnrolledStudentsByCourseId,
   createNewCourse,
   getCourseById,
