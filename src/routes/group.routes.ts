@@ -4,6 +4,7 @@ import groupController from "../controllers/group.controller";
 import { authorize } from "../middlewares/authorized";
 import validate from "../middlewares/validate";
 import { isLoggedIn } from "../middlewares/verify";
+import { studentFileUpload } from "../utils/multer";
 import groupValidator, {
   addUserToGroupWithDevicesPermissionSchema,
   updateGroupSchema,
@@ -64,6 +65,36 @@ groupRouter.post(
   validate(addUserToGroupWithDevicesPermissionSchema),
   groupController.addUserToGroupWithDevicesPermission
 ); // COMPLETE
+groupRouter.post(
+  "/:groupId/users",
+  authorize(["admin", "superadmin"]),
+  validate(groupValidator.addUserToGroupSchema),
+  groupController.addUserToGroup
+); // COMPLETE
+
+// students
+groupRouter.post(
+  "/:groupId/students",
+  studentFileUpload.single("students"),
+  authorize(["admin", "superadmin"]),
+  groupController.createStudentsForDepartment
+);
+groupRouter.get(
+  "/:groupId/students",
+  authorize(["admin", "superadmin"]),
+  groupController.getAllStudentsInDepartment
+);
+groupRouter.patch(
+  "/:groupId/students/:studentId",
+  authorize(["admin", "superadmin"]),
+  validate(groupValidator.editStudentInDepartmentSchema),
+  groupController.editStudentInDepartment
+);
+groupRouter.delete(
+  "/:groupId/students/:studentId",
+  authorize(["admin", "superadmin"]),
+  groupController.deleteStudentInDepartment
+);
 
 groupRouter.get("/:groupId/courses", groupController.getDepartmentCourses);
 groupRouter.post(
@@ -72,8 +103,13 @@ groupRouter.post(
   groupController.createCourseForDepartment
 );
 groupRouter.delete(
-  "/:groupId/courses",
+  "/:groupId/courses/:courseId",
   groupController.removeCourseFormDepartment
+);
+groupRouter.patch(
+  "/:groupId/courses/:courseId",
+  validate(groupValidator.editCourseInDepartmentSchema),
+  groupController.editCourseInDepartment
 );
 
 // get group by id with clocks

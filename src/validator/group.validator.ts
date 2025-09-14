@@ -89,6 +89,61 @@ export const addUserToGroupWithDevicesPermissionSchema = z.object({
     .strict(),
 });
 
+const addUserToGroupSchema = z.object({
+  body: z
+    .object({
+      email: z.email({
+        error: (iss) => {
+          if (!iss.input) {
+            return "Email is required.";
+          } else if (typeof iss.input !== iss.expected) {
+            return "Email must be a string.";
+          }
+          return "Invalid email format.";
+        },
+      }),
+      password: z
+        .string({
+          error: (iss) => {
+            if (!iss.input) {
+              return "Password is required.";
+            } else if (typeof iss.input !== iss.expected) {
+              return "Password must be a string.";
+            }
+            return "Invalid password.";
+          },
+        })
+        .min(6, "Password must be at least 6 characters long")
+        .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{6,}$/, {
+          message:
+            "Password must contain at least one uppercase letter, one lowercase letter, and one digit.",
+        }),
+      first_name: z.string({
+        error: (iss) => {
+          if (!iss.input) {
+            return "First name is required.";
+          } else if (typeof iss.input !== iss.expected) {
+            return "First name must be a string.";
+          }
+          return "Invalid first name.";
+        },
+      }),
+      last_name: z.string({
+        error: (iss) => {
+          if (!iss.input) {
+            return "Last name is required.";
+          } else if (typeof iss.input !== iss.expected) {
+            return "Last name must be a string.";
+          }
+          return "Invalid last name.";
+        },
+      }),
+      phone: z.string().optional(),
+      notes: z.string().optional(),
+    })
+    .strict(),
+});
+
 // add device to group validation schema
 export const addDeviceToGroupSchema = z.object({
   body: z
@@ -210,8 +265,95 @@ const createCourseForDepartmentSchema = z.object({
     .strict(),
 });
 
+const editCourseInDepartmentSchema = z.object({
+  body: z
+    .object({
+      code: z.string({
+        error: (iss) => {
+          if (!iss.input) {
+            return "Course code is required.";
+          } else if (typeof iss.input !== iss.expected) {
+            return "Course code must be a string.";
+          }
+          return "Invalid course code.";
+        },
+      }),
+      name: z.string({
+        error: (iss) => {
+          if (!iss.input) {
+            return "Course name is required.";
+          } else if (typeof iss.input !== iss.expected) {
+            return "Course name must be a string.";
+          }
+          return "Invalid course name.";
+        },
+      }),
+    })
+    .strict(),
+});
+
+const editStudentInDepartmentSchema = z.object({
+  body: z
+    .object({
+      name: z.string({
+        error: (iss) => {
+          if (!iss.input) {
+            return "Student name is required.";
+          } else if (typeof iss.input !== iss.expected) {
+            return "Student name must be a string.";
+          }
+          return "Invalid student name.";
+        },
+      }),
+      email: z.email({
+        error: (iss) => {
+          if (!iss.input) {
+            return "Student email is required.";
+          } else if (typeof iss.input !== iss.expected) {
+            return "Student email must be a string.";
+          }
+          return "Invalid student email format.";
+        },
+      }),
+      session: z.string({
+        error: (iss) => {
+          if (!iss.input) {
+            return "Session is required.";
+          } else if (typeof iss.input !== iss.expected) {
+            return "Session must be a string.";
+          }
+          return "Invalid session.";
+        },
+      }),
+      registration_number: z.string({
+        error: (iss) => {
+          if (!iss.input) {
+            return "Registration number is required.";
+          } else if (typeof iss.input !== iss.expected) {
+            return "Registration number must be a string.";
+          }
+          return "Invalid registration number.";
+        },
+      }),
+      rfid: z.string({
+        error: (iss) => {
+          if (!iss.input) {
+            return "RFID is required.";
+          } else if (typeof iss.input !== iss.expected) {
+            return "RFID must be a string.";
+          }
+          return "Invalid RFID.";
+        },
+      }),
+    })
+    .strict(),
+});
+
 const groupValidator = {
   createCourseForDepartmentSchema,
+  editCourseInDepartmentSchema,
+  addUserToGroupSchema,
+  editStudentInDepartmentSchema,
 };
 
 export default groupValidator;

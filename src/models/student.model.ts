@@ -36,6 +36,11 @@ const StudentSchema = new Schema<IStudentSchema>(
       unique: [true, "RFID must be unique"],
       trim: true,
     },
+    department: {
+      type: Schema.Types.ObjectId,
+      ref: "Group",
+      required: [true, "Department is required"],
+    },
   },
   {
     timestamps: true,

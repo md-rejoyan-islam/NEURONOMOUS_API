@@ -52,6 +52,90 @@ const GroupSchema: Schema<IGroupSchema> = new mongoose.Schema<IGroupSchema>(
         },
       },
     ],
+    // students: [
+    //   {
+    //     name: {
+    //       type: String,
+    //       required: [true, "Student name is required"],
+    //       minlength: [2, "Student name must be at least 2 characters long"],
+    //       maxlength: [100, "Student name must be at most 100 characters long"],
+    //     },
+    //     email: {
+    //       type: String,
+    //       required: [true, "Student email is required"],
+    //       unique: [true, "Student email must be unique"],
+    //     },
+    //     session: {
+    //       type: String,
+    //       required: [true, "Session is required"],
+    //     },
+    //     registration_number: {
+    //       type: String,
+    //       required: [true, "Registration number is required"],
+    //       unique: [true, "Registration number must be unique"],
+    //     },
+    //     rfid: {
+    //       type: String,
+    //       required: [true, "RFID is required"],
+    //       unique: [true, "RFID must be unique"],
+    //     },
+    //   },
+    // ],
+    // courses_with_instructor: [
+    //   {
+    //     course: {
+    //       type: mongoose.Schema.Types.ObjectId,
+    //       ref: "Course",
+    //       required: true,
+    //     },
+    //     session: {
+    //       type: String,
+    //       required: [true, "Session is required"],
+    //     },
+    //     instactor: {
+    //       type: mongoose.Schema.Types.ObjectId,
+    //       ref: "User",
+    //       required: true,
+    //     },
+    //     share_groups: [
+    //       {
+    //         type: mongoose.Schema.Types.ObjectId,
+    //         ref: "Group",
+    //       },
+    //     ],
+    //     is_active: {
+    //       type: Boolean,
+    //       default: true,
+    //     },
+    //     enroll_link: {
+    //       type: String,
+    //       required: [true, "Enroll link is required"],
+    //     },
+    //     enrolled_students: [
+    //       {
+    //         student: {
+    //           type: mongoose.Schema.Types.ObjectId,
+    //           ref: "Student",
+    //         },
+    //         timestamp: {
+    //           type: Date,
+    //           default: Date.now,
+    //         },
+    //       },
+    //     ],
+    //     records: [RecordSchema],
+    //     createdAt: {
+    //       type: Date,
+    //       default: Date.now,
+    //     },
+    //   },
+    // ],
+    // shared_courses: [
+    //   {
+    //     type: mongoose.Schema.Types.ObjectId,
+    //     ref: "Course",
+    //   },
+    // ],
   },
   {
     timestamps: true,

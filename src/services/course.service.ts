@@ -1,3 +1,4 @@
+import mongoose, { Types } from "mongoose";
 import secret from "../app/secret";
 import { CourseModel } from "../models/course.model";
 import { GroupModel } from "../models/group.model";
@@ -5,19 +6,40 @@ import StudentModel from "../models/student.model";
 import { UserModel } from "../models/user.model";
 
 const createNewCourse = async ({
-  code,
-  name,
+  courseId,
   session,
   department,
   instructor,
 }: {
-  code: string;
-  name: string;
+  courseId: string;
   session: string;
   department: string;
   instructor: string;
 }) => {
-  const existingCourse = await CourseModel.findOne({ code, session });
+  const departCourse = await GroupModel.findById(department).populate<{
+    courses: {
+      _id: string;
+      code: string;
+      name: string;
+    }[];
+  }>("courses", "code name");
+
+  if (!departCourse) {
+    throw new Error("Department not found.");
+  }
+
+  const courseInDepartment = departCourse.courses.find(
+    (course) => course._id.toString() === courseId
+  );
+
+  if (!courseInDepartment) {
+    throw new Error("Course not found in the specified department.");
+  }
+
+  const existingCourse = await CourseModel.findOne({
+    code: courseInDepartment.code,
+    session,
+  });
   if (existingCourse) {
     throw new Error("A course with the same code and session already exists.");
   }
@@ -38,8 +60,8 @@ const createNewCourse = async ({
   }
 
   const course = new CourseModel({
-    code,
-    name,
+    code: courseInDepartment.code,
+    name: courseInDepartment.name,
     session,
     department,
     instructor,
@@ -96,7 +118,7 @@ const getAllCourses = async (filter: {
     query.code = { $regex: code, $options: "i" };
   }
   if (name) {
-    query.name = { $regex: name, $options: "i" }; // case-insensitive partial match
+    query.name = { $regex: name, $options: "i" };
   }
 
   const courses = await CourseModel.find(query)
@@ -108,7 +130,6 @@ const getAllCourses = async (filter: {
         last_name: string;
         email: string;
       };
-      department: { _id: string; name: string; eiin: string };
     }>("instructor", "first_name last_name email")
     .populate<{
       department: { _id: string; name: string; eiin: string };
@@ -167,7 +188,7 @@ const enrollInCourseByRegistrationNumber = async (
 ) => {
   // find user by registration number
   const user = await StudentModel.findOne({
-    registration_number: +registrationNumber,
+    registration_number: registrationNumber,
   });
 
   if (!user) {
@@ -302,6 +323,188 @@ const getEnrolledStudentsByCourseId = async ({
     department: course.department.name,
   };
 };
+const addAttendanceRecordByDevice = async ({
+  courseId,
+  deviceId,
+  date,
+  records,
+}: {
+  courseId: string;
+  deviceId: string;
+  date: string;
+  records: {
+    studentId: string;
+    timestamp: Date;
+  }[];
+}) => {
+  console.log(deviceId);
+
+  const course = await CourseModel.findById(courseId);
+
+  if (!course) {
+    throw new Error("Course not found.");
+  }
+
+  // check if attendance for the date already exists
+  const existingRecord = course.records.find((record) => record.date === date);
+  if (existingRecord) {
+    throw new Error("Attendance for this date already exists.");
+  }
+
+  // check student ids
+  for (const record of records) {
+    if (!Types.ObjectId.isValid(record.studentId)) {
+      throw new Error(`Invalid student ID: ${record.studentId}`);
+    }
+    const studentExists = await StudentModel.exists({
+      _id: record.studentId,
+    });
+    if (!studentExists) {
+      throw new Error(`Student not found with ID: ${record.studentId}`);
+    }
+  }
+
+  // check enrolled students
+  for (const record of records) {
+    if (
+      !course.enrolled_students.includes(new Types.ObjectId(record.studentId))
+    ) {
+      throw new Error(
+        `Student with ID: ${record.studentId} is not enrolled in this course.`
+      );
+    }
+  }
+
+  // add attendance record
+  const now = new Date();
+  course.records.push({
+    recordId: new mongoose.Types.ObjectId(),
+    date,
+    present_students: records.map((r) => ({
+      presentId: new mongoose.Types.ObjectId(),
+      student: new Types.ObjectId(r.studentId),
+      presentBy: "device",
+    })),
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  await course.save();
+};
+
+const addAttendanceRecordByInstaructore = async ({
+  courseId,
+  date,
+}: {
+  courseId: string;
+  date: string;
+}) => {
+  const course = await CourseModel.findById(courseId);
+
+  if (!course) {
+    throw new Error("Course not found.");
+  }
+
+  // check if attendance for the date already exists
+  const existingRecord = course.records.find((record) => record.date === date);
+  if (existingRecord) {
+    throw new Error("Attendance for this date already exists.");
+  }
+
+  const now = new Date();
+  course.records.push({
+    recordId: new mongoose.Types.ObjectId(),
+    date,
+    present_students: [],
+    createdAt: now,
+    updatedAt: now,
+  });
+  await course.save();
+
+  return {};
+};
+
+const manuallyToggleAttendanceRecord = async ({
+  courseId,
+  date,
+  studentId,
+}: {
+  courseId: string;
+  date: string;
+  studentId: string;
+}) => {
+  const course = await CourseModel.findById(courseId);
+
+  if (!course) {
+    throw new Error("Course not found.");
+  }
+
+  const record = course.records.find((r) => r.date === date);
+  if (!record) {
+    throw new Error("Attendance record not found for the given date.");
+  }
+
+  if (!Types.ObjectId.isValid(studentId)) {
+    throw new Error(`Invalid student ID: ${studentId}`);
+  }
+  const studentExists = await StudentModel.exists({
+    _id: studentId,
+  });
+  if (!studentExists) {
+    throw new Error(`Student not found with ID: ${studentId}`);
+  }
+  if (!course.enrolled_students.includes(new Types.ObjectId(studentId))) {
+    throw new Error(
+      `Student with ID: ${studentId} is not enrolled in this course.`
+    );
+  }
+  if (
+    record.present_students.find((ps) => ps.student.toString() === studentId)
+  ) {
+    record.present_students = record.present_students.filter(
+      (ps) => ps.student.toString() !== studentId
+    );
+  } else {
+    record.present_students.push({
+      presentId: new mongoose.Types.ObjectId(),
+      student: new Types.ObjectId(studentId),
+      presentBy: "instructor",
+    });
+  }
+
+  record.updatedAt = new Date();
+  await course.save();
+};
+
+const getCourseAttendanceRecordByDate = async (
+  courseId: string,
+  date: string
+) => {
+  const course = await CourseModel.findById(courseId)
+    .populate("enrolled_students")
+    .populate(
+      "records.present_students.student",
+      "name email session registration_number"
+    )
+    .lean();
+
+  if (!course) {
+    throw new Error("Course not found.");
+  }
+  const record = course.records.find((r) => r.date === date);
+  if (!record) {
+    throw new Error("Attendance record not found for the given date.");
+  }
+
+  return {
+    _id: course._id,
+    code: course.code,
+    name: course.name,
+    date: record.date,
+    present_students: record.present_students,
+    enrolled_students: course.enrolled_students,
+  };
+};
 
 const courseService = {
   getEnrolledStudentsByCourseId,
@@ -310,5 +513,9 @@ const courseService = {
   getCourseEnrollmentDataByCourseId,
   enrollInCourseByRegistrationNumber,
   getAllCourses,
+  addAttendanceRecordByDevice,
+  addAttendanceRecordByInstaructore,
+  manuallyToggleAttendanceRecord,
+  getCourseAttendanceRecordByDate,
 };
 export default courseService;

@@ -22,6 +22,25 @@ courseRouter.get(
   courseController.getEnrolledStudentsByCourseId
 );
 
+courseRouter.post(
+  "/:courseId/attendance-by-device",
+  validate(courseValidator.addAttendanceByDeviceSchema),
+  courseController.addAttendanceRecordByDevice
+);
+courseRouter.post(
+  "/:courseId/attendance-records",
+  validate(courseValidator.addAttendanceByInstaructoreSchema),
+  courseController.addAttendanceRecordByInstaructore
+);
+courseRouter.get(
+  "/:courseId/attendance-records/:date",
+  courseController.getCourseAttendanceRecordByDate
+);
+courseRouter.patch(
+  "/:courseId/manually-toggle-attendance",
+  courseController.manuallyToggleAttendanceRecord
+);
+
 // get all courses in a group/department
 
 // create only course

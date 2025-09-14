@@ -94,13 +94,46 @@ const addUserToGroupWithDevicesPermission = asyncHandler(
 
     const { _id: userId, role } = req.user!;
 
-    const group = await groupService.addUserToGroup(groupId, userId, role, {
+    const group = await groupService.addUserToGroupWithDevices(
+      groupId,
+      userId,
+      role,
+      {
+        email,
+        password,
+        first_name,
+        last_name,
+        deviceIds,
+        deviceType,
+        phone,
+        notes,
+      }
+    );
+
+    successResponse(res, {
+      message: "Users added to group successfully",
+      payload: {
+        data: group,
+      },
+    });
+  }
+);
+const addUserToGroup = asyncHandler(
+  async (req: IRequestWithUser, res: Response) => {
+    const { groupId } = req.params;
+    const { email, password, first_name, last_name, phone, notes } = req.body;
+
+    if (!isValidMongoId(groupId)) {
+      throw createError(400, "Invalid group ID.");
+    }
+
+    const { _id: userId, role } = req.user!;
+
+    const group = await groupService.addUserToGroup(groupId, role, userId, {
       email,
       password,
       first_name,
       last_name,
-      deviceIds,
-      deviceType,
       phone,
       notes,
     });
@@ -589,23 +622,50 @@ const createCourseForDepartment = asyncHandler(
 );
 const removeCourseFormDepartment = asyncHandler(
   async (req: IRequestWithUser, res: Response) => {
-    const { groupId } = req.params;
+    const { groupId, courseId } = req.params;
 
     if (!isValidMongoId(groupId)) {
       throw createError.BadRequest("Invalid group ID.");
     }
-
-    if (!req.body.code) {
-      throw createError.BadRequest("Course code is required.");
+    if (!isValidMongoId(courseId)) {
+      throw createError.BadRequest("Invalid course ID.");
     }
 
     const course = await groupService.removeCourseFromDepartment(
       groupId,
-      req.body.code
+      courseId
     );
 
     successResponse(res, {
       message: "Successfully created a new course",
+      statusCode: 200,
+      payload: {
+        data: course,
+      },
+    });
+  }
+);
+
+const editCourseInDepartment = asyncHandler(
+  async (req: IRequestWithUser, res: Response) => {
+    const { groupId, courseId } = req.params;
+
+    if (!isValidMongoId(groupId)) {
+      throw createError.BadRequest("Invalid group ID.");
+    }
+    if (!isValidMongoId(courseId)) {
+      throw createError.BadRequest("Invalid course ID.");
+    }
+
+    const course = await groupService.editCourseInDepartment({
+      groupId,
+      courseId,
+      code: req.body.code,
+      name: req.body.name,
+    });
+
+    successResponse(res, {
+      message: "Course updated successfully",
       statusCode: 200,
       payload: {
         data: course,
@@ -638,7 +698,154 @@ const getDepartmentCourses = asyncHandler(
   }
 );
 
+const editStudentInDepartment = asyncHandler(
+  async (req: IRequestWithUser, res: Response) => {
+    const { groupId, studentId } = req.params;
+
+    if (!isValidMongoId(groupId)) {
+      throw createError.BadRequest("Invalid group ID.");
+    }
+    if (!isValidMongoId(studentId)) {
+      throw createError.BadRequest("Invalid student ID.");
+    }
+
+    console.log("Request body:", req.body);
+
+    const student = await groupService.editStudentInDepartment(
+      groupId,
+      studentId,
+      {
+        name: req.body.name,
+        email: req.body.email,
+        session: req.body.session,
+        registration_number: req.body.registration_number,
+        rfid: req.body.rfid,
+      }
+    );
+
+    successResponse(res, {
+      message: "Student updated successfully",
+      statusCode: 200,
+      payload: {
+        data: student,
+      },
+    });
+  }
+);
+
+const deleteStudentInDepartment = asyncHandler(
+  async (req: IRequestWithUser, res: Response) => {
+    const { groupId, studentId } = req.params;
+
+    if (!isValidMongoId(groupId)) {
+      throw createError.BadRequest("Invalid group ID.");
+    }
+    if (!isValidMongoId(studentId)) {
+      throw createError.BadRequest("Invalid student ID.");
+    }
+
+    await groupService.deleteStudentFromDepartment(groupId, studentId);
+
+    successResponse(res, {
+      message: "Student deleted successfully",
+      statusCode: 200,
+      payload: {},
+    });
+  }
+);
+
+const getAllStudentsInDepartment = asyncHandler(
+  async (req: IRequestWithUser, res: Response) => {
+    const { groupId } = req.params;
+    const { search = "", limit = 10, page = 1 } = req.query;
+
+    if (!isValidMongoId(groupId)) {
+      throw createError.BadRequest("Invalid group ID.");
+    }
+
+    const result = await groupService.getAllStudentsInDepartment({
+      groupId,
+      search: String(search),
+      limit: Number(limit),
+      page: Number(page),
+    });
+
+    successResponse(res, {
+      message: "Students retrieved successfully",
+      statusCode: 200,
+      payload: {
+        data: result,
+      },
+    });
+  }
+);
+const createStudentsForDepartment = asyncHandler(
+  async (req: IRequestWithUser, res: Response) => {
+    const { groupId } = req.params;
+    if (!isValidMongoId(groupId)) {
+      throw createError.BadRequest("Invalid group ID.");
+    }
+
+    console.log("File received:", req.file);
+    console.log("Body received:", req.body);
+
+    const file = req.file;
+
+    if (!file) {
+      throw createError.BadRequest("No file uploaded.");
+    }
+
+    // support only json file
+    if (file.mimetype !== "application/json") {
+      throw createError.BadRequest("Only JSON files are supported.");
+    }
+
+    // parse json file
+    let reqBody;
+    try {
+      reqBody = JSON.parse(file.buffer.toString());
+    } catch {
+      throw createError.BadRequest("Invalid JSON file.");
+    }
+
+    if (!Array.isArray(reqBody) || reqBody.length === 0) {
+      throw createError.BadRequest("JSON file is empty or not an array.");
+    }
+
+    // validate each object in the array
+    for (const item of reqBody) {
+      if (
+        !item.name ||
+        !item.email ||
+        !item.session ||
+        !item.registration_number ||
+        !item.rfid
+      ) {
+        throw createError.BadRequest(
+          "Each student must have name, email, session, registration_number and rfid."
+        );
+      }
+    }
+
+    const student = await groupService.createStudentsForDepartment(
+      groupId,
+      reqBody
+    );
+
+    successResponse(res, {
+      message: "Successfully created a new student",
+      statusCode: 200,
+      payload: {
+        data: student,
+      },
+    });
+  }
+);
+
 const groupController = {
+  editStudentInDepartment,
+  deleteStudentInDepartment,
+  editCourseInDepartment,
   removeCourseFormDepartment,
   createCourseForDepartment,
   getGroupByIdWithAttendanceDevices,
@@ -648,6 +855,7 @@ const groupController = {
   addUserToGroupWithDevicesPermission,
   updateGroupById,
   deleteGroupById,
+  getAllStudentsInDepartment,
   getGroupById,
   addDeviceToGroup,
   addAttendanceDeviceToGroup,
@@ -661,6 +869,8 @@ const groupController = {
   scheduleNoticeForAllDevicesInGroup,
   cancelScheduledNoticeForDeviceInGroup,
   getDepartmentCourses,
+  addUserToGroup,
+  createStudentsForDepartment,
 };
 
 export default groupController;

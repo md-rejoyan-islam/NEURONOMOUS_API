@@ -68,8 +68,7 @@ export interface ICourseSchema {
     present_students: {
       presentId: Types.ObjectId;
       student: Types.ObjectId;
-      createdAt: Date;
-      updatedAt: Date;
+      presentBy: string;
     }[];
     createdAt: Date;
     updatedAt: Date;
@@ -81,6 +80,7 @@ export interface IStudentSchema {
   email: string;
   session: string;
   registration_number: string;
+  department: Types.ObjectId;
   rfid: string;
   createdAt: Date;
   updatedAt: Date;
@@ -147,6 +147,38 @@ export interface IGroupSchema {
     name: string;
     code: string;
   }[];
+  // courses_with_instructor: {
+  //   course: Types.ObjectId;
+  //   enroll_link: string;
+  //   enrolled_students: {
+  //     student: Types.ObjectId;
+  //     timestamp: Date;
+  //   }[];
+  //   session: string;
+  //   instuctor: Types.ObjectId;
+  //   share_groups: Types.ObjectId[];
+  //   is_active: boolean;
+  //   records: {
+  //     date: string;
+  //     present_students: {
+  //       student: Types.ObjectId;
+  //       timestamp: Date;
+  //       presentBy: string;
+  //     }[];
+  //     createdAt: Date;
+  //     updatedAt: Date;
+  //   }[];
+  //   createdAt: Date;
+  //   updatedAt: Date;
+  // };
+  // shared_courses: Types.ObjectId[];
+  // students: {
+  //   name: string;
+  //   email: string;
+  //   session: string;
+  //   registration_number: string;
+  //   rfid: string;
+  // }[];
   createdAt: Date;
   updatedAt: Date;
 }

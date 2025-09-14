@@ -9,8 +9,7 @@ import { successResponse } from "../utils/response-handler";
 const createNewCourse = asyncHandler(
   async (req: IRequestWithUser, res: Response) => {
     const course = await courseService.createNewCourse({
-      code: req.body.code,
-      name: req.body.name,
+      courseId: req.body.courseId,
       session: req.body.session,
       department: req.body.department,
       instructor: req.body.instructor,
@@ -185,7 +184,112 @@ const getEnrolledStudentsByCourseId = asyncHandler(
   }
 );
 
+const addAttendanceRecordByDevice = asyncHandler(
+  async (req: IRequestWithUser, res: Response) => {
+    if (!isValidMongoId(req.params.courseId)) {
+      throw createError.BadRequest("Invalid course ID.");
+    }
+
+    if (!req.body.date) {
+      throw createError.BadRequest("Date is required.");
+    }
+
+    const course = await courseService.addAttendanceRecordByDevice({
+      courseId: req.params.courseId,
+      deviceId: req.body.deviceId,
+      date: req.body.date,
+      records: req.body.records,
+    });
+    successResponse(res, {
+      statusCode: 200,
+      message: "Attendance record added successfully",
+      payload: {
+        data: course,
+      },
+    });
+  }
+);
+
+const addAttendanceRecordByInstaructore = asyncHandler(
+  async (req: IRequestWithUser, res: Response) => {
+    if (!isValidMongoId(req.params.courseId)) {
+      throw createError.BadRequest("Invalid course ID.");
+    }
+
+    if (!req.body.date) {
+      throw createError.BadRequest("Date is required.");
+    }
+
+    const course = await courseService.addAttendanceRecordByInstaructore({
+      courseId: req.params.courseId,
+      date: req.body.date,
+    });
+    successResponse(res, {
+      statusCode: 200,
+      message: "Attendance record added successfully",
+      payload: {
+        data: course,
+      },
+    });
+  }
+);
+
+const manuallyToggleAttendanceRecord = asyncHandler(
+  async (req: IRequestWithUser, res: Response) => {
+    if (!isValidMongoId(req.params.courseId)) {
+      throw createError.BadRequest("Invalid course ID.");
+    }
+
+    if (!req.body.date) {
+      throw createError.BadRequest("Date is required.");
+    }
+
+    if (!isValidMongoId(req.body.studentId)) {
+      throw createError.BadRequest("Invalid student ID.");
+    }
+
+    const course = await courseService.manuallyToggleAttendanceRecord({
+      courseId: req.params.courseId,
+      date: req.body.date,
+      studentId: req.body.studentId,
+    });
+    successResponse(res, {
+      statusCode: 200,
+      message: "Attendance record toggled successfully",
+      payload: {
+        data: course,
+      },
+    });
+  }
+);
+
+const getCourseAttendanceRecordByDate = asyncHandler(
+  async (req: IRequestWithUser, res: Response) => {
+    if (!isValidMongoId(req.params.courseId)) {
+      throw createError.BadRequest("Invalid course ID.");
+    }
+
+    if (!req.params.date || typeof req.params.date !== "string") {
+      throw createError.BadRequest("Date is required and must be a string.");
+    }
+
+    const course = await courseService.getCourseAttendanceRecordByDate(
+      req.params.courseId,
+      req.params.date
+    );
+    successResponse(res, {
+      statusCode: 200,
+      message: "Attendance record fetched successfully",
+      payload: {
+        data: course,
+      },
+    });
+  }
+);
+
 const courseController = {
+  getCourseAttendanceRecordByDate,
+
   createNewCourse,
   getEnrolledStudentsByCourseId,
   getCourseById,
@@ -195,6 +299,9 @@ const courseController = {
   createCourseByGroupAdmin,
   getAllCoursesByInstcurtorId,
   getCourseEnrollmentDataByCourseId,
+  addAttendanceRecordByDevice,
+  addAttendanceRecordByInstaructore,
+  manuallyToggleAttendanceRecord,
 };
 
 export default courseController;

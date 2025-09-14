@@ -9,11 +9,17 @@ const PresentStudentSchema = new Schema(
     },
     student: {
       type: Schema.Types.ObjectId,
-      ref: "User",
+      ref: "Student",
       required: true,
     },
+    presentBy: {
+      type: String,
+      default: "student",
+    },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+  }
 );
 
 const RecordSchema = new Schema(

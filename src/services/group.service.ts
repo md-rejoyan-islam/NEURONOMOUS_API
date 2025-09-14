@@ -4,6 +4,7 @@ import { IAttendanceDevice, IDevice, IGroup, IUser } from "../app/types";
 import { AttendanceDeviceModel } from "../models/devices/attendance.model";
 import { ClockDeviceModel } from "../models/devices/clock.model";
 import { GroupModel } from "../models/group.model";
+import StudentModel from "../models/student.model";
 import { UserModel } from "../models/user.model";
 import { dateFormat, formatBytes, formatUptime } from "../utils/date-format";
 import clockService from "./devices/clock.service";
@@ -96,6 +97,73 @@ const getAllGroupsForCourse = async () => {
 
 // add user to group service
 const addUserToGroup = async (
+  groupId: string,
+  role: "admin" | "superadmin" | "user",
+  userId: Types.ObjectId,
+  payload: {
+    email: string;
+    password: string;
+    first_name: string;
+    last_name: string;
+    phone?: string;
+    notes?: string;
+  }
+) => {
+  // check user existence
+  const user = await UserModel.exists({
+    email: payload.email.toLowerCase(),
+  });
+
+  if (user) {
+    throw createError(400, "Email already exists.");
+  }
+
+  // group check
+  const group = await GroupModel.findById(groupId).populate(
+    "members",
+    "-password -__v"
+  );
+
+  if (!group) {
+    throw createError(404, "Group not found.");
+  }
+
+  if (
+    role !== "superadmin" &&
+    !group.members.some((member) => member._id !== userId)
+  ) {
+    throw createError.Unauthorized("You can't add user in another group.");
+  }
+
+  // create new user
+  const newUser = await UserModel.create({
+    ...payload,
+    email: payload.email.toLowerCase(),
+    role: "user",
+    group: groupId,
+  });
+
+  // Find the group and update its members
+  await group
+    .updateOne(
+      {
+        $addToSet: { members: newUser._id },
+      },
+      {
+        new: true,
+        runValidators: true,
+      }
+    )
+    .populate("members", "-password -__v");
+
+  await group.save();
+
+  //TODO: send email to user
+
+  return group;
+};
+// add user to group service
+const addUserToGroupWithDevices = async (
   groupId: string,
   userId: Types.ObjectId,
   role: "admin" | "superadmin" | "user",
@@ -694,6 +762,18 @@ const createCourseForDepartment = async ({
     throw new Error("Department with the given EIIN not found.");
   }
 
+  // check if course with the given code already exists in the department
+  const courseExists = await GroupModel.exists({
+    _id: groupId,
+    "courses.code": code,
+  });
+
+  if (courseExists) {
+    throw new Error(
+      "Course with the given code already exists in the department."
+    );
+  }
+
   await GroupModel.findByIdAndUpdate(groupId, {
     $push: {
       courses: {
@@ -707,33 +787,53 @@ const createCourseForDepartment = async ({
   return {};
 };
 
+const editCourseInDepartment = async ({
+  groupId,
+  courseId,
+  name,
+  code,
+}: {
+  groupId: string;
+  courseId: string;
+  name: string;
+  code: string;
+}) => {
+  const group = await GroupModel.exists({
+    _id: groupId,
+    "courses._id": courseId,
+  });
+  if (!group) {
+    throw new Error("Department or Course with the given ID not found.");
+  }
+  await GroupModel.updateOne(
+    { _id: groupId, "courses._id": courseId },
+    {
+      $set: {
+        "courses.$.name": name,
+        "courses.$.code": code,
+      },
+    }
+  );
+
+  return {};
+};
+
 const removeCourseFromDepartment = async (
   groupId: string,
-  courseCode: string
+  courseId: string
 ) => {
   // check if department with the given eiin exists
   const departmentExists = await GroupModel.exists({
     _id: groupId,
+    "courses._id": courseId,
   });
   if (!departmentExists) {
-    throw new Error("Department with found");
-  }
-
-  // check if course with the given code exists in the department
-  const courseExists = await GroupModel.exists({
-    _id: groupId,
-    "courses.code": courseCode,
-  });
-
-  if (!courseExists) {
-    throw new Error("Course with the given code not found in the department.");
+    throw new Error("Department or Course with the given ID not found.");
   }
 
   await GroupModel.findByIdAndUpdate(groupId, {
     $pull: {
-      courses: {
-        code: courseCode,
-      },
+      courses: { _id: courseId },
     },
   });
 
@@ -741,6 +841,7 @@ const removeCourseFromDepartment = async (
   return {};
 };
 
+// get department courses service
 const getDepartmentCourses = async ({
   groupId,
   search,
@@ -776,6 +877,270 @@ const getDepartmentCourses = async ({
   };
 };
 
+// create students for department
+const createStudentsForDepartment = async (
+  groupId: string,
+  payload: {
+    name: string;
+    email: string;
+    session: string;
+    registration_number: string;
+    rfid: string;
+  }[]
+) => {
+  const group = await GroupModel.exists({ _id: groupId });
+  if (!group) {
+    throw createError(404, "Group not found.");
+  }
+
+  // check if student with the given email, registration_number or rfid already exists in the department
+  for (const student of payload) {
+    const studentExists = await StudentModel.exists({
+      department: groupId,
+      $or: [
+        { email: student.email },
+        { registration_number: student.registration_number },
+        { rfid: student.rfid },
+      ],
+    });
+
+    if (studentExists) {
+      throw createError(
+        400,
+        `Student with email ${student.email}, registration number ${student.registration_number} or RFID ${student.rfid} already exists in the department.`
+      );
+    }
+  }
+
+  // add students to department
+  await StudentModel.insertMany(
+    payload.map((student) => ({
+      ...student,
+      department: groupId,
+    }))
+  );
+
+  return group;
+};
+// update student information in department
+const editStudentInDepartment = async (
+  groupId: string,
+  studentId: string,
+  payload: {
+    name: string;
+    email: string;
+    session: string;
+    registration_number: string;
+    rfid: string;
+  }
+) => {
+  const group = await GroupModel.exists({
+    _id: groupId,
+  });
+  if (!group) {
+    throw createError(404, "Group not found.");
+  }
+
+  // check if student with the given email, registration_number or rfid already exists in the department
+  const studentExists = await StudentModel.exists({
+    department: groupId,
+    _id: { $ne: studentId },
+    $or: [
+      { email: payload.email },
+      { registration_number: payload.registration_number },
+      { rfid: payload.rfid },
+    ],
+  });
+
+  if (studentExists) {
+    throw createError(
+      400,
+      `Student with email ${payload.email}, registration number ${payload.registration_number} or RFID ${payload.rfid} already exists in the department.`
+    );
+  }
+
+  await StudentModel.findOneAndUpdate(
+    {
+      department: groupId,
+      _id: studentId,
+    },
+    {
+      ...payload,
+    }
+  );
+  return {};
+};
+// remove students from department
+const deleteStudentFromDepartment = async (
+  groupId: string,
+  studentId: string
+) => {
+  const group = await GroupModel.exists({
+    _id: groupId,
+  });
+  if (!group) {
+    throw createError(404, "Group not found.");
+  }
+
+  await StudentModel.findOneAndDelete({
+    department: groupId,
+    _id: studentId,
+  });
+
+  return {};
+};
+// get all students in department
+const getAllStudentsInDepartment = async ({
+  groupId,
+  search,
+  page,
+  limit,
+}: {
+  groupId: string;
+  search?: string;
+  page: number;
+  limit: number;
+}) => {
+  const skip = (page - 1) * limit;
+  // const group = await GroupModel.findOne(
+  //   {
+  //     _id: groupId,
+  //     ...(search
+  //       ? {
+  //           $or: [
+  //             { "students.name": { $regex: search, $options: "i" } },
+  //             { "students.email": { $regex: search, $options: "i" } },
+  //             { "students.session": { $regex: search, $options: "i" } },
+  //             {
+  //               "students.registration_number": {
+  //                 $regex: search,
+  //                 $options: "i",
+  //               },
+  //             },
+  //             { "students.rfid": { $regex: search, $options: "i" } },
+  //           ],
+  //         }
+  //       : {}),
+  //   },
+  //   {
+  //     students: search
+  //       ? {
+  //           $elemMatch: {
+  //             $or: [
+  //               { name: { $regex: search, $options: "i" } },
+  //               { email: { $regex: search, $options: "i" } },
+  //               { session: { $regex: search, $options: "i" } },
+  //               { registration_number: { $regex: search, $options: "i" } },
+  //               { rfid: { $regex: search, $options: "i" } },
+  //             ],
+  //           },
+  //         }
+  //       : 1,
+  //   }
+  // )
+  //   .select("name eiin description createdAt students")
+  //   .lean();
+
+  const groupExists = await GroupModel.findById(groupId).lean();
+  if (!groupExists) {
+    throw createError(404, "Group not found.");
+  }
+
+  const students = await StudentModel.find({
+    department: groupId,
+    ...(search
+      ? {
+          $or: [
+            { name: { $regex: search, $options: "i" } },
+            { email: { $regex: search, $options: "i" } },
+            { session: { $regex: search, $options: "i" } },
+            { registration_number: { $regex: search, $options: "i" } },
+            { rfid: { $regex: search, $options: "i" } },
+          ],
+        }
+      : {}),
+  })
+    .skip(skip)
+    .limit(limit)
+    .lean();
+
+  const total = await StudentModel.countDocuments({
+    department: groupId,
+    ...(search
+      ? {
+          $or: [
+            { name: { $regex: search, $options: "i" } },
+            { email: { $regex: search, $options: "i" } },
+            { session: { $regex: search, $options: "i" } },
+            { registration_number: { $regex: search, $options: "i" } },
+            { rfid: { $regex: search, $options: "i" } },
+          ],
+        }
+      : {}),
+  });
+
+  // const groups = await GroupModel.aggregate([
+  //   { $match: { _id: new Types.ObjectId(groupId) } },
+  //   { $unwind: "$students" },
+  //   {
+  //     $match: {
+  //       $or: [
+  //         { $expr: { $eq: [search || "", ""] } },
+  //         { "students.name": { $regex: search, $options: "i" } },
+  //         { "students.email": { $regex: search, $options: "i" } },
+  //         { "students.session": { $regex: search, $options: "i" } },
+  //         { "students.registration_number": { $regex: search, $options: "i" } },
+  //         { "students.rfid": { $regex: search, $options: "i" } },
+  //       ],
+  //     },
+  //   },
+  //   {
+  //     $group: {
+  //       _id: "$_id",
+  //       name: { $first: "$name" },
+  //       eiin: { $first: "$eiin" },
+  //       description: { $first: "$description" },
+  //       createdAt: { $first: "$createdAt" },
+  //       students: { $push: "$students" },
+  //     },
+  //   },
+  //   {
+  //     $addFields: { totalStudents: { $size: "$students" } },
+  //   },
+  //   {
+  //     $project: {
+  //       name: 1,
+  //       eiin: 1,
+  //       description: 1,
+  //       createdAt: 1,
+  //       totalStudents: 1,
+  //       students: { $slice: ["$students", skip, limit] },
+  //     },
+  //   },
+  // ]);
+
+  // const group = groups[0];
+
+  // const total = group?.totalStudents || 0;
+
+  const pagination = {
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+  };
+
+  return {
+    pagination,
+    name: groupExists.name,
+    _id: groupExists._id,
+    eiin: groupExists.eiin,
+    description: groupExists.description,
+    createdAt: groupExists.createdAt,
+    students: students || [],
+  };
+};
+
 const groupService = {
   getDepartmentCourses,
   removeCourseFromDepartment,
@@ -796,6 +1161,12 @@ const groupService = {
   sendNoticeToAllDevicesServiceInGroup,
   addAttendanceDeviceToGroup,
   getAllGroupsForCourse,
+  editCourseInDepartment,
+  addUserToGroupWithDevices,
+  createStudentsForDepartment,
+  editStudentInDepartment,
+  deleteStudentFromDepartment,
+  getAllStudentsInDepartment,
 };
 
 export default groupService;

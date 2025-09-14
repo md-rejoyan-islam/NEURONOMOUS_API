@@ -61,7 +61,7 @@ const getAllFirmwares = async ({
   const totalFirmwares = await FirmwareModel.countDocuments(query);
 
   const pagination = {
-    items: totalFirmwares,
+    total: totalFirmwares,
     page: page,
     limit: limit,
     totalPages: Math.ceil(totalFirmwares / limit),
