@@ -821,9 +821,6 @@ const createStudentsForDepartment = asyncHandler(
       throw createError.BadRequest("Invalid group ID.");
     }
 
-    console.log("File received:", req.file);
-    console.log("Body received:", req.body);
-
     const file = req.file;
 
     if (!file) {
@@ -859,6 +856,24 @@ const createStudentsForDepartment = asyncHandler(
         throw createError.BadRequest(
           "Each student must have name, email, session, registration_number and rfid."
         );
+      }
+      // additional validation for email format
+      const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/;
+      if (!emailRegex.test(item.email)) {
+        throw createError.BadRequest(
+          `Invalid email format: ${item.email} with registration number: ${item.registration_number}`
+        );
+      }
+
+      // additional validation for phone format
+      if (item.phone) {
+        // Matches 01XXXXXXXXX, +8801XXXXXXXXX, 8801XXXXXXXXX
+        const bdPhoneRegex = /^(?:\+8801|8801|01)[3-9]\d{8}$/;
+        if (!bdPhoneRegex.test(item.phone)) {
+          throw createError.BadRequest(
+            `Invalid phone number: ${item.phone} with registration number: ${item.registration_number}`
+          );
+        }
       }
     }
 

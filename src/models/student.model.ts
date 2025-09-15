@@ -20,10 +20,23 @@ const StudentSchema = new Schema<IStudentSchema>(
         message: `{VALUE} is not a valid email address!`,
       },
     },
+    phone: {
+      type: String,
+      unique: [true, "Phone number must be unique"],
+      trim: true,
+      validate: {
+        validator: function (v: string) {
+          // Matches 01XXXXXXXXX, +8801XXXXXXXXX, 8801XXXXXXXXX
+          const bdPhoneRegex = /^(?:\+8801|8801|01)[3-9]\d{8}$/;
+          return bdPhoneRegex.test(v);
+        },
+        message: `{VALUE} is not a valid phone number!`,
+      },
+    },
     registration_number: {
       type: String,
       required: [true, "Registration number is required"],
-      unique: [true, "Registration number must be unique"],
+      // unique: [true, "Registration number must be unique"],
       trim: true,
     },
     session: {
@@ -33,7 +46,7 @@ const StudentSchema = new Schema<IStudentSchema>(
     rfid: {
       type: String,
       required: [true, "RFID is required"],
-      unique: [true, "RFID must be unique"],
+      // unique: [true, "RFID must be unique"],
       trim: true,
     },
     department: {

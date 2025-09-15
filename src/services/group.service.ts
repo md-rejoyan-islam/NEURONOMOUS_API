@@ -1053,6 +1053,7 @@ const createStudentsForDepartment = async (
     session: string;
     registration_number: string;
     rfid: string;
+    phone?: string;
   }[]
 ) => {
   const group = await GroupModel.exists({ _id: groupId });

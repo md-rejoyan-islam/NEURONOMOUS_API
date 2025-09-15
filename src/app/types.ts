@@ -79,6 +79,7 @@ export interface IStudentSchema {
   email: string;
   session: string;
   registration_number: string;
+  phone: string;
   department: Types.ObjectId;
   rfid: string;
   createdAt: Date;
