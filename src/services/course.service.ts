@@ -3,6 +3,7 @@ import secret from "../app/secret";
 import { IPagination } from "../app/types";
 import { CourseModel } from "../models/course.model";
 import { DepartmentCourseModel } from "../models/department-course.model";
+import { AttendanceDeviceModel } from "../models/devices/attendance.model";
 import StudentModel from "../models/student.model";
 import { UserModel } from "../models/user.model";
 
@@ -374,7 +375,13 @@ const addAttendanceRecordByDevice = async ({
     timestamp: Date;
   }[];
 }) => {
-  console.log(deviceId);
+  const device = await AttendanceDeviceModel.findOne({
+    id: deviceId,
+  }).lean();
+
+  if (!device) {
+    throw new Error("Device not found.");
+  }
 
   const course = await CourseModel.findById(courseId);
 
@@ -572,6 +579,66 @@ const deleteAttendanceRecordByDate = async ({
   await course.save();
 };
 
+const getDeviceAllCoursesById = async (deviceId: string) => {
+  const device = await AttendanceDeviceModel.findOne({
+    id: deviceId,
+  })
+    .populate<{
+      allowed_users: {
+        _id: string;
+        first_name: string;
+        last_name: string;
+        email: string;
+        role: string;
+      }[];
+    }>("allowed_users", "first_name last_name email role")
+    .lean();
+
+  if (!device) {
+    throw new Error("Device not found");
+  }
+
+  const instuctor = device.allowed_users?.find((user) => user.role === "user");
+
+  if (!instuctor) {
+    throw new Error("No instructor assigned to this device");
+  }
+
+  const courses = await CourseModel.find({
+    instructor: instuctor._id,
+  })
+    .populate<{
+      course: {
+        _id: string;
+        name: string;
+        code: string;
+      };
+    }>("course", "name code")
+    .populate<{
+      enrolled_students: {
+        _id: string;
+        name: string;
+        email: string;
+        session: string;
+        registration_number: number;
+      }[];
+    }>("enrolled_students", "_id name email session registration_number")
+    .select("-__v")
+    .lean();
+
+  return {
+    instuctor: instuctor.first_name + " " + instuctor.last_name,
+    device_id: device.id,
+    courses: courses.map((course) => ({
+      _id: course._id,
+      code: course.course.code,
+      name: course.course.name,
+      session: course.session,
+      enrolled_students: course.enrolled_students,
+    })),
+  };
+};
+
 const courseService = {
   deleteAttendanceRecordByDate,
   getEnrolledStudentsByCourseId,
@@ -584,5 +651,6 @@ const courseService = {
   addAttendanceRecordByInstaructore,
   manuallyToggleAttendanceRecord,
   getCourseAttendanceRecordByDate,
+  getDeviceAllCoursesById,
 };
 export default courseService;

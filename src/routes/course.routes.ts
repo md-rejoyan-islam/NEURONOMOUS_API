@@ -22,11 +22,11 @@ courseRouter.get(
   courseController.getEnrolledStudentsByCourseId
 );
 
-courseRouter.post(
-  "/:courseId/attendance-by-device",
-  validate(courseValidator.addAttendanceByDeviceSchema),
-  courseController.addAttendanceRecordByDevice
-);
+// courseRouter.post(
+//   "/:courseId/attendance-by-device",
+//   validate(courseValidator.addAttendanceByDeviceSchema),
+//   courseController.addAttendanceRecordByDevice
+// );
 courseRouter.post(
   "/:courseId/attendance-records",
   validate(courseValidator.addAttendanceByInstaructoreSchema),

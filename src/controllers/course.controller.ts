@@ -74,6 +74,26 @@ const getAllCoursesByGroupId = asyncHandler(
   }
 );
 
+const getDeviceAllCoursesById = asyncHandler(
+  async (req: Request, res: Response) => {
+    if (!req.params.deviceId) {
+      throw createError.BadRequest("Device ID is required.");
+    }
+
+    const courses = await courseService.getDeviceAllCoursesById(
+      req.params.deviceId
+    );
+
+    successResponse(res, {
+      message: "Courses fetched successfully",
+      statusCode: 200,
+      payload: {
+        data: courses,
+      },
+    });
+  }
+);
+
 // create only course
 const createCourseByGroupAdmin = asyncHandler(
   async (req: Request, res: Response) => {
@@ -324,6 +344,7 @@ const courseController = {
   addAttendanceRecordByDevice,
   addAttendanceRecordByInstaructore,
   manuallyToggleAttendanceRecord,
+  getDeviceAllCoursesById,
 };
 
 export default courseController;

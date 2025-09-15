@@ -4,7 +4,6 @@ import secret from "./app/secret";
 import { connectDB } from "./config/db";
 import { setupMqttClient } from "./config/mqtt";
 import { initSocketServer } from "./socket";
-import initAttendanceWSServer from "./socket/attendance-ws";
 import { logger } from "./utils/logger";
 
 const PORT = secret.port;
@@ -16,7 +15,6 @@ setupMqttClient();
 
 // Initialize Socket.IO on the same HTTP server
 initSocketServer(server);
-initAttendanceWSServer(server2);
 
 const startServer = async () => {
   try {

@@ -12,4 +12,9 @@ openAccessRouter.post(
   courseController.enrollInCourseByRegistrationNumber
 );
 
+openAccessRouter.get(
+  "/device-courses/:deviceId",
+  courseController.getDeviceAllCoursesById
+);
+
 export default openAccessRouter;
