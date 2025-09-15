@@ -1,5 +1,7 @@
 import { Router } from "express";
 import courseController from "../controllers/course.controller";
+import validate from "../middlewares/validate";
+import courseValidator from "../validator/course.validator";
 
 const openAccessRouter = Router();
 
@@ -15,6 +17,12 @@ openAccessRouter.post(
 openAccessRouter.get(
   "/device-courses/:deviceId",
   courseController.getDeviceAllCoursesById
+);
+
+openAccessRouter.post(
+  "/add-attendance/from-device/:courseId",
+  validate(courseValidator.addAttendanceByDeviceSchema),
+  courseController.addAttendanceRecordByDevice
 );
 
 export default openAccessRouter;

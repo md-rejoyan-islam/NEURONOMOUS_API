@@ -404,13 +404,20 @@ const getAllUsersInGroup = asyncHandler(
       throw createError(400, "Invalid group ID.");
     }
 
+    const { limit = 10, page = 1, search = "" } = req.query;
+
     // Find the group and populate its members
-    const group = await groupService.getAllUsersInGroup(groupId);
+    const group = await groupService.getAllUsersInGroup({
+      groupId,
+      limit: Number(limit),
+      page: Number(page),
+      search: String(search),
+    });
 
     successResponse(res, {
       message: "Users in group retrieved successfully",
       payload: {
-        data: group.members,
+        data: group,
       },
     });
   }

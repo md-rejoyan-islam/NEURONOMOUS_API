@@ -1,5 +1,5 @@
 import createError from "http-errors";
-import { Types } from "mongoose";
+import mongoose, { Types } from "mongoose";
 import {
   IAttendanceDevice,
   IDevice,
@@ -699,18 +699,89 @@ const bulkChangeGroupDevicesNotice = async (
   return group;
 };
 
-// get all users in group service
-const getAllUsersInGroup = async (groupId: string): Promise<IGroup> => {
-  // Find the group and populate its members
+export const getAllUsersInGroup = async ({
+  groupId,
+  page = 1,
+  limit = 10,
+  search = "",
+}: {
+  groupId: string;
+  page?: number;
+  limit?: number;
+  search?: string;
+}) => {
+  const skip = (page - 1) * limit;
+
   const group = await GroupModel.findById(groupId)
-    .populate("members", "-password -__v")
+    .populate<{ members: IUser[] }>("members", "first_name last_name email")
     .lean();
 
   if (!group) {
     throw createError(404, "Group not found");
   }
 
-  return group;
+  const pipeline: mongoose.PipelineStage[] = [
+    {
+      $match: { _id: new mongoose.Types.ObjectId(groupId) },
+    },
+    {
+      $lookup: {
+        from: "users", // collection name of members
+        localField: "members",
+        foreignField: "_id",
+        as: "members",
+        pipeline: [
+          {
+            $match: {
+              $or: [
+                { first_name: { $regex: search, $options: "i" } },
+                { last_name: { $regex: search, $options: "i" } },
+                { email: { $regex: search, $options: "i" } },
+              ],
+            },
+          },
+          { $project: { password: 0, __v: 0 } },
+          { $skip: skip },
+          { $limit: limit },
+        ],
+      },
+    },
+    {
+      $project: {
+        name: 1,
+        description: 1,
+        members: 1,
+      },
+    },
+  ];
+
+  const groups = await GroupModel.aggregate(pipeline);
+
+  const items =
+    group.members.filter((member) => {
+      return (
+        member.first_name.toLowerCase().includes(search.toLowerCase()) ||
+        member.last_name.toLowerCase().includes(search.toLowerCase()) ||
+        member.email.toLowerCase().includes(search.toLowerCase())
+      );
+    }).length || 0;
+
+  const pagination: IPagination = {
+    items,
+    page: page,
+    limit: limit,
+    totalPages: Math.ceil(items / limit),
+  };
+
+  return {
+    name: group?.name,
+    _id: group?._id,
+    eiin: group?.eiin,
+    description: group?.description,
+    createdAt: group?.createdAt,
+    pagination,
+    members: groups[0]?.members || [],
+  };
 };
 
 // get all devices in group service
