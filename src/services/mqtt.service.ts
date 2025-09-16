@@ -9,10 +9,12 @@ const FIRMWARE_LOG_TOPIC_SUFFIX = "/ota/log";
 
 const macIds = new Set<string>();
 
+const firmwareUpdatingMacIds = new Set<string>();
+
 export const handleMqttMessage = async (topic: string, message: Buffer) => {
   const msg = message.toString();
 
-  console.log("mqtt message received", { topic, msg });
+  // console.log("mqtt message received", { topic, msg });
 
   try {
     if (topic === STATUS_TOPIC) {
@@ -33,6 +35,21 @@ export const handleMqttMessage = async (topic: string, message: Buffer) => {
       } = payload;
 
       if ((macIds.has(macId) && status === "online") || status === "offline") {
+        // if device goes offline, remove from firmwareUpdatingMacIds
+        console.log("Device reconnected or went offline:", macId, status);
+        console.log(firmwareUpdatingMacIds);
+
+        if (status === "offline" && firmwareUpdatingMacIds.has(macId)) {
+          firmwareUpdatingMacIds.delete(macId);
+          const device = await ClockDeviceModel.findOne({
+            mac_id: macId,
+          }).lean();
+          emitDeviceFirmwareUpdate({
+            id: device ? device._id.toString() : macId,
+            status: "firmware log message Progress: Failed",
+          });
+        }
+
         await clockService.updateDeviceStatusAndHandlePendingNotice(
           id,
           status,
@@ -142,6 +159,14 @@ export const handleMqttMessage = async (topic: string, message: Buffer) => {
     } else if (topic.endsWith(FIRMWARE_LOG_TOPIC_SUFFIX)) {
       // console.log("under firmware log topic", topic);
       console.log("firmware log message", msg);
+
+      if (msg.includes("Started")) {
+        const device_mac_id = topic.split("/")[2];
+        firmwareUpdatingMacIds.add(device_mac_id);
+      } else if (msg.includes("Rebooting")) {
+        const device_mac_id = topic.split("/")[2];
+        firmwareUpdatingMacIds.delete(device_mac_id);
+      }
 
       // 'devices/clock/20:43:A8:64:9C:DC/ota/log',
       const device_mac_id = topic.split("/")[2];
