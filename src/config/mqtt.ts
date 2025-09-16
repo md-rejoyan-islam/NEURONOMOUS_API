@@ -11,10 +11,11 @@ const mqttOptions = {
   rejectUnauthorized: false,
 };
 
-const STATUS_TOPIC = "esp32/status";
-const DATA_TOPIC_PREFIX = "esp32/data/ntp/";
-const NOTICE_TOPIC_PREFIX = "device/";
-const MODE_TOPIC_PREFIX = "device/";
+export const CLOCK_HEADER_TOPIC = "devices/clock/";
+export const STATUS_TOPIC = CLOCK_HEADER_TOPIC + "status";
+export const NOTICE_TOPIC_PREFIX = CLOCK_HEADER_TOPIC;
+export const MODE_TOPIC_PREFIX = CLOCK_HEADER_TOPIC;
+export const FIRMWARE_LOG_TOPIC_SUFFIX = CLOCK_HEADER_TOPIC + "ota/log";
 
 export let mqttClient: MqttClient;
 
@@ -26,12 +27,14 @@ export const setupMqttClient = () => {
       message: "Connected to MQTT broker",
       status: 200,
     });
-    mqttClient.subscribe(STATUS_TOPIC);
-    mqttClient.subscribe(`${DATA_TOPIC_PREFIX}#`);
-    mqttClient.subscribe(`${NOTICE_TOPIC_PREFIX}+/notice`);
-    mqttClient.subscribe(`${MODE_TOPIC_PREFIX}+/mode`);
-    mqttClient.subscribe(`device/+/ota/log`);
-    mqttClient.subscribe("esp32/lwt");
+
+    mqttClient.subscribe(CLOCK_HEADER_TOPIC + "#");
+    // mqttClient.subscribe(STATUS_TOPIC);
+    // mqttClient.subscribe(CLOCK_HEADER_TOPIC + "ota/control");
+    // mqttClient.subscribe(`${NOTICE_TOPIC_PREFIX}+/notice`);
+    // mqttClient.subscribe(`${MODE_TOPIC_PREFIX}+/mode`);
+    // mqttClient.subscribe(FIRMWARE_LOG_TOPIC_SUFFIX);
+    // mqttClient.subscribe("esp32/lwt");
   });
 
   mqttClient.on("message", handleMqttMessage);

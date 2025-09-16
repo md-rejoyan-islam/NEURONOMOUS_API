@@ -1,6 +1,6 @@
 import createError from "http-errors";
 import { IPagination } from "../app/types";
-import { mqttClient } from "../config/mqtt";
+import { CLOCK_HEADER_TOPIC, mqttClient } from "../config/mqtt";
 import { ClockDeviceModel } from "../models/devices/clock.model";
 import { FirmwareModel } from "../models/firmware.model";
 import { logger } from "../utils/logger";
@@ -149,7 +149,7 @@ const updateFirmwareById = async (id: string, version: string) => {
   }
 
   try {
-    const topic = `device/${device.mac_id}/ota/control`;
+    const topic = CLOCK_HEADER_TOPIC + `${device.mac_id}/ota/control`;
 
     await new Promise<void>((resolve, reject) => {
       mqttClient.publish(

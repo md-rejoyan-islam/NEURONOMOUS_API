@@ -618,9 +618,9 @@ const getDeviceAllCoursesById = async (deviceId: string) => {
       enrolled_students: {
         _id: string;
         name: string;
-        email: string;
-        session: string;
-        registration_number: number;
+        // email: string;
+        // session: string;
+        // registration_number: number;
       }[];
     }>("enrolled_students", "_id name email session registration_number")
     .select("-__v")
@@ -632,8 +632,8 @@ const getDeviceAllCoursesById = async (deviceId: string) => {
     courses: courses.map((course) => ({
       _id: course._id,
       code: course.course.code,
-      name: course.course.name,
-      session: course.session,
+      // name: course.course.name,
+      // session: course.session,
       enrolled_students: course.enrolled_students,
     })),
   };

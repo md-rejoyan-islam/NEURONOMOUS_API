@@ -1,9 +1,9 @@
+import { STATUS_TOPIC } from "../config/mqtt";
 import { ClockDeviceModel } from "../models/devices/clock.model";
 import { emitDeviceFirmwareUpdate } from "../socket";
 import { logger } from "../utils/logger";
 import clockService from "./devices/clock.service";
 
-const STATUS_TOPIC = "esp32/status";
 const DATA_TOPIC_PREFIX = "esp32/data/ntp/";
 const FIRMWARE_LOG_TOPIC_SUFFIX = "/ota/log";
 
@@ -11,6 +11,8 @@ const macIds = new Set<string>();
 
 export const handleMqttMessage = async (topic: string, message: Buffer) => {
   const msg = message.toString();
+
+  console.log("mqtt message received", { topic, msg });
 
   try {
     if (topic === STATUS_TOPIC) {
@@ -139,9 +141,10 @@ export const handleMqttMessage = async (topic: string, message: Buffer) => {
       //   );
     } else if (topic.endsWith(FIRMWARE_LOG_TOPIC_SUFFIX)) {
       // console.log("under firmware log topic", topic);
-      // console.log("firmware log message", msg);
+      console.log("firmware log message", msg);
 
-      const device_mac_id = topic.split("/")[1];
+      // 'devices/clock/20:43:A8:64:9C:DC/ota/log',
+      const device_mac_id = topic.split("/")[2];
 
       const device = await ClockDeviceModel.findOne({
         mac_id: device_mac_id,

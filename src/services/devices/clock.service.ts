@@ -2,7 +2,7 @@ import createError from "http-errors";
 import mongoose, { Types } from "mongoose";
 import secret from "../../app/secret";
 import { IDevice, IUser } from "../../app/types";
-import { mqttClient } from "../../config/mqtt";
+import { CLOCK_HEADER_TOPIC, mqttClient } from "../../config/mqtt";
 import {
   cancelScheduledNoticeJob,
   scheduleExpireJob,
@@ -22,7 +22,7 @@ const publishToDevice = async (
   topicSuffix: string,
   message: string
 ) => {
-  const topic = `device/${macId}/${topicSuffix}`;
+  const topic = CLOCK_HEADER_TOPIC + `${macId}/${topicSuffix}`;
   try {
     await new Promise<void>((resolve, reject) => {
       mqttClient.publish(topic, message, { qos: 1, retain: false }, (err) => {
@@ -245,7 +245,7 @@ const updateDeviceFirmware = async (id: string, firmwareId: string) => {
   }
 
   try {
-    const firmwareTopic = `device/${device.mac_id}/ota/control`;
+    const firmwareTopic = CLOCK_HEADER_TOPIC + `${device.mac_id}/ota/control`;
 
     const downloadUrl = `${secret.FIRMWARE_BASE_URL}/${firmwareId}/download`;
     console.log("Firmware download URL:", downloadUrl);
