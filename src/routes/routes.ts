@@ -11,7 +11,7 @@ import groupRouter from "./group.routes";
 import logRouter from "./logs.routes";
 import openAccessRouter from "./open-access.routes";
 import studentRouter from "./student.routes";
-import systemRouter from "./system.routes";
+import summaryRouter from "./summary.routes";
 import userRouter from "./user.routes";
 
 const router = Router();
@@ -42,8 +42,8 @@ router.use("/api/v1/users", userRouter);
 router.use("/api/v1/groups", groupRouter);
 // firmware routes
 router.use("/api/v1/firmwares", firmwareRouter);
-// system routes
-router.use("/api/v1/system", systemRouter);
+// summary routes
+router.use("/api/v1/summary", summaryRouter);
 // logs routes
 router.use("/api/v1/logs", logRouter);
 // logs routes
