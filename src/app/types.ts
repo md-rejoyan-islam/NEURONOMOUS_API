@@ -19,6 +19,7 @@ export type IFirmwareSchema = Document & {
   version: string;
   description: string;
   file: Buffer;
+  size: string;
   status: "active" | "inactive";
   device_type: "clock" | "attendance";
   createdAt: Date;

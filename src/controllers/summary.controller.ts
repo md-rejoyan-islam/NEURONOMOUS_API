@@ -60,11 +60,25 @@ const downloadStudentsSummary = asyncHandler(
   }
 );
 
+const getAllGroupSummaries = asyncHandler(
+  async (req: Request, res: Response) => {
+    const summary = await summaryService.getAllGroupSummaries();
+
+    successResponse(res, {
+      message: "Group summaries fetched successfully",
+      payload: {
+        data: summary,
+      },
+    });
+  }
+);
+
 const summaryController = {
   dashboardPageSummary,
   downloadClockDevicesSummary,
   downloadAttendanceDevicesSummary,
   downloadStudentsSummary,
+  getAllGroupSummaries,
 };
 
 export default summaryController;

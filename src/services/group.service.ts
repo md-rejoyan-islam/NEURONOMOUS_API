@@ -827,7 +827,7 @@ const getGroupByIdWithClocks = async (
     search?: string;
   }
 ) => {
-  const group = await ClockDeviceModel.find({
+  const clocks = await ClockDeviceModel.find({
     group: groupId,
     ...(search
       ? {
@@ -842,13 +842,7 @@ const getGroupByIdWithClocks = async (
     .select("-__v -createdAt -updatedAt")
     .lean();
 
-  console.log("Clock Devices:", group);
-
-  if (!group) {
-    throw createError(404, "Group not found.");
-  }
-
-  return group;
+  return clocks || [];
 };
 
 const getGroupByIdWithAttendanceDevices = async (
@@ -859,11 +853,7 @@ const getGroupByIdWithAttendanceDevices = async (
     group: groupId,
     ...(search
       ? {
-          $or: [
-            // { name: { $regex: search, $options: "i" } },
-            // { location: { $regex: search, $options: "i" } },
-            { id: { $regex: search, $options: "i" } },
-          ],
+          $or: [{ id: { $regex: search, $options: "i" } }],
         }
       : {}),
   })
@@ -897,26 +887,26 @@ const getGroupByIdWithAttendanceDevices = async (
     }>("allowed_users", "first_name last_name email role")
     .lean();
 
-  if (!devices.length) {
-    throw createError(404, "Group not found.");
-  }
-
-  return devices?.map((device) => ({
-    ...device,
-    allowed_users: device?.allowed_users?.filter(
-      (user) => user.role !== "admin"
-    ),
-    group: device.group
-      ? {
-          _id: device.group._id,
-          name: device.group.name,
-          admin: device.group.members.find((member) => member.role === "admin"),
-          members: device.group.members.filter(
-            (member) => member.role !== "admin"
-          ),
-        }
-      : null,
-  }));
+  return (
+    devices?.map((device) => ({
+      ...device,
+      allowed_users: device?.allowed_users?.filter(
+        (user) => user.role !== "admin"
+      ),
+      group: device.group
+        ? {
+            _id: device.group._id,
+            name: device.group.name,
+            admin: device.group.members.find(
+              (member) => member.role === "admin"
+            ),
+            members: device.group.members.filter(
+              (member) => member.role !== "admin"
+            ),
+          }
+        : null,
+    })) || []
+  );
 };
 
 const createCourseForDepartment = async ({

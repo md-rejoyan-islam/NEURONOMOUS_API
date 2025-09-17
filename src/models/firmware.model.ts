@@ -22,6 +22,10 @@ const FirmwareSchema: Schema<IFirmwareSchema> =
           "Firmware description must be at least 10 characters long",
         ],
       },
+      size: {
+        type: String,
+        required: [true, "Firmware size is required"],
+      },
       file: {
         type: Buffer,
         required: [true, "Firmware file is required"],

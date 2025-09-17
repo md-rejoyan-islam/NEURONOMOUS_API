@@ -75,16 +75,6 @@ export const initSocketServer = (server: HttpServer) => {
       }
     });
 
-    // sent active sessions  to client
-    // socket.emit("sessions:active", {
-    //   sessions: Array.from(activeSessions.entries()).map(
-    //     ([userId, socketId]) => ({
-    //       userId,
-    //       socketId,
-    //     })
-    //   ),
-    // });
-
     socket.on("active-users", (_, callback) => {
       const sessions = Array.from(activeSessions.keys());
       callback(sessions);

@@ -186,10 +186,35 @@ export const downloadStudentsSummary = async () => {
   return csv;
 };
 
+export const getAllGroupSummaries = async () => {
+  const groups = await GroupModel.find().lean();
+
+  return {
+    totalGroups: groups.length,
+    clocksUsed: groups.reduce((total, group) => {
+      const clockDevices = group.devices.filter(
+        (device) => device.deviceType === "clock"
+      );
+      return total + clockDevices.length;
+    }, 0),
+    attendancesUsed: groups.reduce((total, group) => {
+      const attendanceDevices = group.devices.filter(
+        (device) => device.deviceType === "attendance"
+      );
+      return total + attendanceDevices.length;
+    }, 0),
+    totalUsers: groups.reduce(
+      (total, group) => total + group.members.length,
+      0
+    ),
+  };
+};
+
 const summaryService = {
   dashboardPageSummary,
   downloadClockDevicesSummary,
   downloadAttendanceDevicesSummary,
   downloadStudentsSummary,
+  getAllGroupSummaries,
 };
 export default summaryService;

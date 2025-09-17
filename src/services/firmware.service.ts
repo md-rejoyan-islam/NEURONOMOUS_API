@@ -5,21 +5,6 @@ import { ClockDeviceModel } from "../models/devices/clock.model";
 import { FirmwareModel } from "../models/firmware.model";
 import { logger } from "../utils/logger";
 
-function formatFileSize(bytes: number): string {
-  if (bytes === 0) return "0 Bytes";
-
-  const units = ["Bytes", "KB", "MB", "GB", "TB", "PB"];
-  let size = bytes;
-  let unitIndex = 0;
-
-  while (size >= 1024 && unitIndex < units.length - 1) {
-    size /= 1024;
-    unitIndex++;
-  }
-
-  return `${size.toFixed(2)} ${units[unitIndex]}`;
-}
-
 // get all firmware versions
 const getAllFirmwares = async ({
   page,
@@ -57,6 +42,7 @@ const getAllFirmwares = async ({
   const firmwares = await FirmwareModel.find(query)
     .sort({ [sortBy]: order })
     .skip((page - 1) * limit)
+    .select("-file -__v")
     .limit(limit);
 
   const totalFirmwares = await FirmwareModel.countDocuments(query);
@@ -72,7 +58,7 @@ const getAllFirmwares = async ({
     firmwares: firmwares.map((firmware) => ({
       _id: firmware._id,
       version: firmware.version,
-      size: formatFileSize(firmware.file.length), // Convert bytes to KB
+      size: firmware.size,
       status: firmware.status,
       device_type: firmware.device_type,
       description: firmware.description,
@@ -96,6 +82,7 @@ const createFirmware = async (firmwareData: {
   version: number;
   description: string;
   device_type: "clock" | "attendance";
+  size: string;
   file: File | Buffer;
 }) => {
   const existingFirmware = await FirmwareModel.findOne({

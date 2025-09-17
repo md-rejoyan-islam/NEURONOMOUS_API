@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 
 import firmwareService from "../services/firmware.service";
 import { asyncHandler } from "../utils/async-handler";
+import formatFileSize from "../utils/format-flie-size";
 import { isValidMongoId } from "../utils/is-valid-mongo-id";
 import { successResponse } from "../utils/response-handler";
 
@@ -60,10 +61,13 @@ const createFirmware = asyncHandler(async (req: Request, res: Response) => {
     throw new Error("Firmware file is missing or invalid");
   }
 
+  const size = req.file.size;
+
   const firmware = await firmwareService.createFirmware({
     version: version,
     description,
     device_type,
+    size: formatFileSize(size),
     file: req.file.buffer as Buffer,
   });
 

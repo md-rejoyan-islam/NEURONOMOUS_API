@@ -3,6 +3,7 @@ import { Types } from "mongoose";
 import { IGroup, IUser } from "../../app/types";
 import { CourseModel } from "../../models/course.model";
 import { AttendanceDeviceModel } from "../../models/devices/attendance.model";
+import { FirmwareModel } from "../../models/firmware.model";
 import { GroupModel } from "../../models/group.model";
 
 const getAllAttendanceDevices = async () => {
@@ -56,6 +57,11 @@ const getAllAttendanceDevices = async () => {
 };
 
 const getAttendanceDeviceById = async (deviceId: string) => {
+  const existDevice = await AttendanceDeviceModel.exists({ _id: deviceId });
+  if (!existDevice) {
+    throw createError(404, "Device not found");
+  }
+
   const device = await AttendanceDeviceModel.findById(deviceId)
     .select("-__v -createdAt -updatedAt")
     .populate<{
@@ -88,8 +94,21 @@ const getAttendanceDeviceById = async (deviceId: string) => {
     }>("course", "name code department")
     .lean();
 
+  const firmwares = await FirmwareModel.find({
+    device_type: "attendance",
+    version: { $gt: device?.firmware_version || "0.0.0" },
+    status: "active",
+  })
+    .sort({ version: -1 })
+    .lean();
+
   return {
     ...device,
+    available_firmwares:
+      firmwares.map((fw) => ({
+        _id: fw._id,
+        version: fw.version,
+      })) || [],
     courses: courses.map((course) => ({
       _id: course._id,
       code: course.course.code,

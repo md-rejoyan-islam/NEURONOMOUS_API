@@ -550,6 +550,7 @@ const getDeviceById = async (id: string) => {
   if (!device) throw createError(404, `Device ${id} not found.`);
 
   const firmwares = await FirmwareModel.find({
+    device_type: "clock",
     version: { $gt: device.firmware_version || "0.0.0" },
     status: "active",
   })
