@@ -114,6 +114,7 @@ export interface IClockDeviceSchema {
   group: Types.ObjectId | null; // Reference to a Group model
   allowed_users?: Types.ObjectId[]; // Array of user IDs allowed to access the device
   pending_notice: boolean; // Indicates if there is a pending notice to be sent
+  scene: "scene1" | "scene2" | "scene0";
   scheduled_notices: {
     id: string; // Unique ID for the scheduled notice
     notice: string;

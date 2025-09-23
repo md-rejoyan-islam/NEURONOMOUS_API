@@ -434,7 +434,32 @@ const addClockToGroup = asyncHandler(
   }
 );
 
+const changeSingleDeviceScene = asyncHandler(
+  async (req: IRequestWithUser, res: Response) => {
+    const { deviceId } = req.params;
+    const { scene } = req.body;
+
+    if (!req.user) {
+      throw createError(401, "Unauthorized");
+    }
+
+    // const { _id: userId } = req.user;
+
+    if (!["scene0", "scene1", "scene2"].includes(scene)) {
+      throw createError(400, "Invalid scene.");
+    }
+
+    await clockService.changeDeviceScene(deviceId, scene);
+
+    successResponse(res, {
+      message: `Device ${deviceId} scene changed to ${scene}`,
+      statusCode: 200,
+    });
+  }
+);
+
 const clockController = {
+  changeSingleDeviceScene,
   addClockToGroup,
   getAllDevices,
   getDeviceById,

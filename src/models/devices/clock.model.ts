@@ -61,6 +61,15 @@ const ClockDeviceSchema: Schema<IClockDeviceSchema> =
         maxlength: [200, "Location must be at most 200 characters long"],
         default: null,
       },
+      scene: {
+        type: String,
+        enum: {
+          values: ["scene1", "scene0", "scene2"],
+          message:
+            "`{VALUE}` is not a valid scene. Allowed values are: scene1, scene2, scene0.",
+        },
+        default: "scene0",
+      },
       group: {
         type: Types.ObjectId,
         ref: "Group",

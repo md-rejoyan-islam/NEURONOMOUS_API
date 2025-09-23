@@ -9,6 +9,10 @@ openAccessRouter.get(
   "/course-enroll/:courseId",
   courseController.getCourseEnrollmentDataByCourseId
 );
+openAccessRouter.get(
+  "/course-enroll/:courseId",
+  courseController.getCourseEnrollmentDataByCourseId
+);
 openAccessRouter.post(
   "/course-enroll/:courseId",
   courseController.enrollInCourseByRegistrationNumber

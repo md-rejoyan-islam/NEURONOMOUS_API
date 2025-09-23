@@ -79,6 +79,11 @@ clockRouter.patch(
   clockController.changeSingleDeviceMode
 ); // COMPLETE
 
+clockRouter.patch(
+  "/:deviceId/change-scene",
+  clockController.changeSingleDeviceScene
+); // COMPLETE
+
 // schedule a notice for a specific device
 clockRouter.patch(
   "/:deviceId/scheduled-notice",

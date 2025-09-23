@@ -768,7 +768,22 @@ const addClockToGroup = async (
   return group;
 };
 
+const changeDeviceScene = async (id: string, scene: string) => {
+  const device = await ClockDeviceModel.findById(id);
+  if (!device) throw createError(404, `Device ${id} not found.`);
+
+  await ClockDeviceModel.findByIdAndUpdate(device._id, { scene });
+
+  const sceneValue = scene.split("scene")[1] || "0";
+  console.log(sceneValue, scene);
+
+  await publishToDevice(device.mac_id, "scene", sceneValue);
+
+  return {};
+};
+
 const clockService = {
+  changeDeviceScene,
   addClockToGroup,
   updateDeviceStatusAndHandlePendingNotice,
   restartDeviceById,
