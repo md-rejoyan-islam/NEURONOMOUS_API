@@ -1,0 +1,41 @@
+[
+  {
+    "_id": "64b8f3e2f1d2c8a1b2c3d4e5",
+    "start_time": "2024-07-01T08:00:00Z",
+    "end_time": "2024-07-01T09:00:00Z",
+    "is_executed": false,
+    "category": {
+      "device_id": "64b8f3e2f1d2c8a1b2c3d4e4",
+      "schedule_id": "64b8f3e2f1d2c8a1b2c3d4e3",
+      "for": "notice",
+      "message": "Morning meeting",
+      "count_type": "null"
+    }
+  },
+  {
+    "_id": "64b8f3e2f1d2c8a1b2c3d4e6",
+    "category": {
+      "device_id": "64b8f3e2f1d2c8a1b2c3d4e4",
+      "schedule_id": "64b8f3e2f1d2c8a1b2c3d4e3",
+      "for": "timer",
+      "message": null,
+      "count_type": "down"
+    },
+    "start_time": "2024-07-01T12:00:00Z",
+    "end_time": "2024-07-01T12:15:00Z",
+    "is_executed": false
+  },
+  {
+    "_id": "64b8f3e2f1d2c8a1b2c3d4e7",
+    "category": {
+      "device_id": "64b8f3e2f1d2c8a1b2c3d4e4",
+      "schedule_id": "64b8f3e2f1d2c8a1b2c3d4e3",
+      "for": "timer",
+      "message": null,
+      "count_type": "up"
+    },
+    "start_time": "2024-07-01T12:00:00Z",
+    "end_time": "2024-07-01T12:15:00Z",
+    "is_executed": true
+  }
+]

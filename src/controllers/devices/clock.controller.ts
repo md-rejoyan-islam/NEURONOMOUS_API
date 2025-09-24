@@ -468,9 +468,16 @@ const startStopwatchInDevice = asyncHandler(
 
     console.log(req.body);
 
-    const { start_time, end_time, mode } = req.body; // mode 1= count up, 2= count down 0 = stop
+    const { start_time, end_time, mode, is_scheduled } = req.body; // mode 1= count up, 2= count down 0 = stop
     if (!["up", "down"].includes(mode)) {
       throw createError(400, "Invalid mode.");
+    }
+    // if (!is_scheduled) {
+    //   throw createError(400, "is_scheduled is required.");
+    // }
+
+    if (typeof is_scheduled !== "boolean") {
+      throw createError(400, "is_scheduled must be a boolean.");
     }
 
     if (!start_time || !end_time) {
@@ -489,6 +496,7 @@ const startStopwatchInDevice = asyncHandler(
       start_time: Number(start_time),
       end_time: Number(end_time),
       mode,
+      is_scheduled,
     });
 
     successResponse(res, {

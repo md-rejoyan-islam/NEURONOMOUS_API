@@ -11,10 +11,12 @@ import {
 import { ClockDeviceModel } from "../../models/devices/clock.model";
 import { FirmwareModel } from "../../models/firmware.model";
 import { GroupModel } from "../../models/group.model";
+import { Schedule } from "../../models/schedule.model";
 import { UserModel } from "../../models/user.model";
 import { emitDeviceStatusUpdate } from "../../socket";
 import { dateFormat, formatBytes, formatUptime } from "../../utils/date-format";
 import { logger } from "../../utils/logger";
+import { agenda } from "../agenda.service";
 
 // Utility to publish messages to a device
 const publishToDevice = async (
@@ -25,13 +27,21 @@ const publishToDevice = async (
   const topic = CLOCK_HEADER_TOPIC + `${macId}/${topicSuffix}`;
   try {
     await new Promise<void>((resolve, reject) => {
-      mqttClient.publish(topic, message, { qos: 1, retain: false }, (err) => {
-        if (err) {
-          reject(err);
-        }
+      mqttClient.publish(
+        topic,
+        message,
+        {
+          qos: 1,
+          retain: false,
+        },
+        (err) => {
+          if (err) {
+            reject(err);
+          }
 
-        resolve();
-      });
+          resolve();
+        }
+      );
       logger.info(`Message "${message}" sent to ${topic}.`); // Log successful publish
     });
   } catch (error) {
@@ -775,7 +785,6 @@ const changeDeviceScene = async (id: string, scene: string) => {
   await ClockDeviceModel.findByIdAndUpdate(device._id, { scene });
 
   const sceneValue = scene.split("scene")[1] || "0";
-  console.log(sceneValue, scene);
 
   await publishToDevice(device.mac_id, "scene", sceneValue);
 
@@ -788,7 +797,13 @@ const startStopwatchInDevice = async (
     start_time,
     end_time,
     mode,
-  }: { start_time: number; end_time: number; mode: "up" | "down" }
+    is_scheduled,
+  }: {
+    start_time: number;
+    end_time: number;
+    mode: "up" | "down";
+    is_scheduled: boolean;
+  }
 ) => {
   const device = await ClockDeviceModel.findById(id);
   if (!device) throw createError(404, `Device ${id} not found.`);
@@ -799,15 +814,40 @@ const startStopwatchInDevice = async (
     last_seen: Date.now(),
   });
 
-  await publishToDevice(
-    device.mac_id,
-    "stopwatch",
-    JSON.stringify({
+  if (is_scheduled) {
+    const schedule = await Schedule.create({
       start_time,
       end_time,
-      type: mode === "up" ? 1 : 2,
-    })
-  );
+      is_executed: false,
+      category: {
+        count_type: mode,
+        device_id: device._id.toString(),
+        schedule_id: new Types.ObjectId().toString(),
+        for: "timer",
+      },
+    });
+
+    // send 1 min before start time
+    const fiveMinBefore = new Date(start_time - 0 * 60 * 1000);
+
+    await agenda.schedule(fiveMinBefore, "start-schedule", {
+      scheduleId: schedule._id,
+    });
+    await agenda.schedule(new Date(end_time), "end-schedule", {
+      scheduleId: schedule._id,
+    });
+  } else {
+    await publishToDevice(
+      device.mac_id,
+      "stopwatch",
+      JSON.stringify({
+        start_time,
+        end_time,
+        type: mode === "up" ? 2 : 1,
+      })
+    );
+  }
+
   // await publishToDevice(device.mac_id, "mode", "2"); // Switch to stopwatch mode
 
   return {};
@@ -861,6 +901,7 @@ const clockService = {
   giveDeviceAccessToUsersInGroup,
   revokeDeviceAccessFromUser,
   changeDeviceFontAndTimeFormat,
+  publishToDevice,
 };
 
 export default clockService;
