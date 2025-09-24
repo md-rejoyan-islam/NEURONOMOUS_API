@@ -98,7 +98,7 @@ export interface IClockDeviceSchema {
   id: string;
   mac_id: string;
   status: "online" | "offline";
-  mode: "clock" | "notice";
+  mode: "clock" | "notice" | "stopwatch";
   notice: string | null;
   name: string | null;
   uptime: number;
@@ -120,6 +120,12 @@ export interface IClockDeviceSchema {
     notice: string;
     start_time: number; // Unix timestamp in milliseconds
     duration: number; // duration in minutes
+  }[];
+  stopwatches: {
+    id: string; // Unique ID for the stopwatch
+    start_time: number; // Unix timestamp in milliseconds
+    end_time: number; // Unix timestamp in milliseconds
+    mode: "up" | "down";
   }[];
   font: string | null;
   time_format: "12h" | "24h";

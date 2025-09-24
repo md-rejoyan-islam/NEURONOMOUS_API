@@ -782,7 +782,62 @@ const changeDeviceScene = async (id: string, scene: string) => {
   return {};
 };
 
+const startStopwatchInDevice = async (
+  id: string,
+  {
+    start_time,
+    end_time,
+    mode,
+  }: { start_time: number; end_time: number; mode: "up" | "down" }
+) => {
+  const device = await ClockDeviceModel.findById(id);
+  if (!device) throw createError(404, `Device ${id} not found.`);
+
+  await ClockDeviceModel.findByIdAndUpdate(device._id, {
+    $push: { stopwatches: { start_time, end_time, mode } },
+    mode: "stopwatch",
+    last_seen: Date.now(),
+  });
+
+  await publishToDevice(
+    device.mac_id,
+    "stopwatch",
+    JSON.stringify({
+      start_time,
+      end_time,
+      type: mode === "up" ? 1 : 2,
+    })
+  );
+  // await publishToDevice(device.mac_id, "mode", "2"); // Switch to stopwatch mode
+
+  return {};
+};
+
+const stopStopwatchInDevice = async (id: string, stopWatchId: string) => {
+  const device = await ClockDeviceModel.findById(id);
+  if (!device) throw createError(404, `Device ${id} not found.`);
+
+  await ClockDeviceModel.findByIdAndUpdate(device._id, {
+    mode: "clock",
+    last_seen: Date.now(),
+    $pull: { stopwatches: { _id: stopWatchId } },
+  });
+
+  await publishToDevice(
+    device.mac_id,
+    "stopwatch",
+    JSON.stringify({
+      type: 0,
+    })
+  ); // Stop stopwatch
+  await publishToDevice(device.mac_id, "mode", "0"); // Switch to clock mode
+
+  return {};
+};
+
 const clockService = {
+  stopStopwatchInDevice,
+  startStopwatchInDevice,
   changeDeviceScene,
   addClockToGroup,
   updateDeviceStatusAndHandlePendingNotice,

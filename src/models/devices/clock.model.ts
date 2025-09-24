@@ -35,9 +35,9 @@ const ClockDeviceSchema: Schema<IClockDeviceSchema> =
       mode: {
         type: String,
         enum: {
-          values: ["clock", "notice"],
+          values: ["clock", "notice", "stopwatch"],
           message:
-            "`{VALUE}` is not a valid mode. Allowed values are: clock, notice.",
+            "`{VALUE}` is not a valid mode. Allowed values are: clock, notice, stopwatch.",
         },
         default: "clock",
       },
@@ -64,7 +64,7 @@ const ClockDeviceSchema: Schema<IClockDeviceSchema> =
       scene: {
         type: String,
         enum: {
-          values: ["scene1", "scene0", "scene2"],
+          values: ["scene1", "scene0", "scene2"], // HH:MM:SS or HH:MM-DD-MM
           message:
             "`{VALUE}` is not a valid scene. Allowed values are: scene1, scene2, scene0.",
         },
@@ -137,6 +137,22 @@ const ClockDeviceSchema: Schema<IClockDeviceSchema> =
           notice: { type: String, required: true },
           start_time: { type: Number, required: true }, // Unix timestamp in milliseconds
           duration: { type: Number, required: true }, // duration in minutes
+        },
+      ],
+      stopwatches: [
+        {
+          id: { type: String, required: true }, // Unique ID for the stopwatch
+          start_time: { type: Number, required: true }, // Unix timestamp in milliseconds
+          end_time: { type: Number, required: true }, // Unix timestamp in milliseconds
+          mode: {
+            type: String,
+            required: true,
+            enum: {
+              values: ["up", "down"],
+              message:
+                "`{VALUE}` is not a valid mode. Allowed values are: up, down.",
+            },
+          },
         },
       ],
     },

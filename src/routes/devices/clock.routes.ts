@@ -84,6 +84,16 @@ clockRouter.patch(
   clockController.changeSingleDeviceScene
 ); // COMPLETE
 
+clockRouter.patch(
+  "/:deviceId/start-stopwatch",
+  clockController.startStopwatchInDevice
+); // COMPLETE
+
+clockRouter.patch(
+  "/:deviceId/stop-stopwatch/:stopwatchId",
+  clockController.stopStopwatchInDevice
+); // COMPLETE
+
 // schedule a notice for a specific device
 clockRouter.patch(
   "/:deviceId/scheduled-notice",

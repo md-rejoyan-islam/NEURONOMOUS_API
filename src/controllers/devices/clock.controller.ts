@@ -458,7 +458,66 @@ const changeSingleDeviceScene = asyncHandler(
   }
 );
 
+const startStopwatchInDevice = asyncHandler(
+  async (req: IRequestWithUser, res: Response) => {
+    const { deviceId } = req.params;
+
+    if (!req.user) {
+      throw createError(401, "Unauthorized");
+    }
+
+    console.log(req.body);
+
+    const { start_time, end_time, mode } = req.body; // mode 1= count up, 2= count down 0 = stop
+    if (!["up", "down"].includes(mode)) {
+      throw createError(400, "Invalid mode.");
+    }
+
+    if (!start_time || !end_time) {
+      throw createError(400, "Start and end time are required.");
+    }
+
+    if (typeof start_time !== "number" || typeof end_time !== "number") {
+      throw createError(400, "Start and end time must be numbers.");
+    }
+
+    if (Number(start_time) >= Number(end_time)) {
+      throw createError(400, "Start time must be less than end time.");
+    }
+
+    await clockService.startStopwatchInDevice(deviceId, {
+      start_time: Number(start_time),
+      end_time: Number(end_time),
+      mode,
+    });
+
+    successResponse(res, {
+      message: `Stopwatch started in device ${deviceId}`,
+      statusCode: 200,
+    });
+  }
+);
+
+const stopStopwatchInDevice = asyncHandler(
+  async (req: IRequestWithUser, res: Response) => {
+    const { deviceId, stopwatchId } = req.params;
+
+    if (!req.user) {
+      throw createError(401, "Unauthorized");
+    }
+
+    await clockService.stopStopwatchInDevice(deviceId, stopwatchId);
+
+    successResponse(res, {
+      message: `Stopwatch stopped in device ${deviceId}`,
+      statusCode: 200,
+    });
+  }
+);
+
 const clockController = {
+  stopStopwatchInDevice,
+  startStopwatchInDevice,
   changeSingleDeviceScene,
   addClockToGroup,
   getAllDevices,
