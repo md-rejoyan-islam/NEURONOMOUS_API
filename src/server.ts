@@ -3,7 +3,7 @@ import app from "./app/app";
 import secret from "./app/secret";
 import { connectDB } from "./config/db";
 import { setupMqttClient } from "./config/mqtt";
-import { Schedule } from "./models/schedule.model";
+import { ClockDeviceModel } from "./models/devices/clock.model";
 import startAgenda, { agenda } from "./services/agenda.service";
 import { initSocketServer } from "./socket";
 import { logger } from "./utils/logger";
@@ -20,17 +20,27 @@ initSocketServer(server);
 
 // Schedule all pending jobs on server start
 const schedulePendingJobs = async () => {
-  const pendingSchedules = await Schedule.find({ is_executed: false });
+  const pendingDevices = await ClockDeviceModel.find(
+    {
+      "stopwatches.0": { $exists: true },
+    },
+    { stopwatches: 1 }
+  );
+  // const pendingSchedules = await Schedule.find({ is_executed: false });
+
+  const pendingSchedules = pendingDevices.flatMap(
+    (device) => device.stopwatches
+  );
 
   for (const sch of pendingSchedules) {
     // Schedule start job
     await agenda.schedule(new Date(sch.start_time), "start-schedule", {
-      scheduleId: sch._id,
+      scheduleId: `stopwatch-${sch._id}`,
     });
 
     // Schedule end job
     await agenda.schedule(new Date(sch.end_time), "end-schedule", {
-      scheduleId: sch._id,
+      scheduleId: `stopwatch-${sch._id}`,
     });
 
     console.log(`📌 Jobs scheduled for ${sch._id}`);

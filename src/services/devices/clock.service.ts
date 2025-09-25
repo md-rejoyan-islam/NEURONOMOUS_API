@@ -11,10 +11,9 @@ import {
 import { ClockDeviceModel } from "../../models/devices/clock.model";
 import { FirmwareModel } from "../../models/firmware.model";
 import { GroupModel } from "../../models/group.model";
-import { Schedule } from "../../models/schedule.model";
 import { UserModel } from "../../models/user.model";
 import { emitDeviceStatusUpdate } from "../../socket";
-import { dateFormat, formatBytes, formatUptime } from "../../utils/date-format";
+import { formatBytes, formatUptime } from "../../utils/_date-format";
 import { logger } from "../../utils/logger";
 import { agenda } from "../agenda.service";
 
@@ -71,10 +70,37 @@ const updateDeviceStatusAndHandlePendingNotice = async (
   const device = await ClockDeviceModel.findOne({ id }).lean();
 
   if (device) {
-    // if (device.status !== status || device.mode !== payload.mode) {
-    //   console.log("Updating device status for", device.mac_id, "to", status);
     emitDeviceStatusUpdate({ id });
-    // }
+
+    // schedules stopwatches
+    const stopwatches = device.stopwatches || [];
+
+    console.log("on/off");
+
+    // if has any running  stopwatch and device comes online, resend the stopwatch command
+    if (
+      status === "online" &&
+      device.status === "offline" &&
+      stopwatches.length
+    ) {
+      console.log("stopwatches check", stopwatches);
+      const runningStopwatches = stopwatches.filter(
+        (sw) =>
+          sw.start_time <= Date.now() &&
+          sw.end_time >= Date.now() &&
+          !sw.is_executed
+      );
+      for (const sw of runningStopwatches) {
+        // agenda added
+        await agenda.schedule(new Date(), "start-schedule", {
+          scheduleId: `stopwatch-${sw._id}`,
+        });
+        await agenda.schedule(new Date(sw.end_time), "end-schedule", {
+          scheduleId: `stopwatch-${sw._id}`,
+        });
+      }
+    }
+
     const macId = device.mac_id;
 
     // If device comes online, send pending notice if it exists
@@ -90,7 +116,7 @@ const updateDeviceStatusAndHandlePendingNotice = async (
         pending_notice: false,
         last_seen: Date.now(),
         ...payload,
-      });
+      }).exec();
       // Start a cron job to expire the notice
       if (device.duration) {
         scheduleExpireJob(id, device.duration);
@@ -547,7 +573,6 @@ const getAllDevices = async (
 
   return devices.map((device) => ({
     ...device,
-    last_seen: dateFormat(device.last_seen),
     uptime: formatUptime(device.uptime),
     free_heap: formatBytes(device.free_heap),
   }));
@@ -569,7 +594,6 @@ const getDeviceById = async (id: string) => {
 
   return {
     ...device,
-    last_seen: dateFormat(device.last_seen),
     uptime: formatUptime(device.uptime),
     free_heap: formatBytes(device.free_heap),
     available_firmwares:
@@ -768,7 +792,6 @@ const addClockToGroup = async (
   // name and location update
   device.name = name;
   device.location = location;
-  device.last_seen = Date.now();
   device.group = new Types.ObjectId(groupId);
 
   device.allowed_users = adminId ? [adminId] : [];
@@ -796,59 +819,82 @@ const startStopwatchInDevice = async (
   {
     start_time,
     end_time,
-    mode,
+    count_type,
     is_scheduled,
   }: {
     start_time: number;
     end_time: number;
-    mode: "up" | "down";
+    count_type: "up" | "down";
     is_scheduled: boolean;
   }
 ) => {
-  const device = await ClockDeviceModel.findById(id);
+  const device = await ClockDeviceModel.findById(id).lean();
   if (!device) throw createError(404, `Device ${id} not found.`);
 
-  await ClockDeviceModel.findByIdAndUpdate(device._id, {
-    $push: { stopwatches: { start_time, end_time, mode } },
-    mode: "stopwatch",
-    last_seen: Date.now(),
+  // 10 seconds extra to avoid overlapping due to time up delay
+  const extra10SecforTimesUp = 10 * 1000;
+
+  // check any schedule is already exist on this start and end time throw error
+  const overlappingStopwatch = device.stopwatches.find((sw) => {
+    return (
+      (start_time >= sw.start_time &&
+        start_time < sw.end_time + extra10SecforTimesUp) ||
+      (end_time > sw.start_time &&
+        end_time <= sw.end_time + extra10SecforTimesUp) ||
+      (start_time <= sw.start_time &&
+        end_time >= sw.end_time + extra10SecforTimesUp)
+    );
   });
-
-  if (is_scheduled) {
-    const schedule = await Schedule.create({
-      start_time,
-      end_time,
-      is_executed: false,
-      category: {
-        count_type: mode,
-        device_id: device._id.toString(),
-        schedule_id: new Types.ObjectId().toString(),
-        for: "timer",
-      },
-    });
-
-    // send 1 min before start time
-    const fiveMinBefore = new Date(start_time - 0 * 60 * 1000);
-
-    await agenda.schedule(fiveMinBefore, "start-schedule", {
-      scheduleId: schedule._id,
-    });
-    await agenda.schedule(new Date(end_time), "end-schedule", {
-      scheduleId: schedule._id,
-    });
-  } else {
-    await publishToDevice(
-      device.mac_id,
-      "stopwatch",
-      JSON.stringify({
-        start_time,
-        end_time,
-        type: mode === "up" ? 2 : 1,
-      })
+  if (overlappingStopwatch) {
+    throw createError(
+      400,
+      `Stopwatch overlaps with another stopwatch for device ${id}.`
     );
   }
 
-  // await publishToDevice(device.mac_id, "mode", "2"); // Switch to stopwatch mode
+  // check if is_scheduled false and device is offline then throw error
+  if (!is_scheduled && device.status !== "online") {
+    throw createError(400, `Device with ID ${id} is offline`);
+  }
+
+  // create new stopwatch entry
+  const stopwatchId = new mongoose.Types.ObjectId();
+  await ClockDeviceModel.findByIdAndUpdate(device._id, {
+    $push: {
+      stopwatches: {
+        _id: stopwatchId,
+        start_time,
+        end_time,
+        count_type,
+      },
+    },
+  }).exec();
+
+  //check schedule start time is within next 11 hours then immediately send to device
+  if (start_time > Date.now() + 11 * 60 * 60 * 1000) {
+    console.log("Scheduling stopwatch for later start:", stopwatchId);
+
+    // send one hour before start time
+    const oneHoursInMs = 1 * 60 * 60 * 1000;
+    await agenda.schedule(
+      new Date(start_time - oneHoursInMs),
+      "start-schedule",
+      {
+        scheduleId: `stopwatch-${stopwatchId}`,
+      }
+    );
+    await agenda.schedule(new Date(end_time), "end-schedule", {
+      scheduleId: `stopwatch-${stopwatchId}`,
+    });
+  } else {
+    // send immediately to device
+    await agenda.schedule(new Date(), "start-schedule", {
+      scheduleId: `stopwatch-${stopwatchId}`,
+    });
+    await agenda.schedule(new Date(end_time), "end-schedule", {
+      scheduleId: `stopwatch-${stopwatchId}`,
+    });
+  }
 
   return {};
 };
@@ -859,9 +905,16 @@ const stopStopwatchInDevice = async (id: string, stopWatchId: string) => {
 
   await ClockDeviceModel.findByIdAndUpdate(device._id, {
     mode: "clock",
-    last_seen: Date.now(),
     $pull: { stopwatches: { _id: stopWatchId } },
   });
+
+  // remove agenda jobs if existing
+  const jobs = await agenda.jobs({
+    "data.scheduleId": `stopwatch-${stopWatchId}`,
+  });
+  for (const job of jobs) {
+    await job.remove();
+  }
 
   await publishToDevice(
     device.mac_id,

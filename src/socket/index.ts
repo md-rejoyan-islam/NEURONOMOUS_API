@@ -103,7 +103,7 @@ export const getIO = () => {
 
 // Broadcast helpers
 export const emitDeviceStatusUpdate = (payload: { id: string }) => {
-  // console.log("Emitting device status update", payload);
+  console.log("Emitting device status update", payload);
 
   io?.emit(`device:${payload.id}:status`, payload);
   io?.emit(`device:status`, payload);

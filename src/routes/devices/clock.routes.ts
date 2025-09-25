@@ -84,13 +84,13 @@ clockRouter.patch(
   clockController.changeSingleDeviceScene
 ); // COMPLETE
 
-clockRouter.patch(
-  "/:deviceId/start-stopwatch",
+clockRouter.post(
+  "/:deviceId/stopwatch",
   clockController.startStopwatchInDevice
 ); // COMPLETE
 
-clockRouter.patch(
-  "/:deviceId/stop-stopwatch/:stopwatchId",
+clockRouter.delete(
+  "/:deviceId/stopwatch/:stopwatchId",
   clockController.stopStopwatchInDevice
 ); // COMPLETE
 

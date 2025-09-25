@@ -466,11 +466,9 @@ const startStopwatchInDevice = asyncHandler(
       throw createError(401, "Unauthorized");
     }
 
-    console.log(req.body);
-
-    const { start_time, end_time, mode, is_scheduled } = req.body; // mode 1= count up, 2= count down 0 = stop
-    if (!["up", "down"].includes(mode)) {
-      throw createError(400, "Invalid mode.");
+    const { start_time, end_time, count_type, is_scheduled } = req.body; // mode 1= count up, 2= count down 0 = stop
+    if (!["up", "down"].includes(count_type)) {
+      throw createError(400, "Invalid count type.");
     }
     // if (!is_scheduled) {
     //   throw createError(400, "is_scheduled is required.");
@@ -495,7 +493,7 @@ const startStopwatchInDevice = asyncHandler(
     await clockService.startStopwatchInDevice(deviceId, {
       start_time: Number(start_time),
       end_time: Number(end_time),
-      mode,
+      count_type,
       is_scheduled,
     });
 

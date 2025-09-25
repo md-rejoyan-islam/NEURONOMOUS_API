@@ -107,7 +107,7 @@ export interface IClockDeviceSchema {
   type: "single" | "double";
   free_heap: number;
   location: string | null;
-  last_seen: number; // Unix timestamp in milliseconds
+  // last_seen: number; // Unix timestamp in milliseconds
   duration: number | null; // duration in minutes, can be null
   start_time: number | null; // Unix timestamp in milliseconds, can be null
   last_firmware_update: number | null; // Unix timestamp in milliseconds, can be null
@@ -122,10 +122,11 @@ export interface IClockDeviceSchema {
     duration: number; // duration in minutes
   }[];
   stopwatches: {
-    id: string; // Unique ID for the stopwatch
+    _id: Types.ObjectId;
     start_time: number; // Unix timestamp in milliseconds
     end_time: number; // Unix timestamp in milliseconds
-    mode: "up" | "down";
+    count_type: "up" | "down"; // up => 2, down => 1 , stop => 0
+    is_executed: boolean;
   }[];
   font: string | null;
   time_format: "12h" | "24h";

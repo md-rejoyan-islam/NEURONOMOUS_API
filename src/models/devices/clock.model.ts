@@ -81,11 +81,6 @@ const ClockDeviceSchema: Schema<IClockDeviceSchema> =
           ref: "User",
         },
       ],
-      last_seen: {
-        type: Number, // Unix timestamp in milliseconds
-        default: () => Date.now(),
-        required: true,
-      }, // last when the device was online
       duration: {
         type: Number,
         default: null,
@@ -141,18 +136,18 @@ const ClockDeviceSchema: Schema<IClockDeviceSchema> =
       ],
       stopwatches: [
         {
-          id: { type: String, required: true }, // Unique ID for the stopwatch
           start_time: { type: Number, required: true }, // Unix timestamp in milliseconds
           end_time: { type: Number, required: true }, // Unix timestamp in milliseconds
-          mode: {
+          count_type: {
             type: String,
-            required: true,
+            required: [true, "Count type is required"],
             enum: {
-              values: ["up", "down"],
+              values: ["up", "down"], // up => 2, down => 1 , stop => 0
               message:
                 "`{VALUE}` is not a valid mode. Allowed values are: up, down.",
             },
           },
+          is_executed: { type: Boolean, default: false },
         },
       ],
     },

@@ -13,7 +13,7 @@ import { ClockDeviceModel } from "../models/devices/clock.model";
 import { GroupModel } from "../models/group.model";
 import StudentModel from "../models/student.model";
 import { UserModel } from "../models/user.model";
-import { dateFormat, formatBytes, formatUptime } from "../utils/date-format";
+import { dateFormat, formatBytes, formatUptime } from "../utils/_date-format";
 import clockService from "./devices/clock.service";
 
 // get all groups service
@@ -381,7 +381,6 @@ const getGroupById = async (groupId: string) => {
       if (deviceType === "clock") {
         acc.push({
           ...deviceId,
-          last_seen: dateFormat(deviceId.last_seen),
           uptime: formatUptime(deviceId.uptime),
           free_heap: formatBytes(deviceId.free_heap),
         });
@@ -525,7 +524,6 @@ const addDeviceToGroup = async (
   // name and location update
   device.name = name;
   device.location = location;
-  device.last_seen = Date.now();
   device.group = new Types.ObjectId(groupId);
 
   device.allowed_users = adminId ? [adminId] : [];
