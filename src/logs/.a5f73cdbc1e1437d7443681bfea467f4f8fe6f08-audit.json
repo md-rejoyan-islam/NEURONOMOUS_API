@@ -1,75 +1,45 @@
 {
-  "keep": {
-    "days": true,
-    "amount": 14
-  },
-  "auditLog": "src/logs/.a5f73cdbc1e1437d7443681bfea467f4f8fe6f08-audit.json",
-  "files": [
-    {
-      "date": 1757701244041,
-      "name": "src/logs/combined-2025-09-13.log",
-      "hash": "eeac7bdf6866933478a04c688993816f6922c99bc5be0d4c06c481b5cfb95d27"
+    "keep": {
+        "days": true,
+        "amount": 14
     },
-    {
-      "date": 1757787184361,
-      "name": "src/logs/combined-2025-09-14.log",
-      "hash": "a0be6afa2cf3157a0bb88a1b81b87bd0ba8697f6f52ead2db439d783e82cb001"
-    },
-    {
-      "date": 1757873426334,
-      "name": "src/logs/combined-2025-09-15.log",
-      "hash": "176f885095d9f211a0530df021353a7a0aa9cdd3431afb53179f010f3859714d"
-    },
-    {
-      "date": 1757977227795,
-      "name": "src/logs/combined-2025-09-16.log",
-      "hash": "017cd6cfb96a891223416b6cc9a230be89795d0350f8bb6e0b386ff44ee178ba"
-    },
-    {
-      "date": 1758047188288,
-      "name": "src/logs/combined-2025-09-17.log",
-      "hash": "144a09345f4a0049090662be2d64727e88f4c885f91903281b5ac3514efe8918"
-    },
-    {
-      "date": 1758132004348,
-      "name": "src/logs/combined-2025-09-18.log",
-      "hash": "32a65461b9d7775e05b880fc3e4d4738322068098ebd0c1d966c465f7b0a5f57"
-    },
-    {
-      "date": 1758218413216,
-      "name": "src/logs/combined-2025-09-19.log",
-      "hash": "c7016b95c77c344bbcd649a2d86fe30d27f253896e79f7ebf53aa2899f8e8f72"
-    },
-    {
-      "date": 1758357313712,
-      "name": "src/logs/combined-2025-09-20.log",
-      "hash": "1697f5bfda293d931c0c2015f377048924f8713d58c34cf335d025daf43308e7"
-    },
-    {
-      "date": 1758536782579,
-      "name": "src/logs/combined-2025-09-22.log",
-      "hash": "39353563dd9566715fbe2da218cef9c7bfc25114c7ef4c0aee05e952844e76b4"
-    },
-    {
-      "date": 1758601718041,
-      "name": "src/logs/combined-2025-09-23.log",
-      "hash": "215af616051df8945d86d8bd7552e3ac21a4a401abccb803ff266db41157d7e8"
-    },
-    {
-      "date": 1758685419348,
-      "name": "src/logs/combined-2025-09-24.log",
-      "hash": "94ac6fc40108cabe838be838b229d5dc2b29ab201dfe70dfc8ed6d2b5f6cfb9d"
-    },
-    {
-      "date": 1758746512635,
-      "name": "src/logs/combined-2025-09-25.log",
-      "hash": "0f1c7e3bcde6bcec9a9274fad5517440480708d0175ba1176b33f3e53f0b6842"
-    },
-    {
-      "date": 1758903658726,
-      "name": "src/logs/combined-2025-09-26.log",
-      "hash": "a22578414ea095ddf7f44fdc9ed09dd2201a6febde55868546a8d21f956ceb44"
-    }
-  ],
-  "hashType": "sha256"
+    "auditLog": "src/logs/.a5f73cdbc1e1437d7443681bfea467f4f8fe6f08-audit.json",
+    "files": [
+        {
+            "date": 1758357313712,
+            "name": "src/logs/combined-2025-09-20.log",
+            "hash": "1697f5bfda293d931c0c2015f377048924f8713d58c34cf335d025daf43308e7"
+        },
+        {
+            "date": 1758536782579,
+            "name": "src/logs/combined-2025-09-22.log",
+            "hash": "39353563dd9566715fbe2da218cef9c7bfc25114c7ef4c0aee05e952844e76b4"
+        },
+        {
+            "date": 1758601718041,
+            "name": "src/logs/combined-2025-09-23.log",
+            "hash": "215af616051df8945d86d8bd7552e3ac21a4a401abccb803ff266db41157d7e8"
+        },
+        {
+            "date": 1758685419348,
+            "name": "src/logs/combined-2025-09-24.log",
+            "hash": "94ac6fc40108cabe838be838b229d5dc2b29ab201dfe70dfc8ed6d2b5f6cfb9d"
+        },
+        {
+            "date": 1758746512635,
+            "name": "src/logs/combined-2025-09-25.log",
+            "hash": "0f1c7e3bcde6bcec9a9274fad5517440480708d0175ba1176b33f3e53f0b6842"
+        },
+        {
+            "date": 1758903658726,
+            "name": "src/logs/combined-2025-09-26.log",
+            "hash": "a22578414ea095ddf7f44fdc9ed09dd2201a6febde55868546a8d21f956ceb44"
+        },
+        {
+            "date": 1759515397532,
+            "name": "src/logs/combined-2025-10-04.log",
+            "hash": "5572b08a6e7499463b56111c34c8b0939c38ac0c199c927f0e5427c5db78011b"
+        }
+    ],
+    "hashType": "sha256"
 }

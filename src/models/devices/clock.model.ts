@@ -45,10 +45,9 @@ const ClockDeviceSchema: Schema<IClockDeviceSchema> =
         type: String,
         required: [true, "Firmware version is required"],
       },
-      notice: { type: String, default: null },
-      uptime: {
-        type: Number,
-        default: 0,
+      notice: {
+        message: { type: String, default: null },
+        is_pending: { type: Boolean, default: false },
       },
       name: {
         type: String,
@@ -81,57 +80,13 @@ const ClockDeviceSchema: Schema<IClockDeviceSchema> =
           ref: "User",
         },
       ],
-      duration: {
-        type: Number,
-        default: null,
-        validate: {
-          validator: function (val: number | null) {
-            return val === null || val >= 0;
-          },
-          message: "Duration must be greater than or equal to 0",
-        },
-      },
-      start_time: {
-        type: Number, // Unix timestamp in milliseconds
-        default: null,
-        validate: {
-          validator: function (val: number | null) {
-            // Allow null, otherwise must be a greater than Date.now()
-            return val === null || val > Date.now();
-          },
-          message: "Start time must be greater than the current time",
-        },
-      },
-      end_time: {
-        type: Number, // Unix timestamp in milliseconds
-        default: null,
-        validate: {
-          validator: function (val: number | null): boolean {
-            return (
-              val === null ||
-              (val > Date.now() &&
-                (this.start_time === null || val > this.start_time))
-            );
-          },
-          message:
-            "End time must be greater than the current time and start time",
-        },
-      },
       free_heap: { type: Number, default: 0 },
       timestamp: { type: String, default: null },
-      // history: [
-      //   {
-      //     message: { type: String, required: true },
-      //     timestamp: { type: Number, required: true }, // Unix timestamp in milliseconds
-      //   },
-      // ],
-      pending_notice: { type: Boolean, default: false },
       scheduled_notices: [
         {
-          id: { type: String, required: true }, // Unique ID for the scheduled notice
           notice: { type: String, required: true },
           start_time: { type: Number, required: true }, // Unix timestamp in milliseconds
-          duration: { type: Number, required: true }, // duration in minutes
+          end_time: { type: Number, required: true }, // duration in minutes
         },
       ],
       stopwatches: [

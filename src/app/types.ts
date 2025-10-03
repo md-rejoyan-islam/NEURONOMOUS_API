@@ -99,27 +99,25 @@ export interface IClockDeviceSchema {
   mac_id: string;
   status: "online" | "offline";
   mode: "clock" | "notice" | "stopwatch";
-  notice: string | null;
+  notice: {
+    message: string | null;
+    is_pending: boolean;
+  };
   name: string | null;
-  uptime: number;
-  end_time: number | null; // Unix timestamp in milliseconds, can be null
   firmware_version: string | null;
   type: "single" | "double";
   free_heap: number;
   location: string | null;
-  // last_seen: number; // Unix timestamp in milliseconds
-  duration: number | null; // duration in minutes, can be null
-  start_time: number | null; // Unix timestamp in milliseconds, can be null
   last_firmware_update: number | null; // Unix timestamp in milliseconds, can be null
   group: Types.ObjectId | null; // Reference to a Group model
   allowed_users?: Types.ObjectId[]; // Array of user IDs allowed to access the device
   pending_notice: boolean; // Indicates if there is a pending notice to be sent
   scene: "scene1" | "scene2" | "scene0";
   scheduled_notices: {
-    id: string; // Unique ID for the scheduled notice
+    _id: Types.ObjectId;
     notice: string;
     start_time: number; // Unix timestamp in milliseconds
-    duration: number; // duration in minutes
+    end_time: number; // duration in minutes
   }[];
   stopwatches: {
     _id: Types.ObjectId;

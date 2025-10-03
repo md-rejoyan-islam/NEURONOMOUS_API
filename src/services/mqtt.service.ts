@@ -19,20 +19,10 @@ export const handleMqttMessage = async (topic: string, message: Buffer) => {
   try {
     if (topic === STATUS_TOPIC) {
       const payload = JSON.parse(msg);
-      // console.log("mqtt payload", payload);
+      console.log("mqtt payload", payload);
 
-      const {
-        id,
-        macId,
-        status,
-        mode,
-        notice,
-        uptime,
-        free_heap,
-        firmware,
-        boards,
-        timestamp,
-      } = payload;
+      const { id, macId, status, mode, notice, free_heap, firmware, boards } =
+        payload;
 
       if ((macIds.has(macId) && status === "online") || status === "offline") {
         // if device goes offline, remove from firmwareUpdatingMacIds
@@ -54,11 +44,13 @@ export const handleMqttMessage = async (topic: string, message: Buffer) => {
           id,
           status,
           {
-            uptime,
             mode,
             free_heap,
-            notice,
-            timestamp,
+            notice: {
+              message: notice,
+              is_pending: false,
+            },
+            timestamp: new Date().toISOString(),
             firmware_version: firmware,
           }
         );
@@ -69,12 +61,14 @@ export const handleMqttMessage = async (topic: string, message: Buffer) => {
           mac_id: macId,
           status,
           mode,
-          notice,
-          uptime,
+          notice: {
+            message: notice,
+            is_pending: false,
+          },
           free_heap,
           type: boards == 1 ? "single" : "double",
           firmware_version: firmware,
-          timestamp,
+          timestamp: new Date().toISOString(),
         });
       }
     } else if (topic.startsWith(DATA_TOPIC_PREFIX)) {

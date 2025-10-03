@@ -152,9 +152,15 @@ const changeAllDevicesMode = asyncHandler(
  */
 const sendNoticeInDevice = asyncHandler(async (req: Request, res: Response) => {
   const { deviceId } = req.params;
-  const { notice, duration } = req.body;
+  const { notice, start_time, end_time, is_scheduled } = req.body;
 
-  await clockService.sendNoticeToDevice(deviceId, notice, duration);
+  await clockService.sendNoticeToDevice({
+    id: deviceId,
+    notice,
+    start_time,
+    end_time,
+    is_scheduled,
+  });
 
   successResponse(res, {
     message: `Notice sent to device ${deviceId}`,
@@ -203,10 +209,16 @@ const restartDeviceById = asyncHandler(async (req: Request, res: Response) => {
  */
 const sendNoticeToAllDevices = asyncHandler(
   async (req: Request, res: Response) => {
-    const { notice, duration, deviceIds } = req.body;
+    const { notice, start_time, end_time, is_scheduled, deviceIds } = req.body;
 
     // Assuming a service to send notice to all devices exists
-    await clockService.sendNoticeToAllDevices(notice, duration, deviceIds);
+    await clockService.sendNoticeToAllDevices({
+      notice,
+      start_time,
+      end_time,
+      is_scheduled,
+      deviceIds,
+    });
 
     successResponse(res, {
       message: "Notice sent to all devices successfully",
@@ -224,9 +236,9 @@ const sendNoticeToAllDevices = asyncHandler(
 const scheduleNoticeForDevice = asyncHandler(
   async (req: Request, res: Response) => {
     const { deviceId } = req.params;
-    const { notice, startTime, endTime } = req.body;
+    // const { notice, startTime, endTime } = req.body;
 
-    await clockService.scheduleNotice(deviceId, notice, startTime, endTime);
+    // await clockService.scheduleNotice(deviceId, notice, startTime, endTime);
 
     successResponse(res, {
       message: `Notice scheduled for device ${deviceId}`,
@@ -242,15 +254,15 @@ const scheduleNoticeForDevice = asyncHandler(
  */
 const scheduleNoticeForAllDevices = asyncHandler(
   async (req: Request, res: Response) => {
-    const { notice, startTime, endTime, deviceIds } = req.body;
+    // const { notice, startTime, endTime, deviceIds } = req.body;
 
     // Assuming a service to schedule notice for all devices exists
-    await clockService.scheduleNoticeToAllDevices(
-      notice,
-      startTime,
-      endTime,
-      deviceIds
-    );
+    // await clockService.scheduleNoticeToAllDevices(
+    //   notice,
+    //   startTime,
+    //   endTime,
+    //   deviceIds
+    // );
 
     successResponse(res, {
       message: "Notice scheduled for all devices successfully",

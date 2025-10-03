@@ -59,6 +59,37 @@ agenda.define("start-schedule", async (job: Job) => {
       ).exec();
 
       console.log("✅ Schedule executed:", scheduleId);
+    } else if (deviceType === "notice") {
+      const clockDevice = await ClockDeviceModel.findOne(
+        {
+          "scheduled_notices._id": scheduleId,
+        },
+        { "scheduled_notices.$": 1, status: 1, mac_id: 1, id: 1 }
+      ).lean();
+
+      if (!clockDevice) throw new Error("Clock device not found");
+
+      console.log("🔔 Sending notice:", scheduleId);
+      console.log(clockDevice);
+
+      if (!clockDevice.status || clockDevice.status !== "online")
+        throw new Error("Device is offline");
+
+      const schedule = clockDevice?.scheduled_notices[0] || [];
+      console.log("schedule", schedule);
+
+      // socket update
+
+      await clockService.sendNoticeToDevice({
+        id: clockDevice._id.toString(),
+        notice: schedule.notice,
+        start_time: 0,
+        end_time: schedule.end_time,
+        is_scheduled: false,
+      });
+      emitDeviceStatusUpdate({ id: clockDevice.id });
+
+      console.log("✅ Schedule notice executed:", scheduleId);
     }
   } catch {
     console.error("❌ Schedule failed.", scheduleId);
@@ -77,27 +108,53 @@ agenda.define("end-schedule", async (job: Job) => {
 
   console.log("agenda end scheduled");
 
-  const clockDevice = await ClockDeviceModel.findOne(
-    {
-      "stopwatches._id": scheduleId,
-    },
-    { "stopwatches.$": 1, status: 1, mac_id: 1, id: 1 }
-  );
+  if (deviceType === "stopwatch") {
+    const clockDevice = await ClockDeviceModel.findOne(
+      {
+        "stopwatches._id": scheduleId,
+      },
+      { "stopwatches.$": 1, status: 1, mac_id: 1, id: 1 }
+    );
 
-  console.log("clockDevice", clockDevice);
+    console.log("clockDevice", clockDevice);
 
-  if (!clockDevice) return;
+    if (!clockDevice) return;
 
-  await ClockDeviceModel.updateOne(
-    { _id: clockDevice._id },
-    {
-      $pull: { stopwatches: { _id: scheduleId } },
-      mode: "clock",
-    }
-  );
+    await ClockDeviceModel.updateOne(
+      { _id: clockDevice._id },
+      {
+        $pull: { stopwatches: { _id: scheduleId } },
+        mode: "clock",
+      }
+    );
 
-  // socket update
-  emitDeviceStatusUpdate({ id: clockDevice?.id });
+    // socket update
+    emitDeviceStatusUpdate({ id: clockDevice?.id });
+  } else if (deviceType === "notice") {
+    const clockDevice = await ClockDeviceModel.findOne(
+      {
+        "scheduled_notices._id": scheduleId,
+      },
+      { "scheduled_notices.$": 1, status: 1, mac_id: 1, id: 1 }
+    );
+
+    console.log("clockDevice", clockDevice);
+
+    if (!clockDevice) return;
+
+    await ClockDeviceModel.updateOne(
+      { _id: clockDevice._id },
+      {
+        $pull: { scheduled_notices: { _id: scheduleId } },
+        mode: "clock",
+      }
+    );
+
+    await clockService.publishToDevice(clockDevice.mac_id, "mode", "0");
+
+    // socket update
+    emitDeviceStatusUpdate({ id: clockDevice?.id });
+  }
 
   // const schedule = await Schedule.findById(scheduleId);
   // if (!schedule) return;

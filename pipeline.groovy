@@ -41,7 +41,37 @@ pipeline {
             steps {
                 script {
                     def envContent = '''
-                        paste env variables here
+                        MQTT_BROKER_URL= mqtts://iot.neuronomous.net
+                        MQTT_PORT = 8883
+                        MQTT_USER = sust_eee_i@t
+                        MQTT_PASS = eee_sust_iot_sylhet
+
+                        NODE_ENV = production
+                        MONGO_URI=mongodb://sust_eee:seueset_2_3_4@127.0.0.1:27017/neuronomous?authSource=admin
+
+                        SERVER_PORT=5050
+                        SERVER_PORT2=5051
+                        MAX_REQUESTS = 30
+                        MAX_REQUESTS_WINDOW = 60000 # 1 minutes
+                        CLIENT_WHITELIST = http://localhost:3000,https://neuronomous.net
+                        # JWT secrets
+                        JWT_ACCESS_TOKEN_EXPIRES_IN= 18000 # 5 hour
+                        JWT_REFRESH_TOKEN_EXPIRES_IN= 86400 # 24 hours
+                        JWT_ACCESS_TOKEN_SECRET= 1a2b3c4d5e6f7g8h9i0j34f%$^&*(VGV)
+                        JWT_REFRESH_TOKEN_SECRET= 1a2b3c4d5e6f7g8h9i0jswr9343fv
+                        # Password reset
+                        PASSWORD_RESET_CODE_EXPIRES_IN = 10 # 10 minutes
+                        # Nodemailer configuration
+                        EMAIL_HOST = smtp.gmail.com
+                        EMAIL_PORT = 587
+                        EMAIL_USERNAME = neuronomous.iot@gmail.com
+                        EMAIL_PASSWORD = bllj jolp trkh irtu
+                        EMAIL_FROM = neuronomous.iot@gmail.com
+
+                        # Client URL
+                        CLIENT_URL = https://neuronomous.net
+                        PRODUCTION_CLIENT_URL = https://neuronomous.net
+                        FIRMWARE_BASE_URL = https://neuronomous.net/api/v1/firmwares
                         '''
                     writeFile file: "${WORKSPACE}/.env", text: envContent
                     echo '✅ .env file generated'

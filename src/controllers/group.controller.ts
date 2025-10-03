@@ -2,7 +2,6 @@ import { Response } from "express";
 import createError from "http-errors";
 import { Types } from "mongoose";
 import { IRequestWithUser } from "../app/types";
-import { ClockDeviceModel } from "../models/devices/clock.model";
 import { GroupModel } from "../models/group.model";
 import clockService from "../services/devices/clock.service";
 
@@ -478,7 +477,7 @@ const scheduleNoticeForDeviceInGroup = async (
   res: Response
 ) => {
   const { groupId, deviceId } = req.params;
-  const { notice, startTime, endTime } = req.body;
+  // const { notice, startTime, endTime } = req.body;
 
   const group = await GroupModel.findById(groupId)
     .select("devices")
@@ -502,7 +501,7 @@ const scheduleNoticeForDeviceInGroup = async (
     throw createError(404, "Device not found in this group.");
   }
 
-  await clockService.scheduleNotice(deviceId, notice, startTime, endTime);
+  // await clockService.scheduleNotice(deviceId, notice, startTime, endTime);
 
   successResponse(res, {
     message: `Notice scheduled for device ${deviceId}`,
@@ -521,7 +520,7 @@ const scheduleNoticeForAllDevicesInGroup = async (
 ) => {
   const { groupId } = req.params;
 
-  const { notice, startTime, endTime } = req.body;
+  // const { notice, startTime, endTime } = req.body;
 
   const group = await GroupModel.findById(groupId)
     .select("devices")
@@ -531,15 +530,15 @@ const scheduleNoticeForAllDevicesInGroup = async (
     throw createError(404, "Group not found.");
   }
 
-  const devices = await ClockDeviceModel.find({
-    _id: { $in: group.devices },
-  })
-    .select("id")
-    .lean();
+  // const devices = await ClockDeviceModel.find({
+  //   _id: { $in: group.devices },
+  // })
+  //   .select("id")
+  //   .lean();
 
-  for (const device of devices) {
-    await clockService.scheduleNotice(device.id, notice, startTime, endTime);
-  }
+  // for (const device of devices) {
+  //   // await clockService.scheduleNotice(device.id, notice, startTime, endTime);
+  // }
 
   successResponse(res, {
     message: "Notice scheduled for all devices successfully",

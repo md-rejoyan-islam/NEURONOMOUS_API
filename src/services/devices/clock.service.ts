@@ -3,17 +3,13 @@ import mongoose, { Types } from "mongoose";
 import secret from "../../app/secret";
 import { IDevice, IUser } from "../../app/types";
 import { CLOCK_HEADER_TOPIC, mqttClient } from "../../config/mqtt";
-import {
-  cancelScheduledNoticeJob,
-  scheduleExpireJob,
-  scheduleNoticeJob,
-} from "../../cron/scheduler";
+import { cancelScheduledNoticeJob } from "../../cron/scheduler";
 import { ClockDeviceModel } from "../../models/devices/clock.model";
 import { FirmwareModel } from "../../models/firmware.model";
 import { GroupModel } from "../../models/group.model";
 import { UserModel } from "../../models/user.model";
 import { emitDeviceStatusUpdate } from "../../socket";
-import { formatBytes, formatUptime } from "../../utils/_date-format";
+import { formatBytes } from "../../utils/_date-format";
 import { logger } from "../../utils/logger";
 import { agenda } from "../agenda.service";
 
@@ -59,10 +55,12 @@ const updateDeviceStatusAndHandlePendingNotice = async (
   id: string,
   status: "online" | "offline",
   payload: {
-    uptime: number;
     mode: "clock" | "notice";
     free_heap: number;
-    notice: string;
+    notice: {
+      message: string | null;
+      is_pending: boolean;
+    };
     firmware_version: string;
     timestamp: string;
   }
@@ -107,9 +105,9 @@ const updateDeviceStatusAndHandlePendingNotice = async (
     if (
       status === "online" &&
       device.status === "offline" &&
-      device.pending_notice
+      device.notice.is_pending
     ) {
-      await publishToDevice(macId, "notice", device.notice!);
+      await publishToDevice(macId, "notice", device.notice.message!);
       await publishToDevice(macId, "mode", "1"); // Switch to notice mode
       await ClockDeviceModel.findByIdAndUpdate(device._id, {
         status: "online",
@@ -118,9 +116,9 @@ const updateDeviceStatusAndHandlePendingNotice = async (
         ...payload,
       }).exec();
       // Start a cron job to expire the notice
-      if (device.duration) {
-        scheduleExpireJob(id, device.duration);
-      }
+      // if (device.duration) {
+      //   scheduleExpireJob(id, device.duration);
+      // }
     } else {
       // Just update the status and other info
       await ClockDeviceModel.findByIdAndUpdate(device._id, {
@@ -199,58 +197,93 @@ const changeAllDevicesMode = async (
 };
 
 // Send a notice to a single device (with duration)
-const sendNoticeToDevice = async (
-  id: string,
-  notice: string,
-  duration: number | null
-) => {
+const sendNoticeToDevice = async ({
+  id,
+  notice,
+  start_time,
+  end_time,
+  is_scheduled,
+}: {
+  id: string;
+  notice: string;
+  start_time: number;
+  end_time: number;
+  is_scheduled: boolean;
+}) => {
   const device = await ClockDeviceModel.findById(id)
-    .select("status mac_id _id")
+    .select("status mac_id _id mode notice scheduled_notices last_seen")
     .exec();
+
   if (!device) throw createError(404, `Device ${id} not found.`);
 
-  // Save the notice and duration to history
-  // const historyEntry = { message: notice, timestamp: Date.now() };
-  // device.history.push(historyEntry);
+  // if end time is provided, add to scheduled notices
+  let noticeScheduledId: Types.ObjectId | null = null;
 
-  // If the device is offline, set pending_notice flag
-  if (device.status === "offline") {
-    device.pending_notice = true;
-    device.notice = notice;
-    device.duration = duration;
-    await device.save();
-    if (duration && duration > 0) {
-      scheduleExpireJob(id, duration);
+  if (end_time > 0) {
+    noticeScheduledId = new mongoose.Types.ObjectId();
+    device.scheduled_notices.push({
+      _id: noticeScheduledId,
+      notice,
+      start_time: is_scheduled ? start_time : Date.now(),
+      end_time,
+    });
+  }
+
+  if (is_scheduled) {
+    console.log("schedule notice", { start_time, end_time });
+
+    // start time is when the notice should start
+    await agenda.schedule(new Date(start_time), "start-schedule", {
+      scheduleId: `notice-${noticeScheduledId}`,
+    });
+    // end time is when the notice should end
+    await agenda.schedule(new Date(end_time), "end-schedule", {
+      scheduleId: `notice-${noticeScheduledId}`,
+    });
+  } else {
+    device.notice = {
+      message: notice,
+      is_pending: !!end_time && device.status === "offline",
+    };
+    if (device.status === "offline") {
+      if (end_time > 0) {
+        await agenda.schedule(new Date(end_time), "end-schedule", {
+          scheduleId: `notice-${noticeScheduledId}`,
+        });
+        // scheduleExpireJob(id, duration);
+      }
+    } else {
+      // If online, publish the notice and mode change
+      await publishToDevice(device.mac_id, "notice", notice);
+      await publishToDevice(device.mac_id, "mode", "1"); // Switch to notice mode
+      // update device mode to notice
+      device.mode = "notice";
+
+      if (!is_scheduled && end_time > 0) {
+        await agenda.schedule(new Date(end_time), "end-schedule", {
+          scheduleId: `notice-${noticeScheduledId}`,
+        });
+      }
     }
-    return device;
   }
-
-  // If online, publish the notice and mode change
-  await publishToDevice(device.mac_id, "notice", notice);
-  await publishToDevice(device.mac_id, "mode", "1"); // Switch to notice mode
-
-  // Save to DB and schedule the job
-  await ClockDeviceModel.findByIdAndUpdate(device._id, {
-    notice,
-    duration,
-    mode: "notice",
-    last_seen: Date.now(),
-    // history: device.history,
-  });
-  if (duration && duration > 0) {
-    console.log("Scheduling expire job for", id, "with duration", duration);
-
-    scheduleExpireJob(id, duration);
-  }
+  await device.save();
 
   return device;
 };
 // Show notice on all devices
-const sendNoticeToAllDevices = async (
-  notice: string,
-  duration: number | null,
-  deviceIds: string[]
-) => {
+const sendNoticeToAllDevices = async ({
+  notice,
+  start_time,
+  end_time,
+  is_scheduled,
+  deviceIds,
+}: {
+  notice: string;
+  start_time: number;
+  end_time: number;
+  is_scheduled: boolean;
+  deviceIds: string[];
+}) => {
   const devices = await ClockDeviceModel.find({
     _id: { $in: deviceIds },
   })
@@ -258,7 +291,14 @@ const sendNoticeToAllDevices = async (
     .lean();
   for (const device of devices) {
     // if (device.status === "online") {
-    sendNoticeToDevice(device._id.toString(), notice, duration);
+    // sendNoticeToDevice(device._id.toString(), notice, duration);
+    sendNoticeToDevice({
+      id: device._id.toString(),
+      notice,
+      start_time,
+      end_time,
+      is_scheduled,
+    });
     // }
   }
   return { message: `Notice sent to all online devices.` };
@@ -310,69 +350,69 @@ const updateDeviceFirmware = async (id: string, firmwareId: string) => {
 };
 
 // Send a scheduled notice to a single device
-const scheduleNotice = async (
-  id: string,
-  notice: string,
-  startTime: number,
-  endTime: number
-) => {
-  const device = await ClockDeviceModel.findById(id);
-  if (!device) throw createError(404, `Device ${id} not found.`);
+// const scheduleNotice = async (
+//   id: string,
+//   notice: string,
+//   startTime: number,
+//   endTime: number
+// ) => {
+//   const device = await ClockDeviceModel.findById(id);
+//   if (!device) throw createError(404, `Device ${id} not found.`);
 
-  // check if any sceduled notice overlaps
-  const overlappingNotice = device.scheduled_notices.find((scheduled) => {
-    const scheduledEndTime = scheduled.start_time + scheduled.duration * 60000; // Convert minutes to milliseconds
-    return scheduled.start_time < endTime && scheduledEndTime > startTime;
-  });
-  if (overlappingNotice) {
-    throw createError(
-      400,
-      `Scheduled notice overlaps with another notice for device ${id}.`
-    );
-  }
+//   // check if any sceduled notice overlaps
+//   const overlappingNotice = device.scheduled_notices.find((scheduled) => {
+//     const scheduledEndTime = scheduled.start_time + scheduled.duration * 60000; // Convert minutes to milliseconds
+//     return scheduled.start_time < endTime && scheduledEndTime > startTime;
+//   });
+//   if (overlappingNotice) {
+//     throw createError(
+//       400,
+//       `Scheduled notice overlaps with another notice for device ${id}.`
+//     );
+//   }
 
-  const schedule = {
-    id: new mongoose.Types.ObjectId().toString(), // Generate a unique ID
-    notice,
-    start_time: startTime,
-    duration: (endTime - startTime) / 60000, // Convert milliseconds to minutes
-  };
+//   const schedule = {
+//     id: new mongoose.Types.ObjectId().toString(), // Generate a unique ID
+//     notice,
+//     start_time: startTime,
+//     duration: (endTime - startTime) / 60000, // Convert milliseconds to minutes
+//   };
 
-  // Store the scheduled notice in the database
-  device.scheduled_notices.push(schedule);
+//   // Store the scheduled notice in the database
+//   device.scheduled_notices.push(schedule);
 
-  await device.save();
+//   await device.save();
 
-  // Schedule a cron job to send the notice at the specified time
-  scheduleNoticeJob(
-    id,
-    schedule.id,
-    (endTime - startTime) / 60000,
-    new Date(startTime)
-  );
+//   // Schedule a cron job to send the notice at the specified time
+//   scheduleNoticeJob(
+//     id,
+//     schedule.id,
+//     (endTime - startTime) / 60000,
+//     new Date(startTime)
+//   );
 
-  return device;
-};
+//   return device;
+// };
 
 // Send a scheduled notice to all devices
-const scheduleNoticeToAllDevices = async (
-  notice: string,
-  startTime: number,
-  endTime: number,
-  deviceIds: string[]
-) => {
-  const devices = await ClockDeviceModel.find({
-    _id: { $in: deviceIds },
-  })
-    .select("id")
-    .lean();
+// const scheduleNoticeToAllDevices = async (
+//   notice: string,
+//   startTime: number,
+//   endTime: number,
+//   deviceIds: string[]
+// ) => {
+//   const devices = await ClockDeviceModel.find({
+//     _id: { $in: deviceIds },
+//   })
+//     .select("id")
+//     .lean();
 
-  for (const device of devices) {
-    // Schedule the notice for each device
-    await scheduleNotice(device._id.toString(), notice, startTime, endTime);
-  }
-  return { message: `Scheduled notice sent to all devices.` };
-};
+//   for (const device of devices) {
+//     // Schedule the notice for each device
+//     await scheduleNotice(device._id.toString(), notice, startTime, endTime);
+//   }
+//   return { message: `Scheduled notice sent to all devices.` };
+// };
 
 // Get all scheduled notices
 const getAllScheduledNotices = async () => {
@@ -386,9 +426,7 @@ const getScheduledNoticesForDevice = async (id: string) => {
   return device.scheduled_notices.map((notice) => ({
     ...notice,
     start_time: new Date(notice.start_time).toISOString(),
-    end_time: new Date(
-      notice.start_time + notice.duration * 60000
-    ).toISOString(),
+    end_time: new Date(notice.end_time).toISOString(),
   }));
 };
 
@@ -398,7 +436,7 @@ const cancelScheduledNotice = async (id: string, scheduledId: string) => {
   if (!device) throw createError(404, `Device ${id} not found.`);
   // Find the scheduled notice by ID
   const scheduledNoticeIndex = device.scheduled_notices.findIndex(
-    (notice) => notice.id === scheduledId
+    (notice) => notice._id.toString() === scheduledId
   );
   if (scheduledNoticeIndex === -1) {
     throw createError(404, `Scheduled notice ${scheduledId} not found.`);
@@ -476,7 +514,7 @@ const sendScheduledNotice = async (id: string, scheduleId: string) => {
     }
 
     const scheduledNotice = device.scheduled_notices.find(
-      (notice) => notice.id === scheduleId
+      (notice) => notice._id.toString() === scheduleId
     );
     if (!scheduledNotice) {
       return logger.warn(
@@ -484,13 +522,16 @@ const sendScheduledNotice = async (id: string, scheduleId: string) => {
       );
     }
 
-    const { notice, duration } = scheduledNotice;
+    const { notice } = scheduledNotice;
 
     if (device.status === "offline") {
       await ClockDeviceModel.findByIdAndUpdate(device._id, {
         pending_notice: true,
-        notice,
-        duration,
+        notice: {
+          message: notice,
+          is_pending: true,
+        },
+
         $pull: { scheduled_notices: { id: scheduleId } },
       })
         .lean()
@@ -516,7 +557,7 @@ const sendScheduledNotice = async (id: string, scheduleId: string) => {
     logger.info(`Scheduled notice sent to device ${id}: "${notice}"`);
 
     // Now schedule the job to expire the notice after its duration
-    scheduleExpireJob(id, duration);
+    // scheduleExpireJob(id, duration);
   } catch (err) {
     logger.error(`Error sending scheduled notice for device ${id}:`, err);
   }
@@ -573,7 +614,6 @@ const getAllDevices = async (
 
   return devices.map((device) => ({
     ...device,
-    uptime: formatUptime(device.uptime),
     free_heap: formatBytes(device.free_heap),
   }));
 };
@@ -594,7 +634,6 @@ const getDeviceById = async (id: string) => {
 
   return {
     ...device,
-    uptime: formatUptime(device.uptime),
     free_heap: formatBytes(device.free_heap),
     available_firmwares:
       firmwares.map((fw) => ({
@@ -940,8 +979,8 @@ const clockService = {
   sendNoticeToDevice,
   sendNoticeToAllDevices,
   updateDeviceFirmware,
-  scheduleNotice,
-  scheduleNoticeToAllDevices,
+  // scheduleNotice,
+  // scheduleNoticeToAllDevices,
   getAllScheduledNotices,
   getScheduledNoticesForDevice,
   cancelScheduledNotice,

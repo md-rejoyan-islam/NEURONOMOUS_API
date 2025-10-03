@@ -13,7 +13,7 @@ import { ClockDeviceModel } from "../models/devices/clock.model";
 import { GroupModel } from "../models/group.model";
 import StudentModel from "../models/student.model";
 import { UserModel } from "../models/user.model";
-import { dateFormat, formatBytes, formatUptime } from "../utils/_date-format";
+import { dateFormat, formatBytes } from "../utils/_date-format";
 import clockService from "./devices/clock.service";
 
 // get all groups service
@@ -381,7 +381,6 @@ const getGroupById = async (groupId: string) => {
       if (deviceType === "clock") {
         acc.push({
           ...deviceId,
-          uptime: formatUptime(deviceId.uptime),
           free_heap: formatBytes(deviceId.free_heap),
         });
       }
@@ -809,11 +808,13 @@ const sendNoticeToAllDevicesServiceInGroup = async (
     _id: { $in: group.devices },
   }).lean();
 
-  for (const device of devices) {
-    // if (device.status === "online") {
-    clockService.sendNoticeToDevice(device.id, notice, duration);
-    // }
-  }
+  console.log(devices, notice, duration);
+
+  // for (const device of devices) {
+  //   // if (device.status === "online") {
+  //   // clockService.sendNoticeToDevice(device.id, notice, duration);
+  //   // }
+  // }
   return { message: `Notice sent to all online devices.` };
 };
 

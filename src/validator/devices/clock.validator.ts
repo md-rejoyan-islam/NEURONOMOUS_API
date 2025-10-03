@@ -60,11 +60,27 @@ export const sendNoticeToDevice = z.object({
   body: z
     .object({
       notice: z.string().min(1, "Notice must be a non-empty string."),
-      duration: z
+      start_time: z.number().int("Start time must be a valid timestamp."),
+      end_time: z
         .number()
-        .int("Duration must be an integer.")
-        .min(1, "Duration must be at least 1 minute.")
-        .optional(),
+        .int("End time must be a valid timestamp.")
+        .refine(
+          (val) => {
+            if (val === 0) return true;
+            return val > Date.now();
+          },
+          {
+            message: "Start time must be in the future.",
+          }
+        ),
+      is_scheduled: z.boolean({
+        error: (iss) => {
+          if (typeof iss.input !== iss.expected) {
+            return "is_scheduled must be a boolean.";
+          }
+          return "Invalid is_scheduled value.";
+        },
+      }),
     })
     .strict(),
 });
