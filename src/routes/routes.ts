@@ -14,6 +14,15 @@ import studentRouter from "./student.routes";
 import summaryRouter from "./summary.routes";
 import userRouter from "./user.routes";
 
+import client from "prom-client";
+import { asyncHandler } from "../utils/async-handler";
+
+const register = new client.Registry();
+
+client.collectDefaultMetrics({
+  register,
+});
+
 const router = Router();
 
 // home route
@@ -31,6 +40,15 @@ router.get("/health", (_, res) => {
     statusCode: 200,
   });
 });
+
+// metrics route
+router.get(
+  "/metrics",
+  asyncHandler(async (_req, res) => {
+    res.setHeader("Content-Type", client.register.contentType);
+    res.end(await register.metrics());
+  })
+);
 
 // device routes
 router.use("/api/v1/clock-devices", clockRouter);
