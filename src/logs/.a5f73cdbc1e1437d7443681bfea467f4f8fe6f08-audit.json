@@ -1,30 +1,30 @@
 {
-    "keep": {
-        "days": true,
-        "amount": 14
+  "keep": {
+    "days": true,
+    "amount": 14
+  },
+  "auditLog": "src/logs/.a5f73cdbc1e1437d7443681bfea467f4f8fe6f08-audit.json",
+  "files": [
+    {
+      "date": 1760305019662,
+      "name": "src/logs/combined-2025-10-13.log",
+      "hash": "707109326b2a9f072ee6c7d43c467dbe5974acce2802c74301c4d38317154209"
     },
-    "auditLog": "src/logs/.a5f73cdbc1e1437d7443681bfea467f4f8fe6f08-audit.json",
-    "files": [
-        {
-            "date": 1760305019662,
-            "name": "src/logs/combined-2025-10-13.log",
-            "hash": "707109326b2a9f072ee6c7d43c467dbe5974acce2802c74301c4d38317154209"
-        },
-        {
-            "date": 1760856194800,
-            "name": "src/logs/combined-2025-10-19.log",
-            "hash": "06ecb0d1b683ffa2b1956bf663b160cdc28bcc926258f0f25a06266be0c34e27"
-        },
-        {
-            "date": 1760965050816,
-            "name": "src/logs/combined-2025-10-20.log",
-            "hash": "f81e5d7b71936b85b866ff026c7448aef6f032a3e1572821d73c128083bc1699"
-        },
-        {
-            "date": 1760984490393,
-            "name": "src/logs/combined-2025-10-21.log",
-            "hash": "93f9d90af6b994552f95760417bbc300f347a817f378224da1d282f2231a0674"
-        }
-    ],
-    "hashType": "sha256"
+    {
+      "date": 1760856194800,
+      "name": "src/logs/combined-2025-10-19.log",
+      "hash": "06ecb0d1b683ffa2b1956bf663b160cdc28bcc926258f0f25a06266be0c34e27"
+    },
+    {
+      "date": 1760965050816,
+      "name": "src/logs/combined-2025-10-20.log",
+      "hash": "f81e5d7b71936b85b866ff026c7448aef6f032a3e1572821d73c128083bc1699"
+    },
+    {
+      "date": 1760984490393,
+      "name": "src/logs/combined-2025-10-21.log",
+      "hash": "93f9d90af6b994552f95760417bbc300f347a817f378224da1d282f2231a0674"
+    }
+  ],
+  "hashType": "sha256"
 }

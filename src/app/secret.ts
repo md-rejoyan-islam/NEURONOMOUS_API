@@ -38,8 +38,12 @@ const emailPassword: string = process.env.EMAIL_PASSWORD!;
 const client_url: string = process.env.CLIENT_URL!;
 const FIRMWARE_BASE_URL: string = process.env.FIRMWARE_BASE_URL!;
 const PRODUCTION_CLIENT_URL: string = process.env.PRODUCTION_CLIENT_URL!;
+const loki_host: string = process.env.LOKI_HOST!;
+const app_name: string = process.env.APP_NAME!;
 
 const secret = {
+  app_name,
+  loki_host,
   mqtt_broker_url,
   PRODUCTION_CLIENT_URL,
   mqtt_port,

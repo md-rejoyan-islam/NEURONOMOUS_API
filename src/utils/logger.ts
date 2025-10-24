@@ -67,8 +67,8 @@ interface CustomLogger extends Logger {
 }
 
 const lokiTransport = new LokiTransport({
-  host: "http://localhost:3100", // Your Loki endpoint
-  labels: { app: "neuronomous-iot", env: "dev" },
+  host: secret.loki_host, // Your Loki endpoint
+  labels: { app: secret.app_name, env: secret.node_env },
   json: true,
   format: winston.format.json(),
   // Optional: batch logs to reduce network calls

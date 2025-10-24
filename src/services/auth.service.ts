@@ -22,7 +22,8 @@ const authLogin = async (email: string, password: string) => {
   if (!user) throw createError(404, "User not found.");
   if (user.status !== "active") {
     logger.login_failed(`Login failed for inactive user.`, {
-      email: email,
+      userId: user._id.toString(),
+      reason: "inactive_account",
     });
     throw createError(403, "User is inactive. Please contact support.");
   }
@@ -31,7 +32,8 @@ const authLogin = async (email: string, password: string) => {
   const isMatch = await comparePassword(password, user.password);
   if (!isMatch) {
     logger.login_failed(`Login failed due to incorrect password.`, {
-      email: email,
+      userId: user._id.toString(),
+      reason: "incorrect_password",
     });
     throw createError(401, "Wrong email or password.");
   }
@@ -95,7 +97,8 @@ const forgotPassword = async (email: string) => {
 
   if (user.status !== "active") {
     logger.login_failed(`Forgot password attempt for inactive user.`, {
-      email: email,
+      userId: user._id.toString(),
+      reason: "inactive_account",
     });
 
     throw createError(403, "User is inactive. Please contact support.");
@@ -123,11 +126,11 @@ const forgotPassword = async (email: string) => {
     });
 
     logger.info(`Forgot password email sent`, {
-      email: user.email,
+      userId: user._id.toString(),
     });
   } catch (error) {
     logger.warn(`Failed to send forgot password email`, {
-      email: user.email,
+      userId: user._id.toString(),
       error,
     });
   }
@@ -175,11 +178,11 @@ const resetPassword = async (
       name: user.first_name + " " + user.last_name,
     });
     logger.info(`Reset password confirmation email sent`, {
-      email: user.email,
+      userId: user._id.toString(),
     });
   } catch (error) {
     logger.warn(`Failed to send reset password confirmation email`, {
-      email: user.email,
+      userId: user._id.toString(),
       error,
     });
   }
@@ -354,9 +357,7 @@ const createUser = async (userData: IUser) => {
 
   // If user exists, throw an error
   if (existingUser) {
-    logger.warn(`Attempt to create a user that already exists`, {
-      email: userData.email,
-    });
+    logger.warn(`Attempt to create a user that already exists`);
 
     throw createError(409, "User already exists.");
   }

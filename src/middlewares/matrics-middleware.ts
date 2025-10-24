@@ -17,8 +17,8 @@ const httpRequestCount = new client.Counter({
 
 // Define a histogram for request duration
 const httpRequestDurationMicroseconds = new client.Histogram({
-  name: "http_request_duration_microseconds",
-  help: "Duration of HTTP requests in microseconds.",
+  name: "http_request_duration_miliseconds",
+  help: "Duration of HTTP requests in miliseconds",
   labelNames: ["method", "route", "status_code"],
   registers: [register],
   // Adjust buckets as needed for your app's performance
