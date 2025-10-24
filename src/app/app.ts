@@ -22,7 +22,19 @@ app.use("/public", express.static(path.join(process.cwd(), "/src/public/")));
 // CORS configuration
 // app.use(cors(corsOptions));
 // for vps hosting
-app.use(cors({ origin: secret.client_url, credentials: true }));
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true);
+      if (secret.clinetWhiteList.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+  })
+);
 
 const stream: StreamOptions = {
   write: (message) => logger.http(message.trim()),

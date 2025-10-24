@@ -41,16 +41,17 @@ pipeline {
             steps {
                 script {
                     def envContent = '''
+                        # MQTT Configuration
                         MQTT_BROKER_URL= mqtts://iot.neuronomous.net
                         MQTT_PORT = 8883
                         MQTT_USER = sust_eee_i@t
                         MQTT_PASS = eee_sust_iot_sylhet
-
-                        NODE_ENV = production
+                        # MongoDB Configuration
                         MONGO_URI=mongodb://sust_eee:seueset_2_3_4@127.0.0.1:27017/neuronomous?authSource=admin
-
-                        SERVER_PORT=5050
-                        SERVER_PORT2=5051
+                        # Server Configuration
+                        NODE_ENV = production
+                        SERVER_PORT= 5050
+                        APP_NAME = Neuronomous
                         MAX_REQUESTS = 30
                         MAX_REQUESTS_WINDOW = 60000 # 1 minutes
                         CLIENT_WHITELIST = http://localhost:3000,https://neuronomous.net
@@ -67,11 +68,12 @@ pipeline {
                         EMAIL_USERNAME = neuronomous.iot@gmail.com
                         EMAIL_PASSWORD = bllj jolp trkh irtu
                         EMAIL_FROM = neuronomous.iot@gmail.com
-
                         # Client URL
                         CLIENT_URL = https://neuronomous.net
                         PRODUCTION_CLIENT_URL = https://neuronomous.net
                         FIRMWARE_BASE_URL = https://neuronomous.net/api/v1/firmwares
+                        # LOKI LOGGING
+                        LOKI_HOST = http://localhost:3100
                         '''
                     writeFile file: "${WORKSPACE}/.env", text: envContent
                     echo '✅ .env file generated'
