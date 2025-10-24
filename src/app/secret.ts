@@ -6,6 +6,38 @@ dotenv.config({
   debug: process.env.NODE_ENV === "development",
 });
 
+const requiredEnvVars = [
+  "LOKI_HOST",
+  "APP_NAME",
+  "MQTT_BROKER_URL",
+  "MQTT_PORT",
+  "MQTT_USER",
+  "MQTT_PASS",
+  "NODE_ENV",
+  "MONGO_URI",
+  "SERVER_PORT",
+  "MAX_REQUESTS",
+  "MAX_REQUESTS_WINDOW",
+  "JWT_ACCESS_TOKEN_SECRET",
+  "JWT_REFRESH_TOKEN_SECRET",
+  "PASSWORD_RESET_CODE_EXPIRES_IN",
+  "EMAIL_HOST",
+  "EMAIL_PORT",
+  "EMAIL_USERNAME",
+  "EMAIL_PASSWORD",
+  "EMAIL_FROM",
+  "CLIENT_URL",
+  "FIRMWARE_BASE_URL",
+  "PRODUCTION_CLIENT_URL",
+];
+
+const missingVars = requiredEnvVars.filter((varName) => !process.env[varName]);
+if (missingVars.length > 0) {
+  throw new Error(
+    `Missing required environment variables: ${missingVars.join(", ")}`
+  );
+}
+
 const mqtt_broker_url: string = process.env.MQTT_BROKER_URL!;
 const mqtt_port: number = +process.env.MQTT_PORT!;
 const mqtt_user: string = process.env.MQTT_USER!;
