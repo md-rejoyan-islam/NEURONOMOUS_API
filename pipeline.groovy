@@ -10,6 +10,7 @@ pipeline {
         WORK_DIR = '/home/apps/server'
         GIT_REPO = 'https://github.com/md-rejoyan-islam/SUST_EEE_IOT_HUB_API.git'
     }
+
     stages {
         stage('Clone Repository') {
             steps {
