@@ -21,12 +21,20 @@ const authLogin = async (email: string, password: string) => {
 
   if (!user) throw createError(404, "User not found.");
   if (user.status !== "active") {
+    logger.login_failed(`Login failed for inactive user.`, {
+      email: email,
+    });
     throw createError(403, "User is inactive. Please contact support.");
   }
 
   // Compare password
   const isMatch = await comparePassword(password, user.password);
-  if (!isMatch) throw createError(401, "Wrong email or password.");
+  if (!isMatch) {
+    logger.login_failed(`Login failed due to incorrect password.`, {
+      email: email,
+    });
+    throw createError(401, "Wrong email or password.");
+  }
 
   // generate loginCode
   const loginCode = generateRandomPin(7);
@@ -85,8 +93,13 @@ const forgotPassword = async (email: string) => {
   const user = await UserModel.findOne({ email: email.toLowerCase() });
   if (!user) throw createError(404, "User not found.");
 
-  if (user.status !== "active")
+  if (user.status !== "active") {
+    logger.login_failed(`Forgot password attempt for inactive user.`, {
+      email: email,
+    });
+
     throw createError(403, "User is inactive. Please contact support.");
+  }
 
   // password reset code generation
   const resetCode = generateRandomPin(7).toString();
@@ -108,16 +121,14 @@ const forgotPassword = async (email: string) => {
       name: user.first_name + " " + user.last_name,
       resetCode,
     });
-    logger.info({
-      message: `Forgot password email sent to ${user.email}`,
-      status: 200,
+
+    logger.info(`Forgot password email sent`, {
+      email: user.email,
     });
   } catch (error) {
-    logger.error({
-      message: `Failed to send forgot password email to ${user.email}`,
-      status: 500,
-      name: error instanceof Error ? error.name : "UnknownError",
-      stack: error instanceof Error ? error.stack : "No stack trace available",
+    logger.warn(`Failed to send forgot password email`, {
+      email: user.email,
+      error,
     });
   }
 };
@@ -144,6 +155,10 @@ const resetPassword = async (
   const now = Date.now();
 
   if (!isCodeValid || user.reset_code_expires < now) {
+    logger.warn(`Invalid or expired reset code attempt`, {
+      email: user.email,
+    });
+
     throw createError(400, "Invalid or expired reset code.");
   }
 
@@ -159,16 +174,13 @@ const resetPassword = async (
       to: user.email,
       name: user.first_name + " " + user.last_name,
     });
-    logger.info({
-      messaege: `Reset password confirmation email sent to ${user.email}`,
-      status: 200,
+    logger.info(`Reset password confirmation email sent`, {
+      email: user.email,
     });
   } catch (error) {
-    logger.error({
-      message: `Failed to send reset password confirmation email to ${user.email}`,
-      status: 500,
-      name: error instanceof Error ? error.name : "UnknownError",
-      stack: error instanceof Error ? error.stack : "No stack trace available",
+    logger.warn(`Failed to send reset password confirmation email`, {
+      email: user.email,
+      error,
     });
   }
 };
@@ -184,12 +196,24 @@ const changePassword = async (
   if (!user) throw createError(404, "User not found.");
 
   if (user.status !== "active") {
+    logger.login_failed(`Change password attempt for inactive user.`, {
+      userId: userId,
+    });
+
     throw createError(403, "User is inactive. Please contact support.");
   }
 
   // Compare current password
   const isMatch = await comparePassword(currentPassword, user.password);
-  if (!isMatch) throw createError(401, "Current password is incorrect.");
+  if (!isMatch) {
+    logger.login_failed(
+      `Change password failed due to incorrect current password.`,
+      {
+        userId: userId,
+      }
+    );
+    throw createError(401, "Current password is incorrect.");
+  }
 
   // Update password
   user.password = newPassword;
@@ -284,15 +308,11 @@ const updateAuthProfile = async (userId: Types.ObjectId, payload: IUser) => {
 
 // refresh token service
 const refreshToken = async (refreshToken: string) => {
-  console.log(refreshToken);
-
   // Verify the refresh token
   const payload = verifyToken(
     refreshToken,
     secret.jwt.refreshTokenSecret
   ) as IJwtPayload;
-
-  console.log(payload);
 
   if (!payload) throw createError(401, "Invalid refresh token.");
 
@@ -333,7 +353,13 @@ const createUser = async (userData: IUser) => {
   });
 
   // If user exists, throw an error
-  if (existingUser) throw createError(409, "User already exists.");
+  if (existingUser) {
+    logger.warn(`Attempt to create a user that already exists`, {
+      email: userData.email,
+    });
+
+    throw createError(409, "User already exists.");
+  }
 
   // Create new user
   const user = new UserModel({

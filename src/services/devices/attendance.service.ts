@@ -40,7 +40,7 @@ const getAllAttendanceDevices = async () => {
     .lean();
   return devices?.map((device) => ({
     ...device,
-    allowed_users: device?.allowed_users?.filter(
+    allowed_users: device.allowed_users?.filter(
       (user) => user.role !== "admin"
     ),
     group: device.group

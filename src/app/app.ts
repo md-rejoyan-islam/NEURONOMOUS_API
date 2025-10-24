@@ -2,6 +2,7 @@ import cors from "cors";
 import express, { Request, Response } from "express";
 import morgan, { StreamOptions } from "morgan";
 import path from "path";
+import { metricsMiddleware } from "../middlewares/matrics-middleware";
 import router from "../routes/routes";
 import { logger } from "../utils/logger";
 import secret from "./secret";
@@ -11,6 +12,9 @@ const app = express();
 // Middleware to parse JSON requests
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// matrics middleware
+app.use(metricsMiddleware);
 
 // serve static files
 app.use("/public", express.static(path.join(process.cwd(), "/src/public/")));

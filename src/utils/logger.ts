@@ -1,8 +1,10 @@
-import { config, createLogger, format, transports } from "winston";
+import winston, { createLogger, format, Logger, transports } from "winston";
 import DailyRotateFile from "winston-daily-rotate-file";
 import "winston-mongodb";
 import secret from "../app/secret";
 const { printf } = format;
+
+import LokiTransport from "winston-loki";
 
 const logDirectory = "src/logs";
 
@@ -34,9 +36,51 @@ const consoleFormat = format.combine(
 
 const jsonFormat = format.combine(format.timestamp(), format.json());
 
+// 1. Define custom logging levels
+const customLevels = {
+  levels: {
+    critical: 0,
+    error: 1,
+    warn: 2,
+    info: 3,
+    http: 4,
+    debug: 5,
+    trace: 6,
+  },
+  colors: {
+    critical: "red bold",
+    error: "red",
+    warn: "yellow",
+    http: "magenta",
+    info: "green",
+    debug: "blue",
+    trace: "grey",
+  },
+};
+
+interface CustomLogger extends Logger {
+  login_failed: winston.LeveledLogMethod;
+  password_changed: winston.LeveledLogMethod;
+  http: winston.LeveledLogMethod;
+  fatal: winston.LeveledLogMethod;
+  critical: winston.LeveledLogMethod;
+}
+
+const lokiTransport = new LokiTransport({
+  host: "http://localhost:3100", // Your Loki endpoint
+  labels: { app: "neuronomous-iot", env: "dev" },
+  json: true,
+  format: winston.format.json(),
+  // Optional: batch logs to reduce network calls
+  batching: true,
+  interval: 5,
+});
+
 export const logger = createLogger({
-  levels: config.npm.levels,
-  level: "http",
+  levels: customLevels.levels,
+  level: "trace",
+  // levels: config.npm.levels,
+  // level: "http",
   transports: [
     new transports.Console({
       format: consoleFormat,
@@ -50,6 +94,7 @@ export const logger = createLogger({
       maxFiles: "14d",
       format: jsonFormat,
     }),
+    lokiTransport,
 
     new transports.MongoDB({
       level: "info",
@@ -64,4 +109,4 @@ export const logger = createLogger({
       ),
     }),
   ],
-});
+}) as CustomLogger;

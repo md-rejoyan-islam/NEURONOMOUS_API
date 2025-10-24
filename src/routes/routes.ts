@@ -14,14 +14,8 @@ import studentRouter from "./student.routes";
 import summaryRouter from "./summary.routes";
 import userRouter from "./user.routes";
 
-import client from "prom-client";
+import { register } from "../middlewares/matrics-middleware";
 import { asyncHandler } from "../utils/async-handler";
-
-const register = new client.Registry();
-
-client.collectDefaultMetrics({
-  register,
-});
 
 const router = Router();
 
@@ -45,7 +39,7 @@ router.get("/health", (_, res) => {
 router.get(
   "/metrics",
   asyncHandler(async (_req, res) => {
-    res.setHeader("Content-Type", client.register.contentType);
+    res.setHeader("Content-Type", register.contentType);
     res.end(await register.metrics());
   })
 );

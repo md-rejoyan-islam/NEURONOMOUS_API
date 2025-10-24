@@ -10,7 +10,6 @@ import { logger } from "./utils/logger";
 
 const PORT = secret.port;
 const server = http.createServer(app);
-const server2 = http.createServer();
 
 // Initialize MQTT client
 setupMqttClient();
@@ -46,7 +45,6 @@ const schedulePendingJobs = async () => {
     console.log(`📌 Jobs scheduled for ${sch._id}`);
   }
 };
-schedulePendingJobs();
 
 const startServer = async () => {
   try {
@@ -56,12 +54,6 @@ const startServer = async () => {
     server.listen(PORT, () => {
       logger.info({
         message: `Server is running on http://localhost:${PORT}`,
-        status: 200,
-      });
-    });
-    server2.listen(5051, () => {
-      logger.info({
-        message: `Attendance WebSocket Server is running on ws://localhost:8080/ws/attendance`,
         status: 200,
       });
     });

@@ -85,12 +85,12 @@ const getAllGroups = async ({
       eiin: group.eiin,
       description: group.description,
       createdAt: group.createdAt,
-      clock: group?.devices?.filter((device) => device.deviceType === "clock")
+      clock: group.devices?.filter((device) => device.deviceType === "clock")
         .length,
-      attendance: group?.devices?.filter(
+      attendance: group.devices?.filter(
         (device) => device.deviceType === "attendance"
       ).length,
-      users: group?.members.length,
+      users: group.members?.length || 0,
     })),
     pagination,
   };
@@ -889,7 +889,7 @@ const getGroupByIdWithAttendanceDevices = async (
   return (
     devices?.map((device) => ({
       ...device,
-      allowed_users: device?.allowed_users?.filter(
+      allowed_users: device.allowed_users?.filter(
         (user) => user.role !== "admin"
       ),
       group: device.group
